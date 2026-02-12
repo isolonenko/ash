@@ -1,0 +1,115 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(135deg, $neon-cyan, transparent, $neon-magenta);
+    z-index: -1;
+    opacity: 0.3;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-md;
+  border-bottom: 1px solid $border-color;
+}
+
+.title {
+  font-family: $font-display;
+  font-size: $font-lg;
+  color: $neon-cyan;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.closeButton {
+  padding: $space-xs $space-sm;
+  background: transparent;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+  font-family: $font-mono;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $neon-magenta;
+    color: $neon-magenta;
+  }
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid $border-color;
+}
+
+.tab {
+  flex: 1;
+  padding: $space-sm $space-md;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: $text-secondary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all $transition-fast;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+.activeTab {
+  composes: tab;
+  color: $neon-cyan;
+  border-bottom-color: $neon-cyan;
+}
+
+.content {
+  padding: $space-lg;
+}
+
+.status {
+  padding: $space-md;
+  text-align: center;
+  font-size: $font-sm;
+}
+
+.waiting {
+  composes: status;
+  color: $neon-yellow;
+  animation: pulse-glow 1.5s infinite;
+}
+
+.success {
+  composes: status;
+  color: $neon-green;
+}
+
+.error {
+  composes: status;
+  color: $danger;
+}

@@ -1,0 +1,190 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: $space-md;
+  border-bottom: 1px solid $border-color;
+  background: $bg-secondary;
+  min-height: $header-height;
+}
+
+.backButton {
+  padding: $space-xs $space-sm;
+  background: transparent;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+  cursor: pointer;
+  display: none;
+
+  @media (max-width: 768px) {
+    display: block;
+  }
+}
+
+.contactName {
+  font-family: $font-display;
+  font-size: $font-base;
+  color: $text-primary;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.connectionStatus {
+  font-size: $font-xs;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: auto;
+}
+
+.connected {
+  composes: connectionStatus;
+  color: $neon-green;
+}
+
+.connecting {
+  composes: connectionStatus;
+  color: $neon-yellow;
+  animation: pulse-glow 1.5s infinite;
+}
+
+.disconnected {
+  composes: connectionStatus;
+  color: $text-muted;
+}
+
+.connectButton {
+  padding: $space-xs $space-sm;
+  background: transparent;
+  border: 1px solid $neon-cyan;
+  color: $neon-cyan;
+  font-family: $font-mono;
+  font-size: $font-xs;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-left: auto;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($neon-cyan, 0.1);
+  }
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-md;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: $text-muted;
+  font-size: $font-sm;
+}
+
+.typingIndicator {
+  font-size: $font-xs;
+  color: $neon-magenta;
+  padding: 0 $space-md;
+  animation: blink 1.5s infinite;
+}
+
+.inputArea {
+  display: flex;
+  gap: $space-sm;
+  padding: $space-md;
+  border-top: 1px solid $border-color;
+  background: $bg-secondary;
+}
+
+.input {
+  flex: 1;
+  padding: $space-sm $space-md;
+  background: $bg-input;
+  border: 1px solid $border-color;
+  color: $text-primary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+
+  &:focus {
+    outline: none;
+    border-color: $neon-cyan;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+.sendButton {
+  padding: $space-sm $space-lg;
+  background: transparent;
+  border: 1px solid $neon-cyan;
+  color: $neon-cyan;
+  font-family: $font-mono;
+  font-size: $font-sm;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($neon-cyan, 0.1);
+    box-shadow: $glow-cyan;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.fileButton {
+  padding: $space-sm;
+  background: transparent;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $neon-yellow;
+    color: $neon-yellow;
+  }
+}
+
+.noChat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.noChatTitle {
+  font-family: $font-display;
+  font-size: $font-xl;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.noChatSubtitle {
+  font-size: $font-sm;
+  color: $text-muted;
+}
