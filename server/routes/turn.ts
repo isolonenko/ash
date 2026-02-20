@@ -1,9 +1,9 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 
 export const createTurnRoutes = (): Hono => {
   const routes = new Hono();
 
-  routes.get("/", async (c) => {
+  routes.get("/", async (c: Context) => {
     const sharedSecret = Deno.env.get("TURN_SHARED_SECRET");
     const turnServerUrl = Deno.env.get("TURN_SERVER_URL");
 
