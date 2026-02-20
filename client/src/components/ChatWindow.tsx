@@ -10,10 +10,13 @@ import type {
   Contact,
   PeerConnectionState,
   ChatPayload,
+  CallState,
+  CallType,
 } from "@shared/types";
 import { useMessages } from "@/hooks/useMessages";
 import { shortenKey } from "@/lib/crypto";
 import { MessageBubble } from "./MessageBubble";
+import { CallOverlay } from "./CallOverlay";
 import styles from "./ChatWindow.module.scss";
 
 interface ChatWindowProps {
@@ -23,6 +26,16 @@ interface ChatWindowProps {
   isConnecting: boolean;
   incomingChat: ChatPayload | null;
   peerTyping: boolean;
+  callState: CallState;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  callType: CallType;
+  isAudioEnabled: boolean;
+  isVideoEnabled: boolean;
+  onStartCall: (type: CallType) => Promise<void>;
+  onEndCall: () => void;
+  onToggleAudio: () => void;
+  onToggleVideo: () => Promise<void>;
   onConnect: (peerPublicKey: string) => Promise<void>;
   onSendChat: (id: string, text: string) => void;
   onSendTyping: (isTyping: boolean) => void;
@@ -38,6 +51,16 @@ export const ChatWindow = ({
   isConnecting,
   incomingChat,
   peerTyping,
+  callState,
+  localStream,
+  remoteStream,
+  callType,
+  isAudioEnabled,
+  isVideoEnabled,
+  onStartCall,
+  onEndCall,
+  onToggleAudio,
+  onToggleVideo,
   onConnect,
   onSendChat,
   onSendTyping,
@@ -199,6 +222,22 @@ export const ChatWindow = ({
         ) : (
           <>
             <span className={status.className}>{status.text}</span>
+            {isConnectedToThisContact && callState === "idle" && (
+              <>
+                <button
+                  className={styles.callButton}
+                  onClick={() => onStartCall("audio")}
+                >
+                  [CALL]
+                </button>
+                <button
+                  className={styles.videoCallButton}
+                  onClick={() => onStartCall("video")}
+                >
+                  [VIDEO]
+                </button>
+              </>
+            )}
             {isConnectedToThisContact && (
               <button className={styles.connectButton} onClick={onDisconnect}>
                 Disconnect
@@ -209,6 +248,20 @@ export const ChatWindow = ({
       </div>
 
       <div className={styles.messages}>
+        {callState !== "idle" && callState !== "ended" && (
+          <CallOverlay
+            localStream={localStream}
+            remoteStream={remoteStream}
+            callState={callState}
+            callType={callType}
+            isAudioEnabled={isAudioEnabled}
+            isVideoEnabled={isVideoEnabled}
+            callerName={contact.name || shortenKey(contact.publicKey)}
+            onToggleAudio={onToggleAudio}
+            onToggleVideo={onToggleVideo}
+            onEndCall={onEndCall}
+          />
+        )}
         {messages.length === 0 ? (
           <div className={styles.empty}>No messages yet</div>
         ) : (

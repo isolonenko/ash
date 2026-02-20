@@ -5,6 +5,8 @@ import type {
   SignalingMessage,
   ChatPayload,
   TypingPayload,
+  SdpRenegotiatePayload,
+  IceRenegotiatePayload,
 } from "@shared/types";
 import { createWebRTCManager } from "@/lib/webrtc";
 import {
@@ -21,6 +23,8 @@ interface UseConnectionOptions {
   onTyping?: (isTyping: boolean) => void;
   onFileReceived?: (name: string, data: Uint8Array) => void;
   onPeerIdentified?: (peerPublicKey: string) => void;
+  onCallSignal?: (msg: DataChannelMessage) => void;
+  onRemoteTrack?: (event: RTCTrackEvent) => void;
 }
 
 interface UseConnectionResult {
@@ -28,10 +32,12 @@ interface UseConnectionResult {
   connectedPeerKey: string | null;
   presenceRoomId: string | null;
   isConnecting: boolean;
+  rtcManager: ReturnType<typeof createWebRTCManager> | null;
   connectTo: (peerPublicKey: string) => Promise<void>;
   sendChat: (id: string, text: string) => void;
   sendTyping: (isTyping: boolean) => void;
   sendFile: (file: File) => Promise<string>;
+  sendCallSignal: (msg: DataChannelMessage) => void;
   disconnect: () => void;
 }
 
@@ -141,6 +147,29 @@ export const useConnection = (
           }
           break;
         }
+        case "call-offer":
+        case "call-accept":
+        case "call-reject":
+        case "call-end":
+        case "call-media-state": {
+          optionsRef.current.onCallSignal?.(msg);
+          break;
+        }
+        case "sdp-renegotiate-offer": {
+          const payload = msg.payload as SdpRenegotiatePayload;
+          rtcRef.current?.handleRenegotiationOffer(payload.sdp);
+          break;
+        }
+        case "sdp-renegotiate-answer": {
+          const payload = msg.payload as SdpRenegotiatePayload;
+          rtcRef.current?.handleRenegotiationAnswer(payload.sdp);
+          break;
+        }
+        case "ice-renegotiate": {
+          const payload = msg.payload as IceRenegotiatePayload;
+          rtcRef.current?.handleRenegotiationIceCandidate(payload.candidate);
+          break;
+        }
       }
     },
     [],
@@ -149,9 +178,7 @@ export const useConnection = (
   // ── Core: open signaling + WebRTC to a room ────────────
 
   const openConnection = useCallback(
-    (roomId: string, asInitiator: boolean) => {
-      console.log("[Connection] openConnection room:", roomId, "asInitiator:", asInitiator);
-      // Tear down any existing connection
+    (roomId: string, asInitiator: boolean, peerPublicKey?: string) => {
       rtcRef.current?.close();
       signalingRef.current?.disconnect();
 
@@ -161,6 +188,7 @@ export const useConnection = (
       const rtc = createWebRTCManager({
         roomId,
         publicKey: options.publicKey,
+        peerPublicKey,
         onStateChange: (state) => {
           // Ignore callbacks from a superseded connection
           if (connId !== connectionIdRef.current) return;
@@ -172,8 +200,11 @@ export const useConnection = (
         onMessage: handleDataChannelMessage,
         onSignalingNeeded: (msg: SignalingMessage) => {
           if (connId !== connectionIdRef.current) return;
-          console.log("[Connection] signaling send:", msg.type, "ws open:", signalingRef.current?.isConnected());
           signalingRef.current?.send(msg);
+        },
+        onTrack: (event: RTCTrackEvent) => {
+          if (connId !== connectionIdRef.current) return;
+          optionsRef.current.onRemoteTrack?.(event);
         },
       });
 
@@ -181,7 +212,6 @@ export const useConnection = (
         publicKey: options.publicKey,
         onMessage: (msg: SignalingMessage) => {
           if (connId !== connectionIdRef.current) return;
-          console.log("[Connection] signaling recv:", msg.type, "sender:", msg.senderPublicKey?.substring(0, 8), "asInitiator:", asInitiator);
           if (msg.type === "peer-joined") {
             if (
               msg.senderPublicKey &&
@@ -254,8 +284,6 @@ export const useConnection = (
 
   const connectTo = useCallback(
     async (peerPublicKey: string) => {
-      console.log("[Connection] connectTo:", peerPublicKey.substring(0, 8));
-      // Mutex: skip if already connecting
       if (connectingRef.current) return;
       connectingRef.current = true;
       setIsConnecting(true);
@@ -278,7 +306,7 @@ export const useConnection = (
 
           // Peer is listening on their presence room — join it as answerer
           setConnectedPeerKey(peerPublicKey);
-          openConnection(presence.roomId, false);
+          openConnection(presence.roomId, false, peerPublicKey);
         } else {
           // Peer is offline — we're already listening on our own presence room.
           // When they come online and look us up, the connection will happen.
@@ -305,6 +333,10 @@ export const useConnection = (
   const sendFile = useCallback(async (file: File): Promise<string> => {
     if (!rtcRef.current) throw new Error("Not connected");
     return rtcRef.current.sendFile(file);
+  }, []);
+
+  const sendCallSignal = useCallback((msg: DataChannelMessage) => {
+    rtcRef.current?.send(msg);
   }, []);
 
   const disconnect = useCallback(() => {
@@ -342,10 +374,12 @@ export const useConnection = (
     connectedPeerKey,
     presenceRoomId,
     isConnecting,
+    rtcManager: rtcRef.current,
     connectTo,
     sendChat,
     sendTyping,
     sendFile,
+    sendCallSignal,
     disconnect,
   };
 };

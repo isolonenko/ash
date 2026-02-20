@@ -10,6 +10,7 @@ $neon-magenta: #ff2d6b;
 $neon-yellow: #f7f052;
 $neon-green: #39ff14;
 $neon-purple: #bf00ff;
+$neon-red: #ff3333;
 
 $text-primary: #e0e0e8;
 $text-secondary: #8888a0;
@@ -46,9 +47,11 @@ $space-2xl: 48px;
 $glow-cyan: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(0, 240, 255, 0.2);
 $glow-magenta: 0 0 10px rgba(255, 45, 107, 0.5), 0 0 20px rgba(255, 45, 107, 0.2);
 $glow-yellow: 0 0 10px rgba(247, 240, 82, 0.5), 0 0 20px rgba(247, 240, 82, 0.2);
+$glow-red: 0 0 10px rgba(255, 51, 51, 0.5), 0 0 20px rgba(255, 51, 51, 0.2);
 
 $text-glow-cyan: 0 0 8px rgba(0, 240, 255, 0.6);
 $text-glow-magenta: 0 0 8px rgba(255, 45, 107, 0.6);
+$text-glow-red: 0 0 8px rgba(255, 51, 51, 0.6);
 
 // ── Layout ───────────────────────────────────────────────
 $sidebar-width: 320px;

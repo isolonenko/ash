@@ -54,8 +54,10 @@ interface WebRTCManagerOptions {
   onStateChange: (state: PeerConnectionState) => void;
   onMessage: (msg: DataChannelMessage) => void;
   onSignalingNeeded: (msg: SignalingMessage) => void;
+  onTrack: (event: RTCTrackEvent) => void;
   roomId: string;
   publicKey: string; // our public key
+  peerPublicKey?: string;
 }
 
 // ── WebRTC Manager ───────────────────────────────────────
@@ -69,13 +71,17 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   // (e.g. ice-candidate arriving before setRemoteDescription completes)
   let messageQueue: Promise<void> = Promise.resolve();
 
+  // Renegotiation state (for adding media tracks after DataChannel is established)
+  let isRenegotiating = false;
+  let hasEstablishedConnection = false;
+  let makingOffer = false;
+
   const setState = (newState: PeerConnectionState): void => {
     state = newState;
     options.onStateChange(newState);
   };
 
   const createPeerConnection = (): RTCPeerConnection => {
-    console.log("[WebRTC] createPeerConnection iceServers:", JSON.stringify(ICE_SERVERS), "policy:", ICE_TRANSPORT_POLICY);
     const connection = new RTCPeerConnection({
       iceServers: ICE_SERVERS,
       iceTransportPolicy: ICE_TRANSPORT_POLICY,
@@ -83,32 +89,23 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
 
     connection.onicecandidate = (event) => {
       if (event.candidate) {
-        console.log("[WebRTC] ICE candidate:", event.candidate.type, event.candidate.candidate.substring(0, 80));
-        options.onSignalingNeeded({
-          type: "ice-candidate",
-          roomId: options.roomId,
-          senderPublicKey: options.publicKey,
-          payload: { candidate: event.candidate.toJSON() },
-        });
-      } else {
-        console.log("[WebRTC] ICE gathering complete");
+        if (isRenegotiating) {
+          send({
+            type: "ice-renegotiate",
+            payload: { candidate: event.candidate.toJSON() },
+          });
+        } else {
+          options.onSignalingNeeded({
+            type: "ice-candidate",
+            roomId: options.roomId,
+            senderPublicKey: options.publicKey,
+            payload: { candidate: event.candidate.toJSON() },
+          });
+        }
       }
     };
 
-    connection.oniceconnectionstatechange = () => {
-      console.log("[WebRTC] ICE connection state:", connection.iceConnectionState);
-    };
-
-    connection.onicegatheringstatechange = () => {
-      console.log("[WebRTC] ICE gathering state:", connection.iceGatheringState);
-    };
-
-    connection.onsignalingstatechange = () => {
-      console.log("[WebRTC] signaling state:", connection.signalingState);
-    };
-
     connection.onconnectionstatechange = () => {
-      console.log("[WebRTC] connection state:", connection.connectionState);
       const stateMap: Record<string, PeerConnectionState> = {
         new: "new",
         connecting: "connecting",
@@ -124,6 +121,27 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
       setupDataChannel(event.channel);
     };
 
+    connection.ontrack = (event) => {
+      options.onTrack(event);
+    };
+
+    connection.onnegotiationneeded = async () => {
+      if (!hasEstablishedConnection) return;
+      try {
+        makingOffer = true;
+        await connection.setLocalDescription();
+        send({
+          type: "sdp-renegotiate-offer",
+          payload: { sdp: connection.localDescription },
+        });
+        isRenegotiating = true;
+      } catch (err) {
+        console.error("[WebRTC] renegotiation offer error:", err);
+      } finally {
+        makingOffer = false;
+      }
+    };
+
     return connection;
   };
 
@@ -132,6 +150,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     channel.binaryType = "arraybuffer";
 
     channel.onopen = () => {
+      hasEstablishedConnection = true;
       setState("connected");
     };
 
@@ -156,7 +175,6 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   // ── Offer/Answer Flow ──────────────────────────────────
 
   const createOffer = async (): Promise<void> => {
-    console.log("[WebRTC] createOffer start");
     pc = createPeerConnection();
     setState("connecting");
 
@@ -168,7 +186,6 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    console.log("[WebRTC] offer created, sending via signaling");
     options.onSignalingNeeded({
       type: "sdp-offer",
       roomId: options.roomId,
@@ -180,7 +197,6 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   const handleOffer = async (
     sdp: RTCSessionDescriptionInit,
   ): Promise<void> => {
-    console.log("[WebRTC] handleOffer received");
     pc = createPeerConnection();
     setState("connecting");
 
@@ -188,7 +204,6 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    console.log("[WebRTC] answer created, sending via signaling");
     options.onSignalingNeeded({
       type: "sdp-answer",
       roomId: options.roomId,
@@ -200,7 +215,6 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   const handleAnswer = async (
     sdp: RTCSessionDescriptionInit,
   ): Promise<void> => {
-    console.log("[WebRTC] handleAnswer received");
     if (pc) {
       await pc.setRemoteDescription(new RTCSessionDescription(sdp));
     }
@@ -209,7 +223,6 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   const handleIceCandidate = async (
     candidate: RTCIceCandidateInit,
   ): Promise<void> => {
-    console.log("[WebRTC] handleIceCandidate received, pc exists:", !!pc);
     if (pc) {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     }
@@ -221,7 +234,6 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   // before handleOffer's setRemoteDescription has completed.
 
   const handleSignalingMessage = (msg: SignalingMessage): void => {
-    console.log("[WebRTC] handleSignalingMessage type:", msg.type, "from:", msg.senderPublicKey?.substring(0, 8));
     const payload = msg.payload as Record<string, unknown>;
 
     messageQueue = messageQueue.then(async () => {
@@ -313,6 +325,78 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     return fileId;
   };
 
+  // ── Media Track Management ─────────────────────────────
+
+  const addMediaTrack = (
+    track: MediaStreamTrack,
+    stream: MediaStream,
+  ): RTCRtpSender | null => {
+    if (!pc) return null;
+    return pc.addTrack(track, stream);
+  };
+
+  const removeMediaTrack = (sender: RTCRtpSender): void => {
+    pc?.removeTrack(sender);
+  };
+
+  // ── Renegotiation Handlers ────────────────────────────
+
+  const isPolite = (): boolean => {
+    if (!options.peerPublicKey) return false;
+    return options.publicKey < options.peerPublicKey;
+  };
+
+  const handleRenegotiationOffer = async (
+    sdp: RTCSessionDescriptionInit,
+  ): Promise<void> => {
+    if (!pc) return;
+    try {
+      const offerCollision = makingOffer || pc.signalingState !== "stable";
+      if (offerCollision && !isPolite()) return;
+
+      if (offerCollision) {
+        await Promise.all([
+          pc.setLocalDescription({ type: "rollback" }),
+          pc.setRemoteDescription(new RTCSessionDescription(sdp)),
+        ]);
+      } else {
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      }
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      send({
+        type: "sdp-renegotiate-answer",
+        payload: { sdp: pc.localDescription },
+      });
+    } catch (err) {
+      console.error("[WebRTC] handleRenegotiationOffer error:", err);
+    }
+  };
+
+  const handleRenegotiationAnswer = async (
+    sdp: RTCSessionDescriptionInit,
+  ): Promise<void> => {
+    if (!pc) return;
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      isRenegotiating = false;
+    } catch (err) {
+      console.error("[WebRTC] handleRenegotiationAnswer error:", err);
+    }
+  };
+
+  const handleRenegotiationIceCandidate = async (
+    candidate: RTCIceCandidateInit,
+  ): Promise<void> => {
+    if (!pc) return;
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.error("[WebRTC] handleRenegotiationIceCandidate error:", err);
+    }
+  };
+
   // ── Lifecycle ──────────────────────────────────────────
 
   const close = (): void => {
@@ -337,6 +421,11 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     sendTyping,
     sendReadReceipt,
     sendFile,
+    addMediaTrack,
+    removeMediaTrack,
+    handleRenegotiationOffer,
+    handleRenegotiationAnswer,
+    handleRenegotiationIceCandidate,
     close,
     getState,
   };

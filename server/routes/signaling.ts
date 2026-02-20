@@ -90,22 +90,18 @@ const broadcast = (
 ): void => {
   const room = rooms.get(roomId);
   if (!room) {
-    console.log(`[Signal] broadcast: room ${roomId} not found`);
     return;
   }
 
-  let sent = 0;
   for (const [peer] of room.sockets) {
     if (peer !== sender) {
       try {
         peer.send(message);
-        sent++;
-      } catch (err) {
-        console.log(`[Signal] broadcast send error:`, err);
+      } catch {
+        // peer may be disconnected
       }
     }
   }
-  console.log(`[Signal] broadcast room=${roomId} recipients=${sent} totalPeers=${room.sockets.size}`);
 };
 
 // ── Hono WebSocket Routes ────────────────────────────────
@@ -132,9 +128,7 @@ export const createSignalingRoutes = (): Hono => {
       return {
         onOpen: (_event, ws) => {
           room.sockets.set(ws, publicKey);
-          console.log(`[Signal] peer joined room=${roomId} key=${publicKey?.substring(0, 8)} roomSize=${room.sockets.size}`);
 
-          // Notify existing peers that someone joined
           const joinMsg = JSON.stringify({
             type: "peer-joined",
             roomId,
@@ -168,17 +162,14 @@ export const createSignalingRoutes = (): Hono => {
                 : new TextDecoder().decode(event.data as ArrayBuffer);
             const msg: SignalingMessage = JSON.parse(data);
 
-            console.log(`[Signal] onMessage room=${roomId} type=${msg.type} from=${msg.senderPublicKey?.substring(0, 8)}`);
-
             const allowed = ["sdp-offer", "sdp-answer", "ice-candidate"];
             if (!allowed.includes(msg.type)) {
-              console.log(`[Signal] dropping disallowed type=${msg.type}`);
               return;
             }
 
             broadcast(roomId, ws, data);
-          } catch (err) {
-            console.log(`[Signal] onMessage parse error:`, err);
+          } catch {
+            // malformed message
           }
         },
 

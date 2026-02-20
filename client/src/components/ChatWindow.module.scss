@@ -77,6 +77,40 @@
   }
 }
 
+.callButton {
+  padding: $space-xs $space-sm;
+  background: transparent;
+  border: 1px solid $neon-green;
+  color: $neon-green;
+  font-family: $font-mono;
+  font-size: $font-xs;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($neon-green, 0.1);
+    box-shadow: 0 0 10px rgba($neon-green, 0.3);
+  }
+}
+
+.videoCallButton {
+  padding: $space-xs $space-sm;
+  background: transparent;
+  border: 1px solid $neon-cyan;
+  color: $neon-cyan;
+  font-family: $font-mono;
+  font-size: $font-xs;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($neon-cyan, 0.1);
+    box-shadow: $glow-cyan;
+  }
+}
+
 .messages {
   flex: 1;
   overflow-y: auto;
@@ -84,6 +118,7 @@
   display: flex;
   flex-direction: column;
   gap: $space-xs;
+  position: relative;
 }
 
 .empty {

@@ -1,12 +1,15 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
-import type { ConnectionInvite, ChatPayload } from "@shared/types";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import type { ConnectionInvite, ChatPayload, DataChannelMessage } from "@shared/types";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useContacts } from "@/hooks/useContacts";
 import { useConnection } from "@/hooks/useConnection";
+import { useCall } from "@/hooks/useCall";
+import { shortenKey } from "@/lib/crypto";
 import { Login } from "./Login";
 import { ContactList } from "./ContactList";
 import { ChatWindow } from "./ChatWindow";
 import { AddContact } from "./AddContact";
+import { IncomingCallModal } from "./IncomingCallModal";
 import styles from "./App.module.scss";
 
 // ── Deep link parser ─────────────────────────────────────
@@ -77,16 +80,22 @@ export const App = () => {
     [contacts, addContact, identity],
   );
 
+  // Refs to forward call signals — breaks circular dependency between useConnection and useCall
+  const callSignalRef = useRef<(msg: DataChannelMessage) => void>(() => {});
+  const remoteTrackRef = useRef<(event: RTCTrackEvent) => void>(() => {});
+
   // ── Connection hook (App-level) ────────────────────────
 
   const {
     connectionState,
     connectedPeerKey,
     isConnecting,
+    rtcManager,
     connectTo,
     sendChat,
     sendTyping,
     sendFile,
+    sendCallSignal,
     disconnect,
   } = useConnection({
     publicKey: identity?.publicKey ?? "",
@@ -97,7 +106,34 @@ export const App = () => {
       setPeerTyping(isTyping);
     }, []),
     onPeerIdentified: handlePeerIdentified,
+    onCallSignal: useCallback((msg: DataChannelMessage) => {
+      callSignalRef.current(msg);
+    }, []),
+    onRemoteTrack: useCallback((event: RTCTrackEvent) => {
+      remoteTrackRef.current(event);
+    }, []),
   });
+
+  // ── Call hook (App-level) ──────────────────────────────
+
+  const call = useCall({
+    rtcManager,
+    send: sendCallSignal,
+    localPublicKey: identity?.publicKey ?? "",
+    peerPublicKey: connectedPeerKey,
+  });
+
+  callSignalRef.current = call.handleCallMessage;
+  remoteTrackRef.current = call.handleRemoteTrack;
+
+  const getContactName = useCallback(
+    (key: string | null): string => {
+      if (!key) return "Unknown";
+      const contact = contacts.find((c) => c.publicKey === key);
+      return contact?.name || shortenKey(key);
+    },
+    [contacts],
+  );
 
   // Auto-advance to chat view if already authenticated
   useEffect(() => {
@@ -240,6 +276,16 @@ export const App = () => {
           isConnecting={isConnecting}
           incomingChat={incomingChat}
           peerTyping={peerTyping}
+          callState={call.callState}
+          localStream={call.localStream}
+          remoteStream={call.remoteStream}
+          callType={call.currentCallType ?? "audio"}
+          isAudioEnabled={call.isAudioEnabled}
+          isVideoEnabled={call.isVideoEnabled}
+          onStartCall={call.startCall}
+          onEndCall={call.endCall}
+          onToggleAudio={call.toggleAudio}
+          onToggleVideo={call.toggleVideo}
           onConnect={connectTo}
           onSendChat={sendChat}
           onSendTyping={sendTyping}
@@ -254,6 +300,15 @@ export const App = () => {
           publicKey={identity.publicKey}
           onContactAdded={handleContactAdded}
           onClose={() => setShowAddContact(false)}
+        />
+      )}
+
+      {call.callState === "incoming-ringing" && (
+        <IncomingCallModal
+          callerName={getContactName(connectedPeerKey)}
+          callType={call.incomingCallType ?? "audio"}
+          onAccept={call.acceptCall}
+          onReject={call.rejectCall}
         />
       )}
     </div>

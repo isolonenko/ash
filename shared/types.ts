@@ -94,7 +94,9 @@ export type PeerConnectionState =
   | "closed";
 
 export interface DataChannelMessage {
-  type: "chat" | "typing" | "read-receipt" | "file-meta" | "file-chunk";
+  type: "chat" | "typing" | "read-receipt" | "file-meta" | "file-chunk"
+    | "call-offer" | "call-accept" | "call-reject" | "call-end" | "call-media-state"
+    | "sdp-renegotiate-offer" | "sdp-renegotiate-answer" | "ice-renegotiate";
   payload: unknown;
 }
 
@@ -123,4 +125,39 @@ export interface FileChunkPayload {
   fileId: string;
   chunkIndex: number;
   data: string; // base64-encoded chunk
+}
+
+// ── Call ────────────────────────────────────────────────
+
+export type CallType = "audio" | "video";
+
+export type CallState = "idle" | "outgoing-ringing" | "incoming-ringing" | "active" | "ended" | "error";
+
+export type CallErrorReason = "permission-denied" | "call-failed" | "media-error";
+
+export interface CallOfferPayload {
+  callType: CallType;
+}
+
+export interface CallAcceptPayload {
+  callType: CallType;
+}
+
+export interface CallRejectPayload {
+  reason?: string;
+}
+
+export interface CallEndPayload {}
+
+export interface CallMediaStatePayload {
+  audioEnabled: boolean;
+  videoEnabled: boolean;
+}
+
+export interface SdpRenegotiatePayload {
+  sdp: RTCSessionDescriptionInit;
+}
+
+export interface IceRenegotiatePayload {
+  candidate: RTCIceCandidateInit;
 }
