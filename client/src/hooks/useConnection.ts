@@ -150,6 +150,7 @@ export const useConnection = (
 
   const openConnection = useCallback(
     (roomId: string, asInitiator: boolean) => {
+      console.log("[Connection] openConnection room:", roomId, "asInitiator:", asInitiator);
       // Tear down any existing connection
       rtcRef.current?.close();
       signalingRef.current?.disconnect();
@@ -171,6 +172,7 @@ export const useConnection = (
         onMessage: handleDataChannelMessage,
         onSignalingNeeded: (msg: SignalingMessage) => {
           if (connId !== connectionIdRef.current) return;
+          console.log("[Connection] signaling send:", msg.type, "ws open:", signalingRef.current?.isConnected());
           signalingRef.current?.send(msg);
         },
       });
@@ -179,6 +181,7 @@ export const useConnection = (
         publicKey: options.publicKey,
         onMessage: (msg: SignalingMessage) => {
           if (connId !== connectionIdRef.current) return;
+          console.log("[Connection] signaling recv:", msg.type, "sender:", msg.senderPublicKey?.substring(0, 8), "asInitiator:", asInitiator);
           if (msg.type === "peer-joined") {
             if (
               msg.senderPublicKey &&
@@ -251,6 +254,7 @@ export const useConnection = (
 
   const connectTo = useCallback(
     async (peerPublicKey: string) => {
+      console.log("[Connection] connectTo:", peerPublicKey.substring(0, 8));
       // Mutex: skip if already connecting
       if (connectingRef.current) return;
       connectingRef.current = true;

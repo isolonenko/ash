@@ -40,6 +40,7 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
     ws = new WebSocket(url);
 
     ws.onopen = () => {
+      console.log("[Signaling] WS connected to", url);
       reconnectAttempts = 0;
       options.onConnectionChange?.(true);
     };
@@ -47,13 +48,15 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
     ws.onmessage = (event: MessageEvent) => {
       try {
         const msg: SignalingMessage = JSON.parse(event.data as string);
+        console.log("[Signaling] WS recv:", msg.type, "sender:", msg.senderPublicKey?.substring(0, 8));
         options.onMessage(msg);
       } catch {
         // Ignore malformed messages
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.log("[Signaling] WS closed code:", event.code, "reason:", event.reason);
       options.onConnectionChange?.(false);
       if (!intentionallyClosed && currentRoomId) {
         scheduleReconnect();
@@ -66,8 +69,10 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
   };
 
   const send = (msg: SignalingMessage): void => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(msg));
+    const isOpen = ws?.readyState === WebSocket.OPEN;
+    console.log("[Signaling] WS send:", msg.type, "wsOpen:", isOpen, "readyState:", ws?.readyState);
+    if (isOpen) {
+      ws!.send(JSON.stringify(msg));
     }
   };
 

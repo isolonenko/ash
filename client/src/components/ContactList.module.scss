@@ -119,3 +119,58 @@
   color: $text-muted;
   font-size: $font-sm;
 }
+
+.renameForm {
+  width: 100%;
+}
+
+.renameInput {
+  width: 100%;
+  padding: 2px $space-xs;
+  background: $bg-input;
+  border: 1px solid $neon-cyan;
+  color: $text-primary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.contextMenu {
+  position: fixed;
+  z-index: 200;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  min-width: 140px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.contextMenuItem {
+  display: block;
+  width: 100%;
+  padding: $space-sm $space-md;
+  background: transparent;
+  border: none;
+  color: $text-primary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+  text-align: left;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: rgba($neon-cyan, 0.1);
+    color: $neon-cyan;
+  }
+}
+
+.contextMenuItemDanger {
+  composes: contextMenuItem;
+
+  &:hover {
+    background: rgba($danger, 0.1);
+    color: $danger;
+  }
+}

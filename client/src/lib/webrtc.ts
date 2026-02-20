@@ -7,29 +7,44 @@ import type {
 // ── Config ───────────────────────────────────────────────
 
 const buildIceServers = (): RTCIceServer[] => {
-  const servers: RTCIceServer[] = [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-  ];
-
-  // TURN credentials via env vars (required for NAT traversal / same-machine testing)
-  // Set VITE_TURN_URL, VITE_TURN_USERNAME, VITE_TURN_CREDENTIAL in .env
+  // Production: override via env vars
   const turnUrl = import.meta.env.VITE_TURN_URL as string | undefined;
   const turnUsername = import.meta.env.VITE_TURN_USERNAME as string | undefined;
   const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as string | undefined;
 
   if (turnUrl && turnUsername && turnCredential) {
-    // Support comma-separated TURN URLs (e.g. "turn:host:80,turns:host:443")
     const urls = turnUrl.includes(",")
       ? turnUrl.split(",").map((u) => u.trim())
       : turnUrl;
-    servers.push({ urls, username: turnUsername, credential: turnCredential });
+    return [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls, username: turnUsername, credential: turnCredential },
+    ];
   }
 
-  return servers;
+  // Local dev default: coturn from docker compose
+  // Only TURN (no STUN) to avoid bogus 0.0.0.0 CREATE_PERMISSION attempts
+  return [
+    {
+      urls: [
+        "turn:127.0.0.1:3478",
+        "turn:127.0.0.1:3478?transport=tcp",
+      ],
+      username: "thechat",
+      credential: "thechat",
+    },
+  ];
+};
+
+// In local dev, force relay-only to prevent zero-address CREATE_PERMISSION 403s
+// In production (env vars set), allow all transport policies
+const getIceTransportPolicy = (): RTCIceTransportPolicy => {
+  const turnUrl = import.meta.env.VITE_TURN_URL as string | undefined;
+  return turnUrl ? "all" : "relay";
 };
 
 const ICE_SERVERS: RTCIceServer[] = buildIceServers();
+const ICE_TRANSPORT_POLICY: RTCIceTransportPolicy = getIceTransportPolicy();
 
 const DATA_CHANNEL_LABEL = "thechat";
 
@@ -60,24 +75,40 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   };
 
   const createPeerConnection = (): RTCPeerConnection => {
-    const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    console.log("[WebRTC] createPeerConnection iceServers:", JSON.stringify(ICE_SERVERS), "policy:", ICE_TRANSPORT_POLICY);
+    const connection = new RTCPeerConnection({
+      iceServers: ICE_SERVERS,
+      iceTransportPolicy: ICE_TRANSPORT_POLICY,
+    });
 
     connection.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("[WebRTC] ICE candidate:", event.candidate.type, event.candidate.candidate.substring(0, 80));
         options.onSignalingNeeded({
           type: "ice-candidate",
           roomId: options.roomId,
           senderPublicKey: options.publicKey,
           payload: { candidate: event.candidate.toJSON() },
         });
+      } else {
+        console.log("[WebRTC] ICE gathering complete");
       }
     };
 
     connection.oniceconnectionstatechange = () => {
-      // ICE state tracked via onconnectionstatechange
+      console.log("[WebRTC] ICE connection state:", connection.iceConnectionState);
+    };
+
+    connection.onicegatheringstatechange = () => {
+      console.log("[WebRTC] ICE gathering state:", connection.iceGatheringState);
+    };
+
+    connection.onsignalingstatechange = () => {
+      console.log("[WebRTC] signaling state:", connection.signalingState);
     };
 
     connection.onconnectionstatechange = () => {
+      console.log("[WebRTC] connection state:", connection.connectionState);
       const stateMap: Record<string, PeerConnectionState> = {
         new: "new",
         connecting: "connecting",
@@ -125,6 +156,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   // ── Offer/Answer Flow ──────────────────────────────────
 
   const createOffer = async (): Promise<void> => {
+    console.log("[WebRTC] createOffer start");
     pc = createPeerConnection();
     setState("connecting");
 
@@ -136,6 +168,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
+    console.log("[WebRTC] offer created, sending via signaling");
     options.onSignalingNeeded({
       type: "sdp-offer",
       roomId: options.roomId,
@@ -147,6 +180,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   const handleOffer = async (
     sdp: RTCSessionDescriptionInit,
   ): Promise<void> => {
+    console.log("[WebRTC] handleOffer received");
     pc = createPeerConnection();
     setState("connecting");
 
@@ -154,6 +188,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
+    console.log("[WebRTC] answer created, sending via signaling");
     options.onSignalingNeeded({
       type: "sdp-answer",
       roomId: options.roomId,
@@ -165,6 +200,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   const handleAnswer = async (
     sdp: RTCSessionDescriptionInit,
   ): Promise<void> => {
+    console.log("[WebRTC] handleAnswer received");
     if (pc) {
       await pc.setRemoteDescription(new RTCSessionDescription(sdp));
     }
@@ -173,6 +209,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   const handleIceCandidate = async (
     candidate: RTCIceCandidateInit,
   ): Promise<void> => {
+    console.log("[WebRTC] handleIceCandidate received, pc exists:", !!pc);
     if (pc) {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     }
@@ -184,6 +221,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   // before handleOffer's setRemoteDescription has completed.
 
   const handleSignalingMessage = (msg: SignalingMessage): void => {
+    console.log("[WebRTC] handleSignalingMessage type:", msg.type, "from:", msg.senderPublicKey?.substring(0, 8));
     const payload = msg.payload as Record<string, unknown>;
 
     messageQueue = messageQueue.then(async () => {

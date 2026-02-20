@@ -113,3 +113,100 @@
   composes: status;
   color: $danger;
 }
+
+.nameForm {
+  padding: $space-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.scannedKey {
+  padding: $space-md;
+  background: $bg-primary;
+  border: 1px solid rgba($neon-cyan, 0.3);
+}
+
+.scannedKeyLabel {
+  font-size: $font-xs;
+  color: $neon-cyan;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: $space-xs;
+}
+
+.scannedKeyValue {
+  font-size: $font-sm;
+  color: $text-secondary;
+  font-family: $font-mono;
+}
+
+.nameLabel {
+  font-size: $font-xs;
+  color: $neon-cyan;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.nameInput {
+  width: 100%;
+  padding: $space-sm $space-md;
+  background: $bg-input;
+  border: 1px solid $border-color;
+  color: $text-primary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+
+  &:focus {
+    outline: none;
+    border-color: $neon-cyan;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+.nameActions {
+  display: flex;
+  gap: $space-md;
+  margin-top: $space-sm;
+}
+
+.backButton {
+  flex: 1;
+  padding: $space-sm $space-md;
+  background: transparent;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+  font-family: $font-mono;
+  font-size: $font-sm;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $text-primary;
+    color: $text-primary;
+  }
+}
+
+.confirmButton {
+  flex: 2;
+  padding: $space-sm $space-md;
+  background: transparent;
+  border: 1px solid $neon-green;
+  color: $neon-green;
+  font-family: $font-mono;
+  font-size: $font-sm;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: rgba($neon-green, 0.1);
+    box-shadow: 0 0 10px rgba($neon-green, 0.3);
+  }
+}

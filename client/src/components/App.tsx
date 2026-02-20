@@ -42,6 +42,8 @@ export const App = () => {
     contacts,
     onlineMap,
     addContact,
+    renameContact,
+    deleteContact,
   } = useContacts();
 
   const [view, setView] = useState<View>("login");
@@ -104,13 +106,19 @@ export const App = () => {
     }
   }, [isAuthenticated, view]);
 
-  // Parse deep link on mount
+  // Parse deep link on mount and on hash change
   useEffect(() => {
-    const invite = parseDeepLink();
-    if (invite) {
-      setPendingInvite(invite);
-      window.history.replaceState(null, "", window.location.pathname);
-    }
+    const processHash = () => {
+      const invite = parseDeepLink();
+      if (invite) {
+        setPendingInvite(invite);
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    };
+
+    processHash();
+    window.addEventListener("hashchange", processHash);
+    return () => window.removeEventListener("hashchange", processHash);
   }, []);
 
   // Process pending invite once identity is ready
@@ -162,12 +170,12 @@ export const App = () => {
   }, []);
 
   const handleContactAdded = useCallback(
-    async (peerPublicKey: string) => {
+    async (peerPublicKey: string, name?: string) => {
       if (peerPublicKey === identity?.publicKey) return;
 
       const exists = contacts.some((c) => c.publicKey === peerPublicKey);
       if (!exists) {
-        await addContact(peerPublicKey);
+        await addContact(peerPublicKey, name);
       }
       setActiveContactKey(peerPublicKey);
       setShowAddContact(false);
@@ -217,6 +225,8 @@ export const App = () => {
           activeContactKey={activeContactKey}
           onSelect={handleSelectContact}
           onAdd={() => setShowAddContact(true)}
+          onRename={renameContact}
+          onDelete={deleteContact}
         />
       </div>
 

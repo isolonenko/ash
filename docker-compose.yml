@@ -1,0 +1,46 @@
+services:
+  coturn:
+    image: coturn/coturn:4.8-alpine
+    restart: unless-stopped
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49152-49252:49152-49252/udp"
+      - "49152-49252:49152-49252/tcp"
+    volumes:
+      - ./coturn/turnserver.conf:/etc/turnserver.conf:ro
+    command: ["-c", "/etc/turnserver.conf"]
+    networks:
+      thechat:
+        ipv4_address: 172.20.0.10
+
+  server:
+    build:
+      context: ./server
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    networks:
+      - thechat
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client/src:/app/client/src
+      - ./shared:/app/shared
+    environment:
+      - VITE_SIGNALING_URL=ws://localhost:8080
+    networks:
+      - thechat
+
+networks:
+  thechat:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

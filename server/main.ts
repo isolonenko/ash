@@ -6,7 +6,9 @@ import { createHealthRoutes } from "./routes/health.ts";
 
 const app = new Hono();
 
-app.use("/*", cors());
+app.use("/health/*", cors());
+app.use("/ready/*", cors());
+app.use("/presence/*", cors());
 
 app.route("/", createHealthRoutes());
 app.route("/signal", createSignalingRoutes());
