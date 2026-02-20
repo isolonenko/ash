@@ -6,46 +6,6 @@ import type {
 
 // ── Config ───────────────────────────────────────────────
 
-const buildIceServers = (): RTCIceServer[] => {
-  // Production: override via env vars
-  const turnUrl = import.meta.env.VITE_TURN_URL as string | undefined;
-  const turnUsername = import.meta.env.VITE_TURN_USERNAME as string | undefined;
-  const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as string | undefined;
-
-  if (turnUrl && turnUsername && turnCredential) {
-    const urls = turnUrl.includes(",")
-      ? turnUrl.split(",").map((u) => u.trim())
-      : turnUrl;
-    return [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls, username: turnUsername, credential: turnCredential },
-    ];
-  }
-
-  // Local dev default: coturn from docker compose
-  // Only TURN (no STUN) to avoid bogus 0.0.0.0 CREATE_PERMISSION attempts
-  return [
-    {
-      urls: [
-        "turn:127.0.0.1:3478",
-        "turn:127.0.0.1:3478?transport=tcp",
-      ],
-      username: "thechat",
-      credential: "thechat",
-    },
-  ];
-};
-
-// In local dev, force relay-only to prevent zero-address CREATE_PERMISSION 403s
-// In production (env vars set), allow all transport policies
-const getIceTransportPolicy = (): RTCIceTransportPolicy => {
-  const turnUrl = import.meta.env.VITE_TURN_URL as string | undefined;
-  return turnUrl ? "all" : "relay";
-};
-
-const ICE_SERVERS: RTCIceServer[] = buildIceServers();
-const ICE_TRANSPORT_POLICY: RTCIceTransportPolicy = getIceTransportPolicy();
-
 const DATA_CHANNEL_LABEL = "thechat";
 
 // ── Types ────────────────────────────────────────────────
@@ -58,6 +18,8 @@ interface WebRTCManagerOptions {
   roomId: string;
   publicKey: string; // our public key
   peerPublicKey?: string;
+  iceServers: RTCIceServer[];
+  iceTransportPolicy: RTCIceTransportPolicy;
 }
 
 // ── WebRTC Manager ───────────────────────────────────────
@@ -83,8 +45,8 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
 
   const createPeerConnection = (): RTCPeerConnection => {
     const connection = new RTCPeerConnection({
-      iceServers: ICE_SERVERS,
-      iceTransportPolicy: ICE_TRANSPORT_POLICY,
+      iceServers: options.iceServers,
+      iceTransportPolicy: options.iceTransportPolicy,
     });
 
     connection.onicecandidate = (event) => {

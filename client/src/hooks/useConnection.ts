@@ -14,6 +14,7 @@ import {
   publishPresence,
   lookupPresence,
 } from "@/lib/signaling";
+import { fetchTurnCredentials } from "@/lib/turn";
 
 // ── Options ──────────────────────────────────────────────
 
@@ -178,17 +179,22 @@ export const useConnection = (
   // ── Core: open signaling + WebRTC to a room ────────────
 
   const openConnection = useCallback(
-    (roomId: string, asInitiator: boolean, peerPublicKey?: string) => {
+    async (roomId: string, asInitiator: boolean, peerPublicKey?: string) => {
       rtcRef.current?.close();
       signalingRef.current?.disconnect();
 
       // Bump connection ID so stale callbacks from the old RTC/signaling are ignored
       const connId = ++connectionIdRef.current;
 
+      // Fetch TURN credentials before creating WebRTC connection
+      const turnConfig = await fetchTurnCredentials();
+
       const rtc = createWebRTCManager({
         roomId,
         publicKey: options.publicKey,
         peerPublicKey,
+        iceServers: turnConfig.iceServers,
+        iceTransportPolicy: turnConfig.iceTransportPolicy,
         onStateChange: (state) => {
           // Ignore callbacks from a superseded connection
           if (connId !== connectionIdRef.current) return;
