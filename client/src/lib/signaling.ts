@@ -1,12 +1,16 @@
-import type { SignalingMessage } from "@shared/types";
+import type { SignalingMessage } from "@/types";
+import {
+  RECONNECT_BASE_DELAY,
+  RECONNECT_MAX_DELAY,
+  PRESENCE_RETRY_ATTEMPTS,
+  PRESENCE_RETRY_BASE_DELAY,
+} from "@/lib/constants";
+import { retryWithBackoff } from "@/lib/retry";
 
 // ── Config ───────────────────────────────────────────────
 
 const SIGNALING_URL =
   import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8080";
-
-const RECONNECT_BASE_DELAY = 1000;
-const RECONNECT_MAX_DELAY = 30000;
 
 // ── Types ────────────────────────────────────────────────
 
@@ -123,10 +127,22 @@ export const publishPresence = async (
   publicKey: string,
   roomId: string,
 ): Promise<void> => {
-  await fetch(`${PRESENCE_URL}/presence/${encodeURIComponent(publicKey)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ roomId }),
+  await retryWithBackoff(
+    () =>
+      fetch(`${PRESENCE_URL}/presence/${encodeURIComponent(publicKey)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId }),
+      }).then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      }),
+    {
+      attempts: PRESENCE_RETRY_ATTEMPTS,
+      baseDelay: PRESENCE_RETRY_BASE_DELAY,
+      label: "publishPresence",
+    },
+  ).catch(() => {
+    // Swallow after all retries — presence is best-effort
   });
 };
 

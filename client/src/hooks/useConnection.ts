@@ -7,7 +7,9 @@ import type {
   TypingPayload,
   SdpRenegotiatePayload,
   IceRenegotiatePayload,
-} from "@shared/types";
+} from "@/types";
+import type { IncomingFile } from "@/lib/fileTransfer";
+import { handleFileMeta, handleFileChunk } from "@/lib/fileTransfer";
 import { createWebRTCManager } from "@/lib/webrtc";
 import {
   createSignalingClient,
@@ -15,6 +17,12 @@ import {
   lookupPresence,
 } from "@/lib/signaling";
 import { fetchTurnCredentials } from "@/lib/turn";
+import {
+  PRESENCE_PUBLISH_INTERVAL,
+  RELISTEN_DELAY,
+  CONNECT_RETRY_ATTEMPTS,
+  CONNECT_RETRY_DELAY,
+} from "@/lib/constants";
 
 // ── Options ──────────────────────────────────────────────
 
@@ -33,6 +41,7 @@ interface UseConnectionResult {
   connectedPeerKey: string | null;
   presenceRoomId: string | null;
   isConnecting: boolean;
+  connectionMessage: string | null;
   rtcManager: ReturnType<typeof createWebRTCManager> | null;
   connectTo: (peerPublicKey: string) => Promise<void>;
   sendChat: (id: string, text: string) => void;
@@ -42,19 +51,6 @@ interface UseConnectionResult {
   disconnect: () => void;
 }
 
-// ── File reassembly ──────────────────────────────────────
-
-interface IncomingFile {
-  name: string;
-  size: number;
-  totalChunks: number;
-  chunks: Map<number, string>;
-}
-
-// ── Presence re-publish interval ─────────────────────────
-
-const PRESENCE_INTERVAL = 120_000; // 2 minutes
-
 export const useConnection = (
   options: UseConnectionOptions,
 ): UseConnectionResult => {
@@ -63,6 +59,9 @@ export const useConnection = (
   const [connectedPeerKey, setConnectedPeerKey] = useState<string | null>(null);
   const [presenceRoomId, setPresenceRoomId] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(
+    null,
+  );
 
   const rtcRef = useRef<ReturnType<typeof createWebRTCManager> | null>(null);
   const signalingRef = useRef<ReturnType<typeof createSignalingClient> | null>(
@@ -107,12 +106,7 @@ export const useConnection = (
             size: number;
             totalChunks: number;
           };
-          incomingFiles.current.set(meta.id, {
-            name: meta.name,
-            size: meta.size,
-            totalChunks: meta.totalChunks,
-            chunks: new Map(),
-          });
+          handleFileMeta(incomingFiles.current, meta);
           break;
         }
         case "file-chunk": {
@@ -121,30 +115,9 @@ export const useConnection = (
             chunkIndex: number;
             data: string;
           };
-          const file = incomingFiles.current.get(chunk.fileId);
-          if (!file) break;
-
-          file.chunks.set(chunk.chunkIndex, chunk.data);
-
-          if (file.chunks.size === file.totalChunks) {
-            const parts: Uint8Array[] = [];
-            for (let i = 0; i < file.totalChunks; i++) {
-              const b64 = file.chunks.get(i)!;
-              const bytes = Uint8Array.from(atob(b64), (c) =>
-                c.charCodeAt(0),
-              );
-              parts.push(bytes);
-            }
-            const totalLen = parts.reduce((acc, p) => acc + p.length, 0);
-            const combined = new Uint8Array(totalLen);
-            let offset = 0;
-            parts.forEach((p) => {
-              combined.set(p, offset);
-              offset += p.length;
-            });
-
-            incomingFiles.current.delete(chunk.fileId);
-            optionsRef.current.onFileReceived?.(file.name, combined);
+          const result = handleFileChunk(incomingFiles.current, chunk);
+          if (result) {
+            optionsRef.current.onFileReceived?.(result.name, result.data);
           }
           break;
         }
@@ -258,10 +231,9 @@ export const useConnection = (
     // Publish presence so others can find us
     publishPresence(options.publicKey, roomId);
 
-    // Re-publish periodically
     presenceIntervalRef.current = setInterval(() => {
       publishPresence(options.publicKey, roomId);
-    }, PRESENCE_INTERVAL);
+    }, PRESENCE_PUBLISH_INTERVAL);
 
     // Open a signaling WebSocket on this room, waiting for incoming peers
     // We are NOT the initiator — we wait for someone to join and send an offer
@@ -295,29 +267,42 @@ export const useConnection = (
       setIsConnecting(true);
 
       try {
-        // Cancel any pending re-listen from a previous disconnect
         if (relistenTimeoutRef.current) {
           clearTimeout(relistenTimeoutRef.current);
           relistenTimeoutRef.current = null;
         }
 
-        const presence = await lookupPresence(peerPublicKey);
+        const tryLookup = async (attempt: number): Promise<void> => {
+          setConnectionMessage(
+            attempt === 0
+              ? "Looking up peer…"
+              : `Retrying lookup (${attempt}/${CONNECT_RETRY_ATTEMPTS})…`,
+          );
 
-        if (presence?.online && presence.roomId) {
-          // Stop re-publishing presence for our own room — we're leaving it
-          if (presenceIntervalRef.current) {
-            clearInterval(presenceIntervalRef.current);
-            presenceIntervalRef.current = null;
+          const presence = await lookupPresence(peerPublicKey);
+
+          if (presence?.online && presence.roomId) {
+            if (presenceIntervalRef.current) {
+              clearInterval(presenceIntervalRef.current);
+              presenceIntervalRef.current = null;
+            }
+
+            setConnectionMessage("Connecting…");
+            setConnectedPeerKey(peerPublicKey);
+            openConnection(presence.roomId, false, peerPublicKey);
+            return;
           }
 
-          // Peer is listening on their presence room — join it as answerer
-          setConnectedPeerKey(peerPublicKey);
-          openConnection(presence.roomId, false, peerPublicKey);
-        } else {
-          // Peer is offline — we're already listening on our own presence room.
-          // When they come online and look us up, the connection will happen.
+          if (attempt < CONNECT_RETRY_ATTEMPTS) {
+            await new Promise<void>((r) => setTimeout(r, CONNECT_RETRY_DELAY));
+            return tryLookup(attempt + 1);
+          }
+
+          setConnectionMessage("Peer offline — waiting for them to come online");
           setConnectionState("new");
-        }
+        };
+
+        await tryLookup(0);
       } finally {
         connectingRef.current = false;
         setIsConnecting(false);
@@ -350,28 +335,25 @@ export const useConnection = (
     signalingRef.current?.disconnect();
     setConnectionState("closed");
     setConnectedPeerKey(null);
+    setConnectionMessage(null);
 
-    // Re-establish the listener on our presence room
     if (presenceRoomRef.current && options.publicKey) {
       const roomId = presenceRoomRef.current;
-      // Cancel any pending re-listen from a previous disconnect
       if (relistenTimeoutRef.current) {
         clearTimeout(relistenTimeoutRef.current);
       }
-      // Small delay to let cleanup finish
       relistenTimeoutRef.current = setTimeout(() => {
         relistenTimeoutRef.current = null;
         openConnection(roomId, true);
         publishPresence(options.publicKey, roomId);
 
-        // Restart periodic presence re-publishing
         if (presenceIntervalRef.current) {
           clearInterval(presenceIntervalRef.current);
         }
         presenceIntervalRef.current = setInterval(() => {
           publishPresence(options.publicKey, roomId);
-        }, PRESENCE_INTERVAL);
-      }, 100);
+        }, PRESENCE_PUBLISH_INTERVAL);
+      }, RELISTEN_DELAY);
     }
   }, [options.publicKey, openConnection]);
 
@@ -380,6 +362,7 @@ export const useConnection = (
     connectedPeerKey,
     presenceRoomId,
     isConnecting,
+    connectionMessage,
     rtcManager: rtcRef.current,
     connectTo,
     sendChat,

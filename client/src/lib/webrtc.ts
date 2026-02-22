@@ -2,11 +2,24 @@ import type {
   SignalingMessage,
   PeerConnectionState,
   DataChannelMessage,
-} from "@shared/types";
+} from "@/types";
+import {
+  DATA_CHANNEL_LABEL,
+  FILE_CHUNK_SIZE,
+  FILE_CHUNK_BATCH_SIZE,
+  FILE_CHUNK_BATCH_DELAY,
+} from "@/lib/constants";
 
-// ── Config ───────────────────────────────────────────────
+// ── Connection state mapping ─────────────────────────────
 
-const DATA_CHANNEL_LABEL = "thechat";
+const CONNECTION_STATE_MAP: Record<string, PeerConnectionState> = {
+  new: "new",
+  connecting: "connecting",
+  connected: "connected",
+  disconnected: "disconnected",
+  failed: "failed",
+  closed: "closed",
+};
 
 // ── Types ────────────────────────────────────────────────
 
@@ -68,15 +81,11 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     };
 
     connection.onconnectionstatechange = () => {
-      const stateMap: Record<string, PeerConnectionState> = {
-        new: "new",
-        connecting: "connecting",
-        connected: "connected",
-        disconnected: "disconnected",
-        failed: "failed",
-        closed: "closed",
-      };
-      setState(stateMap[connection.connectionState] ?? "new");
+      const mapped = CONNECTION_STATE_MAP[connection.connectionState] ?? "new";
+      if (mapped === "failed") {
+        console.warn("[WebRTC] ICE connection failed — TURN relay may be misconfigured");
+      }
+      setState(mapped);
     };
 
     connection.ondatachannel = (event) => {
@@ -240,15 +249,10 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     send({ type: "read-receipt", payload: { messageId } });
   };
 
-  // ── File Transfer ──────────────────────────────────────
-
-  const CHUNK_SIZE = 16 * 1024; // 16KB chunks
-
   const sendFile = async (file: File): Promise<string> => {
     const fileId = crypto.randomUUID();
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const totalChunks = Math.ceil(file.size / FILE_CHUNK_SIZE);
 
-    // Send metadata first
     send({
       type: "file-meta",
       payload: {
@@ -259,31 +263,33 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
       },
     });
 
-    // Send chunks
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
 
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
+    const sendChunk = async (index: number): Promise<void> => {
+      if (index >= totalChunks) return;
+
+      const start = index * FILE_CHUNK_SIZE;
+      const end = Math.min(start + FILE_CHUNK_SIZE, file.size);
       const chunk = bytes.slice(start, end);
       const base64 = btoa(String.fromCharCode(...chunk));
 
       send({
         type: "file-chunk",
-        payload: {
-          fileId,
-          chunkIndex: i,
-          data: base64,
-        },
+        payload: { fileId, chunkIndex: index, data: base64 },
       });
 
-      // Small delay to avoid flooding the channel
-      if (i % 10 === 0 && i > 0) {
-        await new Promise((r) => setTimeout(r, 10));
-      }
-    }
+      const needsDelay =
+        index > 0 && index % FILE_CHUNK_BATCH_SIZE === 0;
 
+      if (needsDelay) {
+        await new Promise<void>((r) => setTimeout(r, FILE_CHUNK_BATCH_DELAY));
+      }
+
+      return sendChunk(index + 1);
+    };
+
+    await sendChunk(0);
     return fileId;
   };
 

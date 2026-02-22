@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import type { ConnectionInvite } from "@shared/types";
+import type { ConnectionInvite } from "@/types";
 import styles from "./QRGenerator.module.scss";
 
 interface QRGeneratorProps {

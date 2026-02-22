@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { UserIdentity, HumanityCredential } from "@shared/types";
+import type { UserIdentity, HumanityCredential } from "@/types";
 import { shortenKey } from "@/lib/crypto";
 import { isHumanityConfigured } from "@/lib/humanity";
 import { HumanityLogin } from "./HumanityLogin";

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { HumanityCredential } from "@shared/types";
+import type { HumanityCredential } from "@/types";
 import {
   isHumanityConfigured,
   startHumanityLogin,

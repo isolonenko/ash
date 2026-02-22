@@ -1,5 +1,5 @@
 import { openDB, type IDBPDatabase } from "idb";
-import type { UserIdentity, Contact, ChatMessage } from "@shared/types";
+import type { UserIdentity, Contact, ChatMessage } from "@/types";
 
 // ── Database Setup ───────────────────────────────────────
 

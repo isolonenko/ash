@@ -7,8 +7,9 @@ import type {
   CallOfferPayload,
   CallAcceptPayload,
   CallMediaStatePayload,
-} from "@shared/types";
+} from "@/types";
 import type { createWebRTCManager } from "@/lib/webrtc";
+import { CALL_MEDIA_TIMEOUT_MS } from "@/lib/constants";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -354,6 +355,29 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  useEffect(() => {
+    if (callState !== "active") return;
+
+    const hasLiveRemoteTracks = (): boolean =>
+      remoteStream !== null &&
+      remoteStream.getTracks().some((t) => t.readyState === "live");
+
+    if (hasLiveRemoteTracks()) return;
+
+    const timerId = setTimeout(() => {
+      if (!hasLiveRemoteTracks()) {
+        console.warn(
+          "[useCall] No remote media tracks after timeout — TURN relay may be misconfigured",
+        );
+        cleanupCall();
+        setCallState("error");
+        setCallError("call-failed");
+      }
+    }, CALL_MEDIA_TIMEOUT_MS);
+
+    return () => clearTimeout(timerId);
+  }, [callState, remoteStream, cleanupCall]);
 
   return {
     callState,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { ChatMessage } from "@shared/types";
+import type { ChatMessage } from "@/types";
 import {
   getMessages,
   saveMessage,

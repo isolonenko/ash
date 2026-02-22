@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import type { ConnectionInvite } from "@shared/types";
+import type { ConnectionInvite } from "@/types";
 import styles from "./QRScanner.module.scss";
 
 interface QRScannerProps {
   onScan: (invite: ConnectionInvite) => void;
 }
 
+type CameraState = "loading" | "active" | "error";
+
 const parseInviteFromUrl = (input: string): ConnectionInvite | null => {
   try {
-    // Handle full URL with hash fragment
     const hashMatch = input.match(/#\/connect\/(.+)$/);
     const encoded = hashMatch ? hashMatch[1] : input;
     const decoded = JSON.parse(atob(encoded));
@@ -17,7 +18,6 @@ const parseInviteFromUrl = (input: string): ConnectionInvite | null => {
     if (decoded.publicKey && decoded.roomId && decoded.signalingUrl) {
       return decoded as ConnectionInvite;
     }
-    // Also support simplified invite (no roomId)
     if (decoded.publicKey && decoded.signalingUrl) {
       return decoded as ConnectionInvite;
     }
@@ -32,6 +32,7 @@ export const QRScanner = ({ onScan }: QRScannerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pasteValue, setPasteValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [cameraState, setCameraState] = useState<CameraState>("loading");
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -53,12 +54,13 @@ export const QRScanner = ({ onScan }: QRScannerProps) => {
             onScan(invite);
           }
         },
-        () => {
-          // Ignore scan failures (no QR found in frame)
-        },
+        () => {},
       )
+      .then(() => {
+        setCameraState("active");
+      })
       .catch(() => {
-        // Camera access denied or unavailable
+        setCameraState("error");
         setError("Camera unavailable. Use the link input below.");
       });
 
@@ -80,7 +82,22 @@ export const QRScanner = ({ onScan }: QRScannerProps) => {
     <div className={styles.container}>
       <div className={styles.scannerWrapper}>
         <div ref={containerRef} />
-        <div className={styles.scanLine} />
+        {cameraState === "loading" && (
+          <div className={styles.cameraOverlay}>
+            <div className={styles.spinner} />
+            <span>Accessing camera…</span>
+          </div>
+        )}
+        {cameraState === "error" && (
+          <div className={styles.cameraOverlay}>
+            <span className={styles.cameraErrorIcon}>⚠</span>
+            <span>Camera unavailable</span>
+            <span className={styles.cameraHint}>
+              Check permissions or use the link input below
+            </span>
+          </div>
+        )}
+        {cameraState === "active" && <div className={styles.scanLine} />}
       </div>
 
       <div className={styles.divider}>or paste link</div>

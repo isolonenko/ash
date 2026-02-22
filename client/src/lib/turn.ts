@@ -22,11 +22,10 @@ export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
       ],
       iceTransportPolicy: "all",
     };
-  } catch {
-    // Fallback
+  } catch (err) {
     const isProduction = !!import.meta.env.VITE_SIGNALING_URL;
     if (isProduction) {
-      // Production fallback: STUN-only (graceful degradation)
+      console.warn("[TURN] Failed to fetch credentials — falling back to STUN only:", err);
       return {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         iceTransportPolicy: "all",

@@ -1,4 +1,4 @@
-import type { CallType } from "@shared/types";
+import type { CallType } from "@/types";
 import styles from "./IncomingCallModal.module.scss";
 
 interface IncomingCallModalProps {

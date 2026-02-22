@@ -1,5 +1,5 @@
 import { useState, useCallback, type FormEvent } from "react";
-import type { ConnectionInvite } from "@shared/types";
+import type { ConnectionInvite } from "@/types";
 import { shortenKey } from "@/lib/crypto";
 import { QRGenerator } from "./QRGenerator";
 import { QRScanner } from "./QRScanner";

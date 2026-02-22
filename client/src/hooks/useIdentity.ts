@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { UserIdentity, HumanityCredential } from "@shared/types";
+import type { UserIdentity, HumanityCredential } from "@/types";
 import { generateKeyPair } from "@/lib/crypto";
 import { getIdentity, saveIdentity, deleteIdentity } from "@/lib/storage";
 

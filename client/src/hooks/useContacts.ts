@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Contact } from "@shared/types";
+import type { Contact } from "@/types";
 import {
   getContacts,
   saveContact,

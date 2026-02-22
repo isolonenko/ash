@@ -3,7 +3,7 @@ import {
   type TokenResult,
   type PresetCheckResult,
 } from "@humanity-org/connect-sdk";
-import type { HumanityCredential } from "@shared/types";
+import type { HumanityCredential } from "@/types";
 
 // ── Config ───────────────────────────────────────────────
 

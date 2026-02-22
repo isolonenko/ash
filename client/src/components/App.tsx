@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import type { ConnectionInvite, ChatPayload, DataChannelMessage } from "@shared/types";
+import type { ConnectionInvite, DataChannelMessage } from "@/types";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useContacts } from "@/hooks/useContacts";
-import { useConnection } from "@/hooks/useConnection";
-import { useCall } from "@/hooks/useCall";
+import { ConnectionProvider, useConnectionContext } from "@/context/ConnectionContext";
+import { CallProvider, useCallContext } from "@/context/CallContext";
 import { shortenKey } from "@/lib/crypto";
 import { Login } from "./Login";
 import { ContactList } from "./ContactList";
@@ -34,6 +34,122 @@ const parseDeepLink = (): ConnectionInvite | null => {
 
 type View = "login" | "chat";
 
+// ── Renderless: captures connectTo from context into a ref ─
+
+interface ConnectToCaptureProps {
+  connectToRef: React.RefObject<((peerPublicKey: string) => Promise<void>) | null>;
+}
+
+const ConnectToCapture = ({ connectToRef }: ConnectToCaptureProps) => {
+  const { connectTo } = useConnectionContext();
+  connectToRef.current = connectTo;
+  return null;
+};
+
+// ── Incoming call banner (consumes both contexts) ────────
+
+interface IncomingCallBannerProps {
+  callerName: string;
+}
+
+const IncomingCallBanner = ({ callerName }: IncomingCallBannerProps) => {
+  const { callState, incomingCallType, acceptCall, rejectCall } =
+    useCallContext();
+
+  if (callState !== "incoming-ringing") return null;
+
+  return (
+    <IncomingCallModal
+      callerName={callerName}
+      callType={incomingCallType ?? "audio"}
+      onAccept={acceptCall}
+      onReject={rejectCall}
+    />
+  );
+};
+
+// ── Inner app (wrapped by providers) ─────────────────────
+
+interface AppInnerProps {
+  contacts: ReturnType<typeof useContacts>["contacts"];
+  onlineMap: ReturnType<typeof useContacts>["onlineMap"];
+  activeContactKey: string | null;
+  showSidebar: boolean;
+  showAddContact: boolean;
+  identity: ReturnType<typeof useIdentity>["identity"];
+  onSelectContact: (publicKey: string) => void;
+  onBack: () => void;
+  onAdd: () => void;
+  onCloseAdd: () => void;
+  onContactAdded: (peerPublicKey: string, name?: string) => Promise<void>;
+  onRename: ReturnType<typeof useContacts>["renameContact"];
+  onDelete: ReturnType<typeof useContacts>["deleteContact"];
+  getContactName: (key: string | null) => string;
+}
+
+const AppInner = ({
+  contacts,
+  onlineMap,
+  activeContactKey,
+  showSidebar,
+  showAddContact,
+  identity,
+  onSelectContact,
+  onBack,
+  onAdd,
+  onCloseAdd,
+  onContactAdded,
+  onRename,
+  onDelete,
+  getContactName,
+}: AppInnerProps) => {
+  const { connectedPeerKey } = useConnectionContext();
+
+  const activeContact = useMemo(
+    () => contacts.find((c) => c.publicKey === activeContactKey) ?? null,
+    [contacts, activeContactKey],
+  );
+
+  return (
+    <div className={styles.app}>
+      <div
+        className={`${styles.sidebar} ${showSidebar ? styles.sidebarVisible : ""}`}
+      >
+        <div className={styles.sidebarHeader}>
+          <div className={styles.logo}>TheChat</div>
+        </div>
+        <ContactList
+          contacts={contacts}
+          onlineMap={onlineMap}
+          activeContactKey={activeContactKey}
+          onSelect={onSelectContact}
+          onAdd={onAdd}
+          onRename={onRename}
+          onDelete={onDelete}
+        />
+      </div>
+
+      <div
+        className={`${styles.main} ${!showSidebar ? styles.mainVisible : ""}`}
+      >
+        <ChatWindow contact={activeContact} onBack={onBack} />
+      </div>
+
+      {showAddContact && identity && (
+        <AddContact
+          publicKey={identity.publicKey}
+          onContactAdded={onContactAdded}
+          onClose={onCloseAdd}
+        />
+      )}
+
+      <IncomingCallBanner callerName={getContactName(connectedPeerKey)} />
+    </div>
+  );
+};
+
+// ── Root App ─────────────────────────────────────────────
+
 export const App = () => {
   const {
     identity,
@@ -55,14 +171,11 @@ export const App = () => {
   const [pendingInvite, setPendingInvite] = useState<ConnectionInvite | null>(
     null,
   );
-  // Mobile: track whether sidebar or chat panel is shown
   const [showSidebar, setShowSidebar] = useState(true);
 
-  // Incoming message from peer — piped to ChatWindow
-  const [incomingChat, setIncomingChat] = useState<ChatPayload | null>(null);
-  const [peerTyping, setPeerTyping] = useState(false);
-
-  // ── Peer identification callback ───────────────────────
+  const callSignalRef = useRef<(msg: DataChannelMessage) => void>(() => {});
+  const remoteTrackRef = useRef<(event: RTCTrackEvent) => void>(() => {});
+  const connectToRef = useRef<((peerPublicKey: string) => Promise<void>) | null>(null);
 
   const handlePeerIdentified = useCallback(
     async (peerPublicKey: string) => {
@@ -73,58 +186,11 @@ export const App = () => {
         await addContact(peerPublicKey);
       }
 
-      // Auto-select the peer who just connected to us
       setActiveContactKey(peerPublicKey);
       setShowSidebar(false);
     },
     [contacts, addContact, identity],
   );
-
-  // Refs to forward call signals — breaks circular dependency between useConnection and useCall
-  const callSignalRef = useRef<(msg: DataChannelMessage) => void>(() => {});
-  const remoteTrackRef = useRef<(event: RTCTrackEvent) => void>(() => {});
-
-  // ── Connection hook (App-level) ────────────────────────
-
-  const {
-    connectionState,
-    connectedPeerKey,
-    isConnecting,
-    rtcManager,
-    connectTo,
-    sendChat,
-    sendTyping,
-    sendFile,
-    sendCallSignal,
-    disconnect,
-  } = useConnection({
-    publicKey: identity?.publicKey ?? "",
-    onChatMessage: useCallback((payload: ChatPayload) => {
-      setIncomingChat(payload);
-    }, []),
-    onTyping: useCallback((isTyping: boolean) => {
-      setPeerTyping(isTyping);
-    }, []),
-    onPeerIdentified: handlePeerIdentified,
-    onCallSignal: useCallback((msg: DataChannelMessage) => {
-      callSignalRef.current(msg);
-    }, []),
-    onRemoteTrack: useCallback((event: RTCTrackEvent) => {
-      remoteTrackRef.current(event);
-    }, []),
-  });
-
-  // ── Call hook (App-level) ──────────────────────────────
-
-  const call = useCall({
-    rtcManager,
-    send: sendCallSignal,
-    localPublicKey: identity?.publicKey ?? "",
-    peerPublicKey: connectedPeerKey,
-  });
-
-  callSignalRef.current = call.handleCallMessage;
-  remoteTrackRef.current = call.handleRemoteTrack;
 
   const getContactName = useCallback(
     (key: string | null): string => {
@@ -135,14 +201,12 @@ export const App = () => {
     [contacts],
   );
 
-  // Auto-advance to chat view if already authenticated
   useEffect(() => {
     if (isAuthenticated && view === "login") {
       setView("chat");
     }
   }, [isAuthenticated, view]);
 
-  // Parse deep link on mount and on hash change
   useEffect(() => {
     const processHash = () => {
       const invite = parseDeepLink();
@@ -157,11 +221,9 @@ export const App = () => {
     return () => window.removeEventListener("hashchange", processHash);
   }, []);
 
-  // Process pending invite once identity is ready
   useEffect(() => {
     if (!pendingInvite || !isAuthenticated) return;
 
-    // Clear invite immediately to prevent re-runs when deps change
     const invite = pendingInvite;
     setPendingInvite(null);
 
@@ -184,13 +246,11 @@ export const App = () => {
       setShowSidebar(false);
       setView("chat");
 
-      // Auto-connect to the inviter — this joins their signaling room,
-      // which notifies them about us via peer-joined (with our public key)
-      await connectTo(peerKey);
+      await connectToRef.current?.(peerKey);
     };
 
     process();
-  }, [pendingInvite, isAuthenticated, identity, contacts, addContact, connectTo]);
+  }, [pendingInvite, isAuthenticated, identity, contacts, addContact]);
 
   const handleReady = useCallback(() => {
     setView("chat");
@@ -220,11 +280,6 @@ export const App = () => {
     [contacts, addContact, identity],
   );
 
-  const activeContact = useMemo(
-    () => contacts.find((c) => c.publicKey === activeContactKey) ?? null,
-    [contacts, activeContactKey],
-  );
-
   // ── Render ─────────────────────────────────────────────
 
   if (identityLoading) {
@@ -248,69 +303,35 @@ export const App = () => {
   }
 
   return (
-    <div className={styles.app}>
-      <div
-        className={`${styles.sidebar} ${showSidebar ? styles.sidebarVisible : ""}`}
+    <ConnectionProvider
+      publicKey={identity.publicKey}
+      onPeerIdentified={handlePeerIdentified}
+      callSignalRef={callSignalRef}
+      remoteTrackRef={remoteTrackRef}
+    >
+      <CallProvider
+        localPublicKey={identity.publicKey}
+        callSignalRef={callSignalRef}
+        remoteTrackRef={remoteTrackRef}
       >
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>TheChat</div>
-        </div>
-        <ContactList
+        <ConnectToCapture connectToRef={connectToRef} />
+        <AppInner
           contacts={contacts}
           onlineMap={onlineMap}
           activeContactKey={activeContactKey}
-          onSelect={handleSelectContact}
+          showSidebar={showSidebar}
+          showAddContact={showAddContact}
+          identity={identity}
+          onSelectContact={handleSelectContact}
+          onBack={handleBack}
           onAdd={() => setShowAddContact(true)}
+          onCloseAdd={() => setShowAddContact(false)}
+          onContactAdded={handleContactAdded}
           onRename={renameContact}
           onDelete={deleteContact}
+          getContactName={getContactName}
         />
-      </div>
-
-      <div
-        className={`${styles.main} ${!showSidebar ? styles.mainVisible : ""}`}
-      >
-        <ChatWindow
-          contact={activeContact}
-          connectionState={connectionState}
-          connectedPeerKey={connectedPeerKey}
-          isConnecting={isConnecting}
-          incomingChat={incomingChat}
-          peerTyping={peerTyping}
-          callState={call.callState}
-          localStream={call.localStream}
-          remoteStream={call.remoteStream}
-          callType={call.currentCallType ?? "audio"}
-          isAudioEnabled={call.isAudioEnabled}
-          isVideoEnabled={call.isVideoEnabled}
-          onStartCall={call.startCall}
-          onEndCall={call.endCall}
-          onToggleAudio={call.toggleAudio}
-          onToggleVideo={call.toggleVideo}
-          onConnect={connectTo}
-          onSendChat={sendChat}
-          onSendTyping={sendTyping}
-          onSendFile={sendFile}
-          onDisconnect={disconnect}
-          onBack={handleBack}
-        />
-      </div>
-
-      {showAddContact && (
-        <AddContact
-          publicKey={identity.publicKey}
-          onContactAdded={handleContactAdded}
-          onClose={() => setShowAddContact(false)}
-        />
-      )}
-
-      {call.callState === "incoming-ringing" && (
-        <IncomingCallModal
-          callerName={getContactName(connectedPeerKey)}
-          callType={call.incomingCallType ?? "audio"}
-          onAccept={call.acceptCall}
-          onReject={call.rejectCall}
-        />
-      )}
-    </div>
+      </CallProvider>
+    </ConnectionProvider>
   );
 };

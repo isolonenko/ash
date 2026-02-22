@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import type { CallState, CallType } from "@shared/types";
+import type { CallState, CallType } from "@/types";
 import { CallControls } from "./CallControls";
 import styles from "./CallOverlay.module.scss";
 
