@@ -33,7 +33,6 @@ const parseDeepLink = (): ConnectionInvite | null => {
   }
 };
 
-
 // ── Renderless: captures connectTo from context into a ref ─
 
 interface ConnectToCaptureProps {
@@ -166,24 +165,26 @@ export const App = () => {
 
   const [activeContactKey, setActiveContactKey] = useState<string | null>(null);
   const [showAddContact, setShowAddContact] = useState(false);
-  const [pendingInvite, setPendingInvite] = useState<ConnectionInvite | null>(() => {
-    const fromHash = parseDeepLink();
-    if (fromHash) {
-      localStorage.setItem("pendingInvite", JSON.stringify(fromHash));
-      window.history.replaceState(null, "", window.location.pathname);
-      return fromHash;
-    }
-    const stored = localStorage.getItem("pendingInvite");
-    if (stored) {
-      try {
-        const invite = JSON.parse(stored) as ConnectionInvite;
-        if (invite.publicKey && invite.signalingUrl) return invite;
-      } catch {
-        localStorage.removeItem("pendingInvite");
+  const [pendingInvite, setPendingInvite] = useState<ConnectionInvite | null>(
+    () => {
+      const fromHash = parseDeepLink();
+      if (fromHash) {
+        localStorage.setItem("pendingInvite", JSON.stringify(fromHash));
+        window.history.replaceState(null, "", window.location.pathname);
+        return fromHash;
       }
-    }
-    return null;
-  });
+      const stored = localStorage.getItem("pendingInvite");
+      if (stored) {
+        try {
+          const invite = JSON.parse(stored) as ConnectionInvite;
+          if (invite.publicKey && invite.signalingUrl) return invite;
+        } catch {
+          localStorage.removeItem("pendingInvite");
+        }
+      }
+      return null;
+    },
+  );
   const [showSidebar, setShowSidebar] = useState(true);
 
   const callSignalRef = useRef<(msg: DataChannelMessage) => void>(() => {});
@@ -259,7 +260,6 @@ export const App = () => {
 
     process();
   }, [pendingInvite, isAuthenticated, identity, contacts, addContact]);
-
 
   const handleSelectContact = useCallback((publicKey: string) => {
     setActiveContactKey(publicKey);

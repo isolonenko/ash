@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Contact } from "@/types";
 import {
   getContacts,
@@ -20,57 +21,47 @@ interface UseContactsResult {
 
 const PRESENCE_POLL_INTERVAL = 30_000; // 30 seconds
 
+export const contactsQueryKey = ["contacts"] as const;
+export const presenceQueryKey = ["presence"] as const;
+
 export const useContacts = (): UseContactsResult => {
-  const [contacts, setContacts] = useState<readonly Contact[]>([]);
-  const [onlineMap, setOnlineMap] = useState<ReadonlyMap<string, boolean>>(
-    new Map(),
-  );
-  const [loading, setLoading] = useState(true);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const queryClient = useQueryClient();
 
-  const reload = useCallback(async () => {
-    const all = await getContacts();
-    setContacts(all);
-    return all;
-  }, []);
+  // ── Contacts query ────────────────────────────────────────
+  const {
+    data: contacts = [],
+    isLoading,
+  } = useQuery({
+    queryKey: contactsQueryKey,
+    queryFn: getContacts,
+    staleTime: Infinity,
+  });
 
-  const refreshPresence = useCallback(async (providedContacts?: readonly Contact[]) => {
-    const all = providedContacts ?? (contacts.length > 0 ? contacts : await getContacts());
-    const entries = await Promise.all(
-      all.map(async (c) => {
-        const presence = await lookupPresence(c.publicKey);
-        if (presence?.online) {
-          await updateContactLastSeen(c.publicKey, Date.now());
-        }
-        return [c.publicKey, presence?.online ?? false] as const;
-      }),
-    );
-    setOnlineMap(new Map(entries));
-  }, [contacts]);
+  // ── Presence query (polls every 30s) ──────────────────────
+  const contactKeys = contacts.map((c) => c.publicKey);
+  const { data: onlineMap = new Map<string, boolean>() } = useQuery({
+    queryKey: [...presenceQueryKey, contactKeys],
+    queryFn: async (): Promise<ReadonlyMap<string, boolean>> => {
+      const all = await getContacts();
+      const entries = await Promise.all(
+        all.map(async (c) => {
+          const presence = await lookupPresence(c.publicKey);
+          if (presence?.online) {
+            await updateContactLastSeen(c.publicKey, Date.now());
+          }
+          return [c.publicKey, presence?.online ?? false] as const;
+        }),
+      );
+      return new Map(entries);
+    },
+    enabled: contacts.length > 0,
+    staleTime: PRESENCE_POLL_INTERVAL,
+    refetchInterval: PRESENCE_POLL_INTERVAL,
+  });
 
-  useEffect(() => {
-    const init = async () => {
-      const all = await reload();
-      setLoading(false);
-      if (all.length > 0) {
-        await refreshPresence(all);
-      }
-    };
-    init();
-  }, [reload, refreshPresence]);
-
-  // Poll presence periodically
-  useEffect(() => {
-    if (contacts.length === 0) return;
-
-    pollRef.current = setInterval(refreshPresence, PRESENCE_POLL_INTERVAL);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-      }
-    };
-  }, [contacts.length, refreshPresence]);
+  // ── Mutation callbacks ────────────────────────────────────
+  // These are stable because queryClient is a singleton and the
+  // storage functions are module-level — no render-time deps.
 
   const addContact = useCallback(
     async (publicKey: string, name?: string) => {
@@ -80,36 +71,41 @@ export const useContacts = (): UseContactsResult => {
         addedAt: Date.now(),
       };
       await saveContact(contact);
-      await reload();
+      await queryClient.invalidateQueries({ queryKey: contactsQueryKey });
     },
-    [reload],
+    [queryClient],
   );
 
-  const deleteContactHandler = useCallback(
+  const deleteContact = useCallback(
     async (publicKey: string) => {
       await removeContact(publicKey);
-      await reload();
+      await queryClient.invalidateQueries({ queryKey: contactsQueryKey });
     },
-    [reload],
+    [queryClient],
   );
 
   const renameContact = useCallback(
     async (publicKey: string, name: string) => {
-      const existing = contacts.find((c) => c.publicKey === publicKey);
+      const current = queryClient.getQueryData<readonly Contact[]>(contactsQueryKey) ?? [];
+      const existing = current.find((c) => c.publicKey === publicKey);
       if (existing) {
         await saveContact({ ...existing, name });
-        await reload();
+        await queryClient.invalidateQueries({ queryKey: contactsQueryKey });
       }
     },
-    [contacts, reload],
+    [queryClient],
   );
+
+  const refreshPresence = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: presenceQueryKey });
+  }, [queryClient]);
 
   return {
     contacts,
     onlineMap,
-    loading,
+    loading: isLoading,
     addContact,
-    deleteContact: deleteContactHandler,
+    deleteContact,
     renameContact,
     refreshPresence,
   };

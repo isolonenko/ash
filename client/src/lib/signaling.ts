@@ -9,8 +9,7 @@ import { retryWithBackoff } from "@/lib/retry";
 
 // ── Config ───────────────────────────────────────────────
 
-const SIGNALING_URL =
-  import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8080";
+const SIGNALING_URL = "ws://localhost:8787";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -103,7 +102,10 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
       ws.onmessage = null;
       ws.onclose = null;
       ws.onerror = null;
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
         ws.close();
       }
       ws = null;
