@@ -8,6 +8,7 @@ import {
   FILE_CHUNK_SIZE,
   FILE_CHUNK_BATCH_SIZE,
   FILE_CHUNK_BATCH_DELAY,
+  ICE_RESTART_MAX_ATTEMPTS,
 } from "@/lib/constants";
 
 // ── Connection state mapping ─────────────────────────────
@@ -41,6 +42,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
   let pc: RTCPeerConnection | null = null;
   let dataChannel: RTCDataChannel | null = null;
   let state: PeerConnectionState = "new";
+  let iceRestartAttempts = 0;
 
   // Sequential message queue to prevent race conditions
   // (e.g. ice-candidate arriving before setRemoteDescription completes)
@@ -82,9 +84,45 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
 
     connection.onconnectionstatechange = () => {
       const mapped = CONNECTION_STATE_MAP[connection.connectionState] ?? "new";
+
+      if (
+        connection.connectionState === "failed" &&
+        iceRestartAttempts < ICE_RESTART_MAX_ATTEMPTS
+      ) {
+        iceRestartAttempts++;
+        console.warn(
+          `[WebRTC] connection failed — attempting ICE restart (${iceRestartAttempts}/${ICE_RESTART_MAX_ATTEMPTS})`,
+        );
+        connection.restartIce();
+
+        connection
+          .createOffer({ iceRestart: true })
+          .then((offer) => connection.setLocalDescription(offer))
+          .then(() => {
+            options.onSignalingNeeded({
+              type: "sdp-offer",
+              roomId: options.roomId,
+              senderPublicKey: options.publicKey,
+              payload: { sdp: connection.localDescription },
+            });
+          })
+          .catch((err) => {
+            console.error("[WebRTC] ICE restart failed:", err);
+            setState("failed");
+          });
+
+        setState("connecting");
+        return;
+      }
+
       if (mapped === "failed") {
         console.warn("[WebRTC] ICE connection failed — TURN relay may be misconfigured");
       }
+
+      if (mapped === "connected") {
+        iceRestartAttempts = 0;
+      }
+
       setState(mapped);
     };
 
@@ -129,8 +167,8 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
       try {
         const msg: DataChannelMessage = JSON.parse(event.data as string);
         options.onMessage(msg);
-      } catch {
-        // Ignore malformed
+      } catch (err) {
+        console.warn("[WebRTC] Failed to parse DataChannel message:", err);
       }
     };
 

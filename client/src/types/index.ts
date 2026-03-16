@@ -94,9 +94,20 @@ export type PeerConnectionState =
   | "closed";
 
 export interface DataChannelMessage {
-  type: "chat" | "typing" | "read-receipt" | "file-meta" | "file-chunk"
-    | "call-offer" | "call-accept" | "call-reject" | "call-end" | "call-media-state"
-    | "sdp-renegotiate-offer" | "sdp-renegotiate-answer" | "ice-renegotiate";
+  type:
+    | "chat"
+    | "typing"
+    | "read-receipt"
+    | "file-meta"
+    | "file-chunk"
+    | "call-offer"
+    | "call-accept"
+    | "call-reject"
+    | "call-end"
+    | "call-media-state"
+    | "sdp-renegotiate-offer"
+    | "sdp-renegotiate-answer"
+    | "ice-renegotiate";
   payload: unknown;
 }
 
@@ -131,9 +142,18 @@ export interface FileChunkPayload {
 
 export type CallType = "audio" | "video";
 
-export type CallState = "idle" | "outgoing-ringing" | "incoming-ringing" | "active" | "ended" | "error";
+export type CallState =
+  | "idle"
+  | "outgoing-ringing"
+  | "incoming-ringing"
+  | "active"
+  | "ended"
+  | "error";
 
-export type CallErrorReason = "permission-denied" | "call-failed" | "media-error";
+export type CallErrorReason =
+  | "permission-denied"
+  | "call-failed"
+  | "media-error";
 
 export interface CallOfferPayload {
   callType: CallType;
@@ -147,7 +167,7 @@ export interface CallRejectPayload {
   reason?: string;
 }
 
-export interface CallEndPayload {}
+export type CallEndPayload = Record<string, never>;
 
 export interface CallMediaStatePayload {
   audioEnabled: boolean;

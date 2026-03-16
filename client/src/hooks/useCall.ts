@@ -15,6 +15,7 @@ import { CALL_MEDIA_TIMEOUT_MS } from "@/lib/constants";
 
 export interface UseCallOptions {
   rtcManager: ReturnType<typeof createWebRTCManager> | null;
+  getRtcManager?: () => ReturnType<typeof createWebRTCManager> | null;
   send: (msg: DataChannelMessage) => void;
   localPublicKey: string;
   peerPublicKey: string | null;
@@ -55,13 +56,13 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
   const sendersRef = useRef<RTCRtpSender[]>([]);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   const localStreamRef = useRef<MediaStream | null>(null);
 
-  const getMediaConstraints = (
-    type: CallType,
-  ): MediaStreamConstraints => {
+  const getMediaConstraints = (type: CallType): MediaStreamConstraints => {
     const audio: MediaTrackConstraints = {
       echoCancellation: true,
       noiseSuppression: true,
@@ -87,10 +88,11 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   }, []);
 
   const removeSenders = useCallback(() => {
-    const { rtcManager } = optionsRef.current;
-    if (!rtcManager) return;
+    const freshRtc =
+      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    if (!freshRtc) return;
     sendersRef.current.forEach((sender) => {
-      rtcManager.removeMediaTrack(sender);
+      freshRtc.removeMediaTrack(sender);
     });
     sendersRef.current = [];
   }, []);
@@ -108,8 +110,10 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
   const startCall = useCallback(
     async (type: CallType) => {
-      const { rtcManager, send } = optionsRef.current;
-      if (!rtcManager) return;
+      const { send } = optionsRef.current;
+      const freshRtc =
+        optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+      if (!freshRtc) return;
 
       setCallState("outgoing-ringing");
       setCallError(null);
@@ -124,7 +128,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
         const newSenders = stream
           .getTracks()
-          .map((track) => rtcManager.addMediaTrack(track, stream))
+          .map((track) => freshRtc.addMediaTrack(track, stream))
           .filter((s): s is RTCRtpSender => s !== null);
         sendersRef.current = newSenders;
 
@@ -146,8 +150,10 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   );
 
   const acceptCall = useCallback(async () => {
-    const { rtcManager, send } = optionsRef.current;
-    if (!rtcManager || !incomingCallType) return;
+    const { send } = optionsRef.current;
+    const freshRtc =
+      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    if (!freshRtc || !incomingCallType) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
@@ -158,7 +164,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
       const newSenders = stream
         .getTracks()
-        .map((track) => rtcManager.addMediaTrack(track, stream))
+        .map((track) => freshRtc.addMediaTrack(track, stream))
         .filter((s): s is RTCRtpSender => s !== null);
       sendersRef.current = newSenders;
 
@@ -218,8 +224,10 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   }, [isVideoEnabled]);
 
   const toggleVideo = useCallback(async () => {
-    const { rtcManager, send } = optionsRef.current;
-    if (!rtcManager) return;
+    const { send } = optionsRef.current;
+    const freshRtc =
+      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    if (!freshRtc) return;
 
     const stream = localStreamRef.current;
     const existingVideoTrack = stream?.getVideoTracks()[0];
@@ -258,12 +266,11 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
       if (stream) {
         stream.addTrack(videoTrack);
       }
-      setLocalStream(stream ? new MediaStream(stream.getTracks()) : videoStream);
-
-      const sender = rtcManager.addMediaTrack(
-        videoTrack,
-        stream ?? videoStream,
+      setLocalStream(
+        stream ? new MediaStream(stream.getTracks()) : videoStream,
       );
+
+      const sender = freshRtc.addMediaTrack(videoTrack, stream ?? videoStream);
       if (sender) {
         sendersRef.current = [...sendersRef.current, sender];
       }
@@ -305,8 +312,6 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
           break;
         }
         case "call-media-state": {
-          // Store remote media state — future use for remote mute indicators
-          msg.payload as CallMediaStatePayload;
           break;
         }
       }
@@ -327,12 +332,38 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!optionsRef.current.rtcManager && callState === "active") {
-      cleanupCall();
+  // When rtcManager goes null while call is active, clean up
+  const [prevRtcManager, setPrevRtcManager] = useState(options.rtcManager);
+  if (options.rtcManager !== prevRtcManager) {
+    setPrevRtcManager(options.rtcManager);
+    if (prevRtcManager && !options.rtcManager && callState === "active") {
       setCallState("idle");
+      setCallError(null);
+      setRemoteStream(null);
+      setIsAudioEnabled(true);
+      setIsVideoEnabled(false);
+      setIncomingCallType(null);
+      setCurrentCallType(null);
     }
-  }, [options.rtcManager, callState, cleanupCall]);
+  }
+
+  // Side effects for rtcManager going null (external cleanup only, no setState)
+  useEffect(() => {
+    if (!options.rtcManager) {
+      // Stop media tracks (external side effect)
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+      // Remove senders from peer connection (external side effect)
+      const freshRtc =
+        optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+      if (freshRtc) {
+        sendersRef.current.forEach((sender) => {
+          freshRtc.removeMediaTrack(sender);
+        });
+      }
+      sendersRef.current = [];
+    }
+  }, [options.rtcManager]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {

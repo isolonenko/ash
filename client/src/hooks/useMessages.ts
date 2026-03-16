@@ -20,23 +20,41 @@ export const useMessages = (
   contactPublicKey: string | null,
 ): UseMessagesResult => {
   const [messages, setMessages] = useState<readonly ChatMessage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadedKey, setLoadedKey] = useState<string | null | undefined>(
+    undefined,
+  );
+  const loading = loadedKey !== contactPublicKey;
 
   const reload = useCallback(async () => {
     if (!contactPublicKey) {
       setMessages([]);
-      setLoading(false);
+      setLoadedKey(contactPublicKey);
       return;
     }
     const msgs = await getMessages(contactPublicKey);
     setMessages(msgs);
-    setLoading(false);
+    setLoadedKey(contactPublicKey);
   }, [contactPublicKey]);
 
   useEffect(() => {
-    setLoading(true);
-    reload();
-  }, [reload]);
+    let cancelled = false;
+    const load = async () => {
+      if (!contactPublicKey) {
+        setMessages([]);
+        setLoadedKey(contactPublicKey);
+        return;
+      }
+      const msgs = await getMessages(contactPublicKey);
+      if (!cancelled) {
+        setMessages(msgs);
+        setLoadedKey(contactPublicKey);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [contactPublicKey]);
 
   const sendMessage = useCallback(
     async (text: string): Promise<ChatMessage> => {
@@ -78,15 +96,12 @@ export const useMessages = (
     [contactPublicKey],
   );
 
-  const markMessageRead = useCallback(
-    async (messageId: string) => {
-      await markRead(messageId);
-      setMessages((prev) =>
-        prev.map((m) => (m.id === messageId ? { ...m, read: true } : m)),
-      );
-    },
-    [],
-  );
+  const markMessageRead = useCallback(async (messageId: string) => {
+    await markRead(messageId);
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, read: true } : m)),
+    );
+  }, []);
 
   return {
     messages,

@@ -20,6 +20,8 @@ type ConnectionHandler = (connected: boolean) => void;
 interface SignalingClientOptions {
   onMessage: MessageHandler;
   onConnectionChange?: ConnectionHandler;
+  onError?: (error: "room-full" | "unknown") => void;
+  onReconnected?: () => void;
   publicKey?: string; // our public key, sent as query param for peer identification
 }
 
@@ -44,8 +46,12 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
     ws = new WebSocket(url);
 
     ws.onopen = () => {
+      const wasReconnecting = reconnectAttempts > 0;
       reconnectAttempts = 0;
       options.onConnectionChange?.(true);
+      if (wasReconnecting) {
+        options.onReconnected?.();
+      }
     };
 
     ws.onmessage = (event: MessageEvent) => {
@@ -57,8 +63,14 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       options.onConnectionChange?.(false);
+
+      if (event.code === 1013 || event.code === 4409) {
+        options.onError?.("room-full");
+        return;
+      }
+
       if (!intentionallyClosed && currentRoomId) {
         scheduleReconnect();
       }
@@ -161,7 +173,15 @@ export const lookupPresence = async (
 };
 
 export const removePresence = async (publicKey: string): Promise<void> => {
-  await fetch(`${PRESENCE_URL}/presence/${encodeURIComponent(publicKey)}`, {
-    method: "DELETE",
-  });
+  try {
+    const res = await fetch(
+      `${PRESENCE_URL}/presence/${encodeURIComponent(publicKey)}`,
+      { method: "DELETE" },
+    );
+    if (!res.ok) {
+      console.warn(`[Presence] removePresence failed: HTTP ${res.status}`);
+    }
+  } catch (err) {
+    console.warn("[Presence] removePresence error:", err);
+  }
 };

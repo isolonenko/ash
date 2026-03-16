@@ -12,7 +12,7 @@ type CameraState = "loading" | "active" | "error";
 const parseInviteFromUrl = (input: string): ConnectionInvite | null => {
   try {
     const hashMatch = input.match(/#\/connect\/(.+)$/);
-    const encoded = hashMatch ? hashMatch[1] : input;
+    const encoded = hashMatch ? decodeURIComponent(hashMatch[1]) : input;
     const decoded = JSON.parse(atob(encoded));
 
     if (decoded.publicKey && decoded.roomId && decoded.signalingUrl) {

@@ -25,18 +25,18 @@ interface UseHumanityAuthResult {
 }
 
 export const useHumanityAuth = (): UseHumanityAuthResult => {
-  const [state, setState] = useState<HumanityAuthState>("idle");
-  const [credential, setCredential] = useState<HumanityCredential | null>(
-    null,
+  const [initialCallback] = useState(() => parseOAuthCallback());
+  const [state, setState] = useState<HumanityAuthState>(() =>
+    initialCallback ? "processing" : "idle",
   );
+  const [credential, setCredential] = useState<HumanityCredential | null>(null);
   const [error, setError] = useState<string | null>(null);
   const configured = isHumanityConfigured();
 
   useEffect(() => {
-    const callback = parseOAuthCallback();
+    const callback = initialCallback;
     if (!callback) return;
 
-    setState("processing");
     clearOAuthParams();
 
     handleHumanityCallback(callback.code, callback.state)
@@ -50,7 +50,7 @@ export const useHumanityAuth = (): UseHumanityAuthResult => {
         setError(message);
         setState("error");
       });
-  }, []);
+  }, [initialCallback]);
 
   const login = useCallback(() => {
     setState("redirecting");

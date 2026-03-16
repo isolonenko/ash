@@ -1,38 +1,13 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useRef,
-  useMemo,
-} from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
-import type {
-  ChatPayload,
-  DataChannelMessage,
-  PeerConnectionState,
-} from "@/types";
-import type { createWebRTCManager } from "@/lib/webrtc";
+import type { ChatPayload, DataChannelMessage } from "@/types";
 import { useConnection } from "@/hooks/useConnection";
+import {
+  ConnectionContext,
+  type ConnectionContextValue,
+} from "@/context/connection-context";
 
 // ── Types ────────────────────────────────────────────────
-
-interface ConnectionContextValue {
-  connectionState: PeerConnectionState;
-  connectedPeerKey: string | null;
-  presenceRoomId: string | null;
-  isConnecting: boolean;
-  connectionMessage: string | null;
-  rtcManager: ReturnType<typeof createWebRTCManager> | null;
-  incomingChat: ChatPayload | null;
-  peerTyping: boolean;
-  connectTo: (peerPublicKey: string) => Promise<void>;
-  sendChat: (id: string, text: string) => void;
-  sendTyping: (isTyping: boolean) => void;
-  sendFile: (file: File) => Promise<string>;
-  sendCallSignal: (msg: DataChannelMessage) => void;
-  disconnect: () => void;
-}
 
 interface ConnectionProviderProps {
   publicKey: string;
@@ -41,18 +16,6 @@ interface ConnectionProviderProps {
   remoteTrackRef: React.RefObject<(event: RTCTrackEvent) => void>;
   children: ReactNode;
 }
-
-// ── Context ──────────────────────────────────────────────
-
-const ConnectionContext = createContext<ConnectionContextValue | null>(null);
-
-export const useConnectionContext = (): ConnectionContextValue => {
-  const ctx = useContext(ConnectionContext);
-  if (!ctx) {
-    throw new Error("useConnectionContext must be used within ConnectionProvider");
-  }
-  return ctx;
-};
 
 // ── Provider ─────────────────────────────────────────────
 
@@ -67,7 +30,9 @@ export const ConnectionProvider = ({
   const [peerTyping, setPeerTyping] = useState(false);
 
   const onPeerIdentifiedRef = useRef(onPeerIdentified);
-  onPeerIdentifiedRef.current = onPeerIdentified;
+  useEffect(() => {
+    onPeerIdentifiedRef.current = onPeerIdentified;
+  });
 
   const handleChatMessage = useCallback((payload: ChatPayload) => {
     setIncomingChat(payload);
@@ -81,13 +46,19 @@ export const ConnectionProvider = ({
     onPeerIdentifiedRef.current(peerPublicKey);
   }, []);
 
-  const handleCallSignal = useCallback((msg: DataChannelMessage) => {
-    callSignalRef.current(msg);
-  }, [callSignalRef]);
+  const handleCallSignal = useCallback(
+    (msg: DataChannelMessage) => {
+      callSignalRef.current(msg);
+    },
+    [callSignalRef],
+  );
 
-  const handleRemoteTrack = useCallback((event: RTCTrackEvent) => {
-    remoteTrackRef.current(event);
-  }, [remoteTrackRef]);
+  const handleRemoteTrack = useCallback(
+    (event: RTCTrackEvent) => {
+      remoteTrackRef.current(event);
+    },
+    [remoteTrackRef],
+  );
 
   const {
     connectionState,
@@ -96,6 +67,7 @@ export const ConnectionProvider = ({
     isConnecting,
     connectionMessage,
     rtcManager,
+    getRtcManager,
     connectTo,
     sendChat,
     sendTyping,
@@ -119,6 +91,7 @@ export const ConnectionProvider = ({
       isConnecting,
       connectionMessage,
       rtcManager,
+      getRtcManager,
       incomingChat,
       peerTyping,
       connectTo,
@@ -135,6 +108,7 @@ export const ConnectionProvider = ({
       isConnecting,
       connectionMessage,
       rtcManager,
+      getRtcManager,
       incomingChat,
       peerTyping,
       connectTo,
