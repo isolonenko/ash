@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import type { ConnectionInvite, DataChannelMessage } from "@/types";
 import { useIdentity } from "@/hooks/useIdentity";
 import { useContacts } from "@/hooks/useContacts";
-import { ConnectionProvider, useConnectionContext } from "@/context/ConnectionContext";
-import { CallProvider, useCallContext } from "@/context/CallContext";
+import { ConnectionProvider } from "@/context/ConnectionContext";
+import { useConnectionContext } from "@/context/connection-context";
+import { CallProvider } from "@/context/CallContext";
+import { useCallContext } from "@/context/call-context";
 import { shortenKey } from "@/lib/crypto";
 import { Login } from "./Login";
 import { ContactList } from "./ContactList";
@@ -31,19 +33,20 @@ const parseDeepLink = (): ConnectionInvite | null => {
   }
 };
 
-// ── View state ───────────────────────────────────────────
-
-type View = "login" | "chat";
 
 // ── Renderless: captures connectTo from context into a ref ─
 
 interface ConnectToCaptureProps {
-  connectToRef: React.RefObject<((peerPublicKey: string) => Promise<void>) | null>;
+  connectToRef: React.RefObject<
+    ((peerPublicKey: string) => Promise<void>) | null
+  >;
 }
 
 const ConnectToCapture = ({ connectToRef }: ConnectToCaptureProps) => {
   const { connectTo } = useConnectionContext();
-  connectToRef.current = connectTo;
+  useEffect(() => {
+    connectToRef.current = connectTo;
+  });
   return null;
 };
 
@@ -158,25 +161,36 @@ export const App = () => {
     isAuthenticated,
     createIdentity,
   } = useIdentity();
-  const {
-    contacts,
-    onlineMap,
-    addContact,
-    renameContact,
-    deleteContact,
-  } = useContacts();
+  const { contacts, onlineMap, addContact, renameContact, deleteContact } =
+    useContacts();
 
-  const [view, setView] = useState<View>("login");
   const [activeContactKey, setActiveContactKey] = useState<string | null>(null);
   const [showAddContact, setShowAddContact] = useState(false);
-  const [pendingInvite, setPendingInvite] = useState<ConnectionInvite | null>(
-    null,
-  );
+  const [pendingInvite, setPendingInvite] = useState<ConnectionInvite | null>(() => {
+    const fromHash = parseDeepLink();
+    if (fromHash) {
+      localStorage.setItem("pendingInvite", JSON.stringify(fromHash));
+      window.history.replaceState(null, "", window.location.pathname);
+      return fromHash;
+    }
+    const stored = localStorage.getItem("pendingInvite");
+    if (stored) {
+      try {
+        const invite = JSON.parse(stored) as ConnectionInvite;
+        if (invite.publicKey && invite.signalingUrl) return invite;
+      } catch {
+        localStorage.removeItem("pendingInvite");
+      }
+    }
+    return null;
+  });
   const [showSidebar, setShowSidebar] = useState(true);
 
   const callSignalRef = useRef<(msg: DataChannelMessage) => void>(() => {});
   const remoteTrackRef = useRef<(event: RTCTrackEvent) => void>(() => {});
-  const connectToRef = useRef<((peerPublicKey: string) => Promise<void>) | null>(null);
+  const connectToRef = useRef<
+    ((peerPublicKey: string) => Promise<void>) | null
+  >(null);
 
   const handlePeerIdentified = useCallback(
     async (peerPublicKey: string) => {
@@ -203,59 +217,35 @@ export const App = () => {
   );
 
   useEffect(() => {
-    if (isAuthenticated && view === "login") {
-      setView("chat");
-    }
-  }, [isAuthenticated, view]);
-
-  useEffect(() => {
     const processHash = () => {
       const invite = parseDeepLink();
       if (invite) {
         setPendingInvite(invite);
-        // Persist so invite survives page reload during identity creation
         localStorage.setItem("pendingInvite", JSON.stringify(invite));
         window.history.replaceState(null, "", window.location.pathname);
       }
     };
 
-    // Check localStorage for invite from previous page load
-    if (!pendingInvite) {
-      const stored = localStorage.getItem("pendingInvite");
-      if (stored) {
-        try {
-          const invite = JSON.parse(stored) as ConnectionInvite;
-          if (invite.publicKey && invite.signalingUrl) {
-            setPendingInvite(invite);
-          }
-        } catch {
-          localStorage.removeItem("pendingInvite");
-        }
-      }
-    }
-
-    processHash();
     window.addEventListener("hashchange", processHash);
     return () => window.removeEventListener("hashchange", processHash);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!pendingInvite || !isAuthenticated) return;
 
     const invite = pendingInvite;
-    setPendingInvite(null);
-    localStorage.removeItem("pendingInvite");
 
     const process = async () => {
+      setPendingInvite(null);
+      localStorage.removeItem("pendingInvite");
+
       if (invite.publicKey === identity?.publicKey) {
         return;
       }
 
       const peerKey = invite.publicKey;
 
-      const alreadyExists = contacts.some(
-        (c) => c.publicKey === peerKey,
-      );
+      const alreadyExists = contacts.some((c) => c.publicKey === peerKey);
 
       if (!alreadyExists) {
         await addContact(peerKey);
@@ -263,7 +253,6 @@ export const App = () => {
 
       setActiveContactKey(peerKey);
       setShowSidebar(false);
-      setView("chat");
 
       await connectToRef.current?.(peerKey);
     };
@@ -271,9 +260,6 @@ export const App = () => {
     process();
   }, [pendingInvite, isAuthenticated, identity, contacts, addContact]);
 
-  const handleReady = useCallback(() => {
-    setView("chat");
-  }, []);
 
   const handleSelectContact = useCallback((publicKey: string) => {
     setActiveContactKey(publicKey);
@@ -309,14 +295,14 @@ export const App = () => {
     );
   }
 
-  if (view === "login" || !isAuthenticated || !identity) {
+  if (!isAuthenticated || !identity) {
     return (
       <Login
         identity={identity}
         loading={identityLoading}
         isAuthenticated={isAuthenticated}
         onCreateIdentity={createIdentity}
-        onReady={handleReady}
+        onReady={() => {}}
       />
     );
   }

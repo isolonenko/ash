@@ -73,9 +73,7 @@ export const useConnection = (
   const presenceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
-  const relistenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const relistenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Monotonically increasing connection ID to ignore stale callbacks from old connections
   const connectionIdRef = useRef(0);
   // Mutex: true while connectTo is in-flight (prevents duplicate calls)
@@ -87,68 +85,65 @@ export const useConnection = (
 
   // ── DataChannel message handler ────────────────────────
 
-  const handleDataChannelMessage = useCallback(
-    (msg: DataChannelMessage) => {
-      switch (msg.type) {
-        case "chat": {
-          const payload = msg.payload as ChatPayload;
-          optionsRef.current.onChatMessage?.(payload);
-          break;
-        }
-        case "typing": {
-          const payload = msg.payload as TypingPayload;
-          optionsRef.current.onTyping?.(payload.isTyping);
-          break;
-        }
-        case "file-meta": {
-          const meta = msg.payload as {
-            id: string;
-            name: string;
-            size: number;
-            totalChunks: number;
-          };
-          handleFileMeta(incomingFiles.current, meta);
-          break;
-        }
-        case "file-chunk": {
-          const chunk = msg.payload as {
-            fileId: string;
-            chunkIndex: number;
-            data: string;
-          };
-          const result = handleFileChunk(incomingFiles.current, chunk);
-          if (result) {
-            optionsRef.current.onFileReceived?.(result.name, result.data);
-          }
-          break;
-        }
-        case "call-offer":
-        case "call-accept":
-        case "call-reject":
-        case "call-end":
-        case "call-media-state": {
-          optionsRef.current.onCallSignal?.(msg);
-          break;
-        }
-        case "sdp-renegotiate-offer": {
-          const payload = msg.payload as SdpRenegotiatePayload;
-          rtcRef.current?.handleRenegotiationOffer(payload.sdp);
-          break;
-        }
-        case "sdp-renegotiate-answer": {
-          const payload = msg.payload as SdpRenegotiatePayload;
-          rtcRef.current?.handleRenegotiationAnswer(payload.sdp);
-          break;
-        }
-        case "ice-renegotiate": {
-          const payload = msg.payload as IceRenegotiatePayload;
-          rtcRef.current?.handleRenegotiationIceCandidate(payload.candidate);
-          break;
-        }
+  const handleDataChannelMessage = useCallback((msg: DataChannelMessage) => {
+    switch (msg.type) {
+      case "chat": {
+        const payload = msg.payload as ChatPayload;
+        optionsRef.current.onChatMessage?.(payload);
+        break;
       }
-    },
-    [],
-  );
+      case "typing": {
+        const payload = msg.payload as TypingPayload;
+        optionsRef.current.onTyping?.(payload.isTyping);
+        break;
+      }
+      case "file-meta": {
+        const meta = msg.payload as {
+          id: string;
+          name: string;
+          size: number;
+          totalChunks: number;
+        };
+        handleFileMeta(incomingFiles.current, meta);
+        break;
+      }
+      case "file-chunk": {
+        const chunk = msg.payload as {
+          fileId: string;
+          chunkIndex: number;
+          data: string;
+        };
+        const result = handleFileChunk(incomingFiles.current, chunk);
+        if (result) {
+          optionsRef.current.onFileReceived?.(result.name, result.data);
+        }
+        break;
+      }
+      case "call-offer":
+      case "call-accept":
+      case "call-reject":
+      case "call-end":
+      case "call-media-state": {
+        optionsRef.current.onCallSignal?.(msg);
+        break;
+      }
+      case "sdp-renegotiate-offer": {
+        const payload = msg.payload as SdpRenegotiatePayload;
+        rtcRef.current?.handleRenegotiationOffer(payload.sdp);
+        break;
+      }
+      case "sdp-renegotiate-answer": {
+        const payload = msg.payload as SdpRenegotiatePayload;
+        rtcRef.current?.handleRenegotiationAnswer(payload.sdp);
+        break;
+      }
+      case "ice-renegotiate": {
+        const payload = msg.payload as IceRenegotiatePayload;
+        rtcRef.current?.handleRenegotiationIceCandidate(payload.candidate);
+        break;
+      }
+    }
+  }, []);
 
   // ── Core: open signaling + WebRTC to a room ────────────
 
@@ -210,7 +205,7 @@ export const useConnection = (
             rtc.handleSignalingMessage(msg);
           }
         },
-        onConnectionChange: (_connected: boolean) => {},
+        onConnectionChange: () => {},
         onReconnected: () => {
           if (presenceRoomRef.current) {
             publishPresence(options.publicKey, presenceRoomRef.current);
@@ -304,7 +299,9 @@ export const useConnection = (
             return tryLookup(attempt + 1);
           }
 
-          setConnectionMessage("Peer offline — waiting for them to come online");
+          setConnectionMessage(
+            "Peer offline — waiting for them to come online",
+          );
           setConnectionState("new");
         };
 

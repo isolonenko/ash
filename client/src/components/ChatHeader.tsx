@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { Contact, CallType } from "@/types";
-import { useConnectionContext } from "@/context/ConnectionContext";
-import { useCallContext } from "@/context/CallContext";
+import { useConnectionContext } from "@/context/connection-context";
+import { useCallContext } from "@/context/call-context";
 import { shortenKey } from "@/lib/crypto";
 import styles from "./ChatWindow.module.scss";
 

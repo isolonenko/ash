@@ -1,34 +1,11 @@
-import { createContext, useContext, useRef, useMemo, useEffect } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import type { ReactNode } from "react";
-import type {
-  CallState,
-  CallType,
-  CallErrorReason,
-  DataChannelMessage,
-} from "@/types";
+import type { DataChannelMessage } from "@/types";
 import { useCall } from "@/hooks/useCall";
-import { useConnectionContext } from "@/context/ConnectionContext";
+import { useConnectionContext } from "@/context/connection-context";
+import { CallContext, type CallContextValue } from "@/context/call-context";
 
 // ── Types ────────────────────────────────────────────────
-
-interface CallContextValue {
-  callState: CallState;
-  callError: CallErrorReason | null;
-  localStream: MediaStream | null;
-  remoteStream: MediaStream | null;
-  isAudioEnabled: boolean;
-  isVideoEnabled: boolean;
-  incomingCallType: CallType | null;
-  currentCallType: CallType | null;
-  startCall: (type: CallType) => Promise<void>;
-  acceptCall: () => Promise<void>;
-  rejectCall: () => void;
-  endCall: () => void;
-  toggleAudio: () => void;
-  toggleVideo: () => Promise<void>;
-  handleCallMessage: (msg: DataChannelMessage) => void;
-  handleRemoteTrack: (event: RTCTrackEvent) => void;
-}
 
 interface CallProviderProps {
   localPublicKey: string;
@@ -36,18 +13,6 @@ interface CallProviderProps {
   remoteTrackRef: React.RefObject<(event: RTCTrackEvent) => void>;
   children: ReactNode;
 }
-
-// ── Context ──────────────────────────────────────────────
-
-const CallContext = createContext<CallContextValue | null>(null);
-
-export const useCallContext = (): CallContextValue => {
-  const ctx = useContext(CallContext);
-  if (!ctx) {
-    throw new Error("useCallContext must be used within CallProvider");
-  }
-  return ctx;
-};
 
 // ── Provider ─────────────────────────────────────────────
 
@@ -69,7 +34,9 @@ export const CallProvider = ({
   });
 
   const callRef = useRef(call);
-  callRef.current = call;
+  useEffect(() => {
+    callRef.current = call;
+  });
 
   useEffect(() => {
     callSignalRef.current = (msg: DataChannelMessage) => {
@@ -119,7 +86,5 @@ export const CallProvider = ({
     ],
   );
 
-  return (
-    <CallContext.Provider value={value}>{children}</CallContext.Provider>
-  );
+  return <CallContext.Provider value={value}>{children}</CallContext.Provider>;
 };

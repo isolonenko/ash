@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import type { Contact } from "@/types";
-import { useConnectionContext } from "@/context/ConnectionContext";
-import { useCallContext } from "@/context/CallContext";
+import { useConnectionContext } from "@/context/connection-context";
+import { useCallContext } from "@/context/call-context";
 import { useMessages } from "@/hooks/useMessages";
 import { shortenKey } from "@/lib/crypto";
 import { MessageBubble } from "./MessageBubble";

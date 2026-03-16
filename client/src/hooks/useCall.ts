@@ -56,13 +56,13 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
   const sendersRef = useRef<RTCRtpSender[]>([]);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   const localStreamRef = useRef<MediaStream | null>(null);
 
-  const getMediaConstraints = (
-    type: CallType,
-  ): MediaStreamConstraints => {
+  const getMediaConstraints = (type: CallType): MediaStreamConstraints => {
     const audio: MediaTrackConstraints = {
       echoCancellation: true,
       noiseSuppression: true,
@@ -266,12 +266,11 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
       if (stream) {
         stream.addTrack(videoTrack);
       }
-      setLocalStream(stream ? new MediaStream(stream.getTracks()) : videoStream);
-
-      const sender = freshRtc.addMediaTrack(
-        videoTrack,
-        stream ?? videoStream,
+      setLocalStream(
+        stream ? new MediaStream(stream.getTracks()) : videoStream,
       );
+
+      const sender = freshRtc.addMediaTrack(videoTrack, stream ?? videoStream);
       if (sender) {
         sendersRef.current = [...sendersRef.current, sender];
       }
@@ -313,8 +312,6 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
           break;
         }
         case "call-media-state": {
-          // Store remote media state — future use for remote mute indicators
-          msg.payload as CallMediaStatePayload;
           break;
         }
       }
@@ -335,12 +332,38 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!optionsRef.current.rtcManager && callState === "active") {
-      cleanupCall();
+  // When rtcManager goes null while call is active, clean up
+  const [prevRtcManager, setPrevRtcManager] = useState(options.rtcManager);
+  if (options.rtcManager !== prevRtcManager) {
+    setPrevRtcManager(options.rtcManager);
+    if (prevRtcManager && !options.rtcManager && callState === "active") {
       setCallState("idle");
+      setCallError(null);
+      setRemoteStream(null);
+      setIsAudioEnabled(true);
+      setIsVideoEnabled(false);
+      setIncomingCallType(null);
+      setCurrentCallType(null);
     }
-  }, [options.rtcManager, callState, cleanupCall]);
+  }
+
+  // Side effects for rtcManager going null (external cleanup only, no setState)
+  useEffect(() => {
+    if (!options.rtcManager) {
+      // Stop media tracks (external side effect)
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+      // Remove senders from peer connection (external side effect)
+      const freshRtc =
+        optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+      if (freshRtc) {
+        sendersRef.current.forEach((sender) => {
+          freshRtc.removeMediaTrack(sender);
+        });
+      }
+      sendersRef.current = [];
+    }
+  }, [options.rtcManager]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {

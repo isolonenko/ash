@@ -34,8 +34,8 @@ export const useContacts = (): UseContactsResult => {
     return all;
   }, []);
 
-  const refreshPresence = useCallback(async () => {
-    const all = contacts.length > 0 ? contacts : await getContacts();
+  const refreshPresence = useCallback(async (providedContacts?: readonly Contact[]) => {
+    const all = providedContacts ?? (contacts.length > 0 ? contacts : await getContacts());
     const entries = await Promise.all(
       all.map(async (c) => {
         const presence = await lookupPresence(c.publicKey);
@@ -50,17 +50,19 @@ export const useContacts = (): UseContactsResult => {
 
   useEffect(() => {
     const init = async () => {
-      await reload();
+      const all = await reload();
       setLoading(false);
+      if (all.length > 0) {
+        await refreshPresence(all);
+      }
     };
     init();
-  }, [reload]);
+  }, [reload, refreshPresence]);
 
   // Poll presence periodically
   useEffect(() => {
     if (contacts.length === 0) return;
 
-    refreshPresence();
     pollRef.current = setInterval(refreshPresence, PRESENCE_POLL_INTERVAL);
 
     return () => {
