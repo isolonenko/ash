@@ -13,13 +13,13 @@
 	"kv_namespaces": [
 		{
 			"binding": "PRESENCE",
-			"id": "placeholder-create-with-wrangler-kv-namespace-create"
+			"id": "091f4e5eb6cb4218bf844fc9d6c7886f"
 		}
 	],
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_classes": [
+			"new_sqlite_classes": [
 				"SignalingRoom"
 			]
 		}
