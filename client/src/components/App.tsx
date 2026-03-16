@@ -20,12 +20,13 @@ const parseDeepLink = (): ConnectionInvite | null => {
     const match = hash.match(/#\/connect\/(.+)$/);
     if (!match) return null;
 
-    const decoded = JSON.parse(atob(match[1]));
+    const decoded = JSON.parse(atob(decodeURIComponent(match[1])));
     if (decoded.publicKey && decoded.signalingUrl) {
       return decoded as ConnectionInvite;
     }
     return null;
-  } catch {
+  } catch (err) {
+    console.warn("[DeepLink] Failed to parse invite from URL:", err);
     return null;
   }
 };
@@ -212,20 +213,38 @@ export const App = () => {
       const invite = parseDeepLink();
       if (invite) {
         setPendingInvite(invite);
+        // Persist so invite survives page reload during identity creation
+        localStorage.setItem("pendingInvite", JSON.stringify(invite));
         window.history.replaceState(null, "", window.location.pathname);
       }
     };
 
+    // Check localStorage for invite from previous page load
+    if (!pendingInvite) {
+      const stored = localStorage.getItem("pendingInvite");
+      if (stored) {
+        try {
+          const invite = JSON.parse(stored) as ConnectionInvite;
+          if (invite.publicKey && invite.signalingUrl) {
+            setPendingInvite(invite);
+          }
+        } catch {
+          localStorage.removeItem("pendingInvite");
+        }
+      }
+    }
+
     processHash();
     window.addEventListener("hashchange", processHash);
     return () => window.removeEventListener("hashchange", processHash);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!pendingInvite || !isAuthenticated) return;
 
     const invite = pendingInvite;
     setPendingInvite(null);
+    localStorage.removeItem("pendingInvite");
 
     const process = async () => {
       if (invite.publicKey === identity?.publicKey) {

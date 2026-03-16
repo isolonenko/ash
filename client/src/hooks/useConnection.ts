@@ -43,6 +43,7 @@ interface UseConnectionResult {
   isConnecting: boolean;
   connectionMessage: string | null;
   rtcManager: ReturnType<typeof createWebRTCManager> | null;
+  getRtcManager: () => ReturnType<typeof createWebRTCManager> | null;
   connectTo: (peerPublicKey: string) => Promise<void>;
   sendChat: (id: string, text: string) => void;
   sendTyping: (isTyping: boolean) => void;
@@ -210,6 +211,11 @@ export const useConnection = (
           }
         },
         onConnectionChange: (_connected: boolean) => {},
+        onReconnected: () => {
+          if (presenceRoomRef.current) {
+            publishPresence(options.publicKey, presenceRoomRef.current);
+          }
+        },
       });
 
       rtcRef.current = rtc;
@@ -364,6 +370,7 @@ export const useConnection = (
     isConnecting,
     connectionMessage,
     rtcManager: rtcRef.current,
+    getRtcManager: () => rtcRef.current,
     connectTo,
     sendChat,
     sendTyping,

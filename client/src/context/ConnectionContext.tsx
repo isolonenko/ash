@@ -24,6 +24,7 @@ interface ConnectionContextValue {
   isConnecting: boolean;
   connectionMessage: string | null;
   rtcManager: ReturnType<typeof createWebRTCManager> | null;
+  getRtcManager: () => ReturnType<typeof createWebRTCManager> | null;
   incomingChat: ChatPayload | null;
   peerTyping: boolean;
   connectTo: (peerPublicKey: string) => Promise<void>;
@@ -96,6 +97,7 @@ export const ConnectionProvider = ({
     isConnecting,
     connectionMessage,
     rtcManager,
+    getRtcManager,
     connectTo,
     sendChat,
     sendTyping,
@@ -119,6 +121,7 @@ export const ConnectionProvider = ({
       isConnecting,
       connectionMessage,
       rtcManager,
+      getRtcManager,
       incomingChat,
       peerTyping,
       connectTo,
@@ -135,6 +138,7 @@ export const ConnectionProvider = ({
       isConnecting,
       connectionMessage,
       rtcManager,
+      getRtcManager,
       incomingChat,
       peerTyping,
       connectTo,

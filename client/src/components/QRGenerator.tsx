@@ -28,7 +28,7 @@ export const QRGenerator = ({ publicKey }: QRGeneratorProps) => {
   );
 
   const link = useMemo(
-    () => `${APP_URL}/#/connect/${encoded}`,
+    () => `${APP_URL}/#/connect/${encodeURIComponent(encoded)}`,
     [encoded],
   );
 

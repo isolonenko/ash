@@ -18,3 +18,4 @@ export const DATA_CHANNEL_LABEL = "thechat";
 export const TYPING_DEBOUNCE_MS = 2_000; // ms
 
 export const CALL_MEDIA_TIMEOUT_MS = 15_000; // ms — max wait for remote media tracks after call becomes active
+export const ICE_RESTART_MAX_ATTEMPTS = 2;

@@ -15,6 +15,7 @@ import { CALL_MEDIA_TIMEOUT_MS } from "@/lib/constants";
 
 export interface UseCallOptions {
   rtcManager: ReturnType<typeof createWebRTCManager> | null;
+  getRtcManager?: () => ReturnType<typeof createWebRTCManager> | null;
   send: (msg: DataChannelMessage) => void;
   localPublicKey: string;
   peerPublicKey: string | null;
@@ -87,10 +88,11 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   }, []);
 
   const removeSenders = useCallback(() => {
-    const { rtcManager } = optionsRef.current;
-    if (!rtcManager) return;
+    const freshRtc =
+      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    if (!freshRtc) return;
     sendersRef.current.forEach((sender) => {
-      rtcManager.removeMediaTrack(sender);
+      freshRtc.removeMediaTrack(sender);
     });
     sendersRef.current = [];
   }, []);
@@ -108,8 +110,10 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
   const startCall = useCallback(
     async (type: CallType) => {
-      const { rtcManager, send } = optionsRef.current;
-      if (!rtcManager) return;
+      const { send } = optionsRef.current;
+      const freshRtc =
+        optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+      if (!freshRtc) return;
 
       setCallState("outgoing-ringing");
       setCallError(null);
@@ -124,7 +128,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
         const newSenders = stream
           .getTracks()
-          .map((track) => rtcManager.addMediaTrack(track, stream))
+          .map((track) => freshRtc.addMediaTrack(track, stream))
           .filter((s): s is RTCRtpSender => s !== null);
         sendersRef.current = newSenders;
 
@@ -146,8 +150,10 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   );
 
   const acceptCall = useCallback(async () => {
-    const { rtcManager, send } = optionsRef.current;
-    if (!rtcManager || !incomingCallType) return;
+    const { send } = optionsRef.current;
+    const freshRtc =
+      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    if (!freshRtc || !incomingCallType) return;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
@@ -158,7 +164,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
       const newSenders = stream
         .getTracks()
-        .map((track) => rtcManager.addMediaTrack(track, stream))
+        .map((track) => freshRtc.addMediaTrack(track, stream))
         .filter((s): s is RTCRtpSender => s !== null);
       sendersRef.current = newSenders;
 
@@ -218,8 +224,10 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   }, [isVideoEnabled]);
 
   const toggleVideo = useCallback(async () => {
-    const { rtcManager, send } = optionsRef.current;
-    if (!rtcManager) return;
+    const { send } = optionsRef.current;
+    const freshRtc =
+      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    if (!freshRtc) return;
 
     const stream = localStreamRef.current;
     const existingVideoTrack = stream?.getVideoTracks()[0];
@@ -260,7 +268,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
       }
       setLocalStream(stream ? new MediaStream(stream.getTracks()) : videoStream);
 
-      const sender = rtcManager.addMediaTrack(
+      const sender = freshRtc.addMediaTrack(
         videoTrack,
         stream ?? videoStream,
       );
