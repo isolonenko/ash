@@ -1,129 +1,109 @@
 # Deployment Guide
 
-This guide covers deploying all three components of the-chat application to production.
+This guide covers deploying all components of the-chat application to production.
 
 ## Overview
 
-The application consists of three deployed components:
+The application consists of two deployed components:
 
 1. **React Client** — Hosted on Netlify (auto-deploys from GitHub)
-2. **Signaling Server** — Node.js WebSocket server on Fly.io (auto-deploys via GitHub Actions)
-3. **TURN Server (coturn)** — Media relay server on Hetzner VPS (manual deployment)
+2. **Signaling Server** — Cloudflare Worker with Durable Objects + KV
+
+TURN relay is provided by [Metered](https://www.metered.ca/) (managed service) — the CF Worker proxies credentials to keep the API key server-side.
 
 ## Prerequisites
 
-- **Fly.io account** — For signaling server hosting ([fly.io](https://fly.io))
+- **Cloudflare account** — For signaling server hosting ([dash.cloudflare.com](https://dash.cloudflare.com))
 - **Netlify account** — For client hosting ([netlify.com](https://netlify.com))
-- **Hetzner VPS** — CX22 instance ($4/month) for coturn ([hetzner.com](https://hetzner.com))
-- **Domain name** — For TURN server (e.g., `turn.yourdomain.com`)
+- **Metered account** — For TURN relay ([metered.ca](https://www.metered.ca/)) — free tier: 500 GB/month
 - **GitHub repository** — For CI/CD automation
 
 ## Bootstrapping Order
 
 Deploy in this order because each component depends on the previous one's URL:
 
-1. **coturn TURN Server** (Hetzner VPS) → generates TURN server URL
-2. **Signaling Server** (Fly.io) → requires TURN URL, generates signaling URL
-3. **Client** (Netlify) → requires signaling URL
+1. **Metered TURN** (sign up) → get API key and app name
+2. **Signaling Server** (Cloudflare Workers) → requires Metered credentials, generates Worker URL
+3. **Client** (Netlify) → requires signaling server URL
 
-## Step 1: coturn TURN Server (Hetzner VPS)
+## Step 1: Metered TURN (Managed Service)
 
-### Full Setup Guide
+1. Sign up at [metered.ca](https://www.metered.ca/)
+2. Create a new app (or use the default one)
+3. Note these values from the dashboard:
+   - **App Name** — the subdomain part (e.g., `the-chat`)
+   - **API Key** — found in the API section
 
-See [`coturn/PRODUCTION.md`](coturn/PRODUCTION.md) for comprehensive setup instructions including:
-- VPS provisioning and firewall configuration
-- DNS setup for your domain
-- Let's Encrypt TLS certificate installation
-- Docker-based coturn deployment
+No server setup needed — Metered handles TURN infrastructure globally.
 
-### Critical Configuration
+## Step 2: Signaling Server (Cloudflare Workers)
 
-When setting up coturn, note these values:
-
-**`static-auth-secret`** in `/opt/coturn/turnserver.conf`:
-```
-static-auth-secret=<CHANGE_ME>
-```
-
-This secret **must match** the `TURN_SHARED_SECRET` you'll set on the Fly.io signaling server in Step 2.
-
-**TURN server URL** format after deployment:
-```
-turn:<your-domain>:3478
-```
-
-Example: `turn:turn.example.com:3478`
-
-## Step 2: Signaling Server (Fly.io)
-
-### Create Fly.io App
-
-```bash
-fly apps create <your-app-name>
-```
-
-Or use the default app name `thechat-signal` defined in `server/fly.toml`.
-
-### Configure App Name
-
-Edit `server/fly.toml` if you want a different app name:
-
-```toml
-app = "your-custom-name"
-```
-
-### Set Runtime Secrets
-
-Set the environment variables required by the signaling server:
-
-```bash
-fly secrets set \
-  TURN_SHARED_SECRET=<your-secret> \
-  TURN_SERVER_URL=turn:<your-domain>:3478
-```
-
-**Important:**
-- `TURN_SHARED_SECRET` must match the `static-auth-secret` in your coturn configuration
-- `TURN_SERVER_URL` should use the domain you configured for coturn in Step 1
-
-### Deploy
-
-Deploy the signaling server from the `server/` directory:
+### Install Wrangler
 
 ```bash
 cd server
-fly deploy --remote-only
+npm install
 ```
 
-The `--remote-only` flag builds the Docker image on Fly.io's servers (no local Docker required).
+### Login to Cloudflare
+
+```bash
+npx wrangler login
+```
+
+### Create KV Namespace
+
+```bash
+npx wrangler kv namespace create PRESENCE
+```
+
+Copy the `id` from the output and replace `placeholder-create-with-wrangler-kv-namespace-create` in `server/wrangler.jsonc`.
+
+### Set Runtime Secrets
+
+```bash
+npx wrangler secret put METERED_API_KEY      # paste your Metered API key
+npx wrangler secret put METERED_APP_NAME     # paste your Metered app name
+```
+
+### Deploy
+
+```bash
+npm run deploy
+```
+
+This runs `wrangler deploy` and outputs your Worker URL (e.g., `https://the-chat-server.<subdomain>.workers.dev`).
 
 ### Verify Deployment
 
 **Health check:**
 ```bash
-curl https://<your-app>.fly.dev/health
+curl https://the-chat-server.<subdomain>.workers.dev/health
 ```
 
 Expected response:
 ```json
-{"status":"ok"}
+{"status":"ok","service":"the-chat-server","timestamp":"..."}
 ```
 
 **TURN credentials endpoint:**
 ```bash
-curl https://<your-app>.fly.dev/turn-credentials
+curl https://the-chat-server.<subdomain>.workers.dev/turn-credentials
 ```
 
-Expected response (ephemeral credentials):
+Expected response (proxied from Metered):
 ```json
 {
-  "urls": ["turn:turn.example.com:3478"],
-  "username": "1740182400",
-  "credential": "generatedHmacPasswordHash"
+  "iceServers": [
+    {"urls":"stun:a.relay.metered.ca:80"},
+    {"urls":"turn:a.relay.metered.ca:80","username":"...","credential":"..."},
+    {"urls":"turn:a.relay.metered.ca:443","username":"...","credential":"..."},
+    {"urls":"turn:a.relay.metered.ca:443?transport=tcp","username":"...","credential":"..."}
+  ]
 }
 ```
 
-If you get a 503 error, verify that `TURN_SHARED_SECRET` is set correctly.
+If you get a 503 error, verify that `METERED_API_KEY` and `METERED_APP_NAME` are set correctly.
 
 ## Step 3: Client (Netlify)
 
@@ -154,9 +134,7 @@ In the Netlify UI, configure the signaling server URL:
 1. Go to **Site settings** → **Environment variables**
 2. Add a new variable:
    - **Key:** `VITE_SIGNALING_URL`
-   - **Value:** `wss://<your-app>.fly.dev`
-   
-   Replace `<your-app>` with your Fly.io app name from Step 2.
+   - **Value:** `wss://the-chat-server.<subdomain>.workers.dev`
 
 **Important:** Use `wss://` (WebSocket Secure), not `ws://`.
 
@@ -164,121 +142,101 @@ In the Netlify UI, configure the signaling server URL:
 
 Netlify auto-deploys when you push to the `main` branch. The initial deployment starts immediately after connecting the repository.
 
-## Step 4: GitHub Actions CI/CD
-
-### Generate Fly.io Deploy Token
-
-Generate a deploy token for GitHub Actions:
-
-```bash
-fly tokens create deploy -a <your-app-name>
-```
-
-Copy the token (starts with `FlyV1_`).
-
-### Add GitHub Secret
-
-1. Go to your GitHub repository
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Add:
-   - **Name:** `FLY_API_TOKEN`
-   - **Secret:** Paste the token from the previous step
-
-### Auto-Deployment Behavior
-
-The `.github/workflows/deploy-server.yml` workflow is configured to:
-
-- **Trigger:** Push to `main` branch
-- **Path filter:** Only when files in `server/**` or `shared/**` change
-- **Action:** Run `flyctl deploy --remote-only` in the `server/` directory
-
-The client auto-deploys via Netlify's built-in GitHub integration (no workflow needed).
-
 ## Environment Variables Reference
 
 | Variable | Service | Where to Set | Example |
 |----------|---------|--------------|---------|
-| `TURN_SHARED_SECRET` | Signaling Server | `fly secrets set` | (random string, same as coturn) |
-| `TURN_SERVER_URL` | Signaling Server | `fly secrets set` | `turn:turn.example.com:3478` |
-| `PORT` | Signaling Server | `fly.toml` (auto) | `8080` |
-| `VITE_SIGNALING_URL` | Client | Netlify UI | `wss://thechat-signal.fly.dev` |
-| `static-auth-secret` | coturn | `turnserver.prod.conf` | (same as TURN_SHARED_SECRET) |
+| `METERED_API_KEY` | CF Worker | `wrangler secret put` | (from Metered dashboard) |
+| `METERED_APP_NAME` | CF Worker | `wrangler secret put` | `the-chat` |
+| `VITE_SIGNALING_URL` | Client | Netlify UI | `wss://the-chat-server.xxx.workers.dev` |
 
 ## Secrets Management
 
-### TURN_SHARED_SECRET
+### METERED_API_KEY / METERED_APP_NAME
 
-This secret must be **identical** in two places:
+Set via `wrangler secret put`. The Worker uses these to proxy TURN credential requests to Metered's API, keeping the API key server-side.
 
-1. **Fly.io signaling server** — Set via `fly secrets set TURN_SHARED_SECRET=...`
-2. **coturn VPS** — Set in `/opt/coturn/turnserver.conf` as `static-auth-secret=...`
-
-The signaling server uses this secret to generate ephemeral TURN credentials using HMAC-SHA1. When clients authenticate to coturn with these credentials, coturn validates them using the same shared secret.
-
-**If the secrets don't match, TURN authentication will fail.**
-
-To update the secret:
-
-1. Update coturn config: Edit `/opt/coturn/turnserver.conf` and change `static-auth-secret`
-2. Restart coturn: `docker restart coturn`
-3. Update Fly.io: `fly secrets set TURN_SHARED_SECRET=<new-secret>`
-
-### FLY_API_TOKEN
-
-This is a **GitHub repository secret only**, used for CI/CD deployments. It's not used at runtime by the signaling server.
-
-Generate via: `fly tokens create deploy -a <your-app-name>`
+To rotate:
+1. Generate a new API key in the Metered dashboard
+2. Update: `npx wrangler secret put METERED_API_KEY`
 
 ### VITE_SIGNALING_URL
 
 This is **not a secret** but is deployment-specific. It's set in the Netlify UI and baked into the client build.
 
-Use the WebSocket Secure protocol: `wss://<your-app>.fly.dev`
+Use the WebSocket Secure protocol: `wss://the-chat-server.<subdomain>.workers.dev`
 
 ## Local Development
 
-Local development continues to work with `docker compose up`:
-
 ```bash
-docker compose up
+# Start the client dev server
+cd client && npm run dev
+
+# Start the CF Worker locally (separate terminal)
+cd server && npm run dev
 ```
 
-This starts:
-- Client at `http://localhost:5173`
-- Server at `http://localhost:8080`
-- Local coturn (no TLS, using static credentials)
+`npm run dev` in the server runs `wrangler dev`, which starts a local Worker with Durable Objects and KV.
 
-**No production environment variables are needed for local development.**
+**Note:** TURN credentials require `METERED_API_KEY` and `METERED_APP_NAME` to be set. Create a `.dev.vars` file in `server/`:
+
+```
+METERED_API_KEY=your-api-key
+METERED_APP_NAME=your-app-name
+```
+
+If TURN is not configured, the client falls back to STUN-only (direct connections still work on most networks).
 
 ## Troubleshooting
 
 ### TURN Credential 503 Error
 
-**Symptom:** `curl https://<your-app>.fly.dev/turn-credentials` returns 503.
+**Symptom:** `/turn-credentials` returns 503.
 
-**Cause:** `TURN_SHARED_SECRET` not set on Fly.io.
+**Cause:** `METERED_API_KEY` or `METERED_APP_NAME` not set.
 
 **Fix:**
 ```bash
-fly secrets set TURN_SHARED_SECRET=<your-secret>
+npx wrangler secret put METERED_API_KEY
+npx wrangler secret put METERED_APP_NAME
 ```
 
-### WebSocket Disconnects Frequently
+### TURN Credential 502 Error
 
-**Symptom:** Client loses connection to signaling server.
+**Symptom:** `/turn-credentials` returns 502.
 
-**Cause:** Fly.io auto-stops idle machines by default.
+**Cause:** Metered API is unreachable or returning errors (wrong app name, expired key, etc.)
 
-**Fix:** Verify `auto_stop_machines = "off"` in `server/fly.toml`:
-```toml
-[http_service]
-  auto_stop_machines = "off"
-  auto_start_machines = true
-  min_machines_running = 1
-```
+**Fix:**
+1. Verify your Metered app name and API key in the Metered dashboard
+2. Test directly: `curl "https://<app-name>.metered.live/api/v1/turn/credentials?apiKey=<key>"`
 
-Redeploy: `fly deploy --remote-only`
+### Client Can't Connect to Signaling Server
+
+**Symptom:** "Connecting..." appears indefinitely in the UI.
+
+**Causes:**
+1. `VITE_SIGNALING_URL` not set in Netlify
+2. Using `ws://` instead of `wss://`
+3. Wrong Worker URL
+
+**Fix:**
+1. Go to Netlify **Site settings** → **Environment variables**
+2. Verify `VITE_SIGNALING_URL` is set to `wss://the-chat-server.<subdomain>.workers.dev`
+3. Trigger a rebuild in Netlify (env var changes require rebuild)
+
+### TURN Authentication Fails
+
+**Symptom:** WebRTC connection fails, console shows ICE gathering errors.
+
+**Causes:**
+1. Metered credentials not configured on Worker
+2. Metered account issue (quota exceeded, expired)
+
+**Fix:**
+1. Check `/turn-credentials` endpoint returns valid ICE servers
+2. Check Metered dashboard for usage/status
+3. Test TURN connectivity: https://webrtc.github.io/samples/web/content/trickle-ice/
 
 ### Netlify 404 on Page Refresh
 
@@ -295,49 +253,3 @@ Redeploy: `fly deploy --remote-only`
 ```
 
 This should already be configured. If not, add it and redeploy.
-
-### Client Can't Connect to Signaling Server
-
-**Symptom:** "Connecting..." appears indefinitely in the UI.
-
-**Causes:**
-1. `VITE_SIGNALING_URL` not set in Netlify
-2. Using `ws://` instead of `wss://`
-3. Wrong Fly.io app URL
-
-**Fix:**
-1. Go to Netlify **Site settings** → **Environment variables**
-2. Verify `VITE_SIGNALING_URL` is set to `wss://<your-app>.fly.dev`
-3. Trigger a rebuild in Netlify (env var changes require rebuild)
-
-### TURN Authentication Fails
-
-**Symptom:** WebRTC connection fails, console shows ICE gathering errors.
-
-**Causes:**
-1. `TURN_SHARED_SECRET` mismatch between Fly.io and coturn
-2. coturn not running
-3. Firewall blocking ports
-
-**Fix:**
-1. Verify secrets match:
-   - Fly.io: `fly secrets list`
-   - coturn: `cat /opt/coturn/turnserver.conf | grep static-auth-secret`
-2. Check coturn logs: `docker logs coturn | grep -i auth`
-3. Verify firewall rules on Hetzner VPS: `ufw status`
-4. Test TURN connectivity: https://webrtc.github.io/samples/web/content/trickle-ice/
-
-### GitHub Actions Deploy Fails
-
-**Symptom:** Workflow fails with "Error: failed to fetch an image or build from source".
-
-**Causes:**
-1. `FLY_API_TOKEN` not set in GitHub secrets
-2. Token expired or invalid
-3. Fly.io app doesn't exist
-
-**Fix:**
-1. Verify secret exists: GitHub repo → **Settings** → **Secrets** → **Actions**
-2. Regenerate token: `fly tokens create deploy -a <your-app-name>`
-3. Update GitHub secret with new token
-4. Verify app exists: `fly apps list`

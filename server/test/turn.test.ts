@@ -1,7 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import { createTurnRoutes } from "../src/routes/turn";
 import type { Env } from "../src/env";
+
+const MOCK_ICE_SERVERS = [
+  { urls: "stun:a.relay.metered.ca:80" },
+  { urls: "turn:a.relay.metered.ca:80", username: "abc123", credential: "def456" },
+  { urls: "turn:a.relay.metered.ca:443", username: "abc123", credential: "def456" },
+  { urls: "turn:a.relay.metered.ca:443?transport=tcp", username: "abc123", credential: "def456" },
+];
 
 const makeRequest = async (envOverrides: Partial<Env>) => {
   const app = new Hono<{ Bindings: Env }>();
@@ -9,77 +16,71 @@ const makeRequest = async (envOverrides: Partial<Env>) => {
   return app.request("/turn-credentials", { method: "GET" }, envOverrides as Env);
 };
 
-describe("turn credentials", () => {
-  it("returns 503 when TURN_SHARED_SECRET not set", async () => {
-    const res = await makeRequest({ TURN_SHARED_SECRET: "", TURN_SERVER_URL: "" });
+describe("turn credentials (metered proxy)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns 503 when METERED_API_KEY not set", async () => {
+    const res = await makeRequest({ METERED_API_KEY: "", METERED_APP_NAME: "myapp" });
     expect(res.status).toBe(503);
     const body = await res.json();
     expect(body.error).toBe("TURN not configured");
   });
 
-  it("returns valid credential structure", async () => {
+  it("returns 503 when METERED_APP_NAME not set", async () => {
+    const res = await makeRequest({ METERED_API_KEY: "key123", METERED_APP_NAME: "" });
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.error).toBe("TURN not configured");
+  });
+
+  it("proxies Metered API and returns iceServers", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(MOCK_ICE_SERVERS), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
     const res = await makeRequest({
-      TURN_SHARED_SECRET: "test-secret-key",
-      TURN_SERVER_URL: "turn:turn.example.com:3478",
+      METERED_API_KEY: "test-api-key",
+      METERED_APP_NAME: "testapp",
     });
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.username).toBeTruthy();
-    expect(body.credential).toBeTruthy();
-    expect(body.ttl).toBe(86400);
-    expect(body.uris).toHaveLength(2);
-    expect(body.uris[0]).toBe("turn:turn.example.com:3478");
-    expect(body.uris[1]).toBe("turn:turn.example.com:3478?transport=tcp");
-  });
-
-  it("username matches expected pattern", async () => {
-    const res = await makeRequest({
-      TURN_SHARED_SECRET: "test-secret-key",
-      TURN_SERVER_URL: "turn:turn.example.com:3478",
-    });
-    const body = await res.json();
-    expect(body.username).toMatch(/^\d+:thechat$/);
-  });
-
-  it("credential is valid base64", async () => {
-    const res = await makeRequest({
-      TURN_SHARED_SECRET: "test-secret-key",
-      TURN_SERVER_URL: "",
-    });
-    const body = await res.json();
-    expect(body.credential).toMatch(/^[A-Za-z0-9+/]*={0,2}$/);
-    expect(() => atob(body.credential)).not.toThrow();
-  });
-
-  it("HMAC-SHA1 credential is correct", async () => {
-    const secret = "test-secret-key";
-    const res = await makeRequest({
-      TURN_SHARED_SECRET: secret,
-      TURN_SERVER_URL: "",
-    });
-    const body = await res.json();
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      { name: "HMAC", hash: "SHA-1" },
-      false,
-      ["sign"],
+    expect(body.iceServers).toEqual(MOCK_ICE_SERVERS);
+    expect(body.iceServers).toHaveLength(4);
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://testapp.metered.live/api/v1/turn/credentials?apiKey=test-api-key",
     );
-    const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(body.username));
-    const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
-
-    expect(body.credential).toBe(expected);
   });
 
-  it("returns empty uris when TURN_SERVER_URL not set", async () => {
+  it("returns 502 when Metered API fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("error", { status: 500 })));
+
     const res = await makeRequest({
-      TURN_SHARED_SECRET: "test-secret-key",
-      TURN_SERVER_URL: "",
+      METERED_API_KEY: "test-api-key",
+      METERED_APP_NAME: "testapp",
     });
+
+    expect(res.status).toBe(502);
     const body = await res.json();
-    expect(body.uris).toEqual([]);
+    expect(body.error).toBe("Failed to fetch TURN credentials");
+  });
+
+  it("constructs correct Metered URL from env vars", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", mockFetch);
+
+    await makeRequest({
+      METERED_API_KEY: "my-secret-key",
+      METERED_APP_NAME: "the-chat-prod",
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://the-chat-prod.metered.live/api/v1/turn/credentials?apiKey=my-secret-key",
+    );
   });
 });

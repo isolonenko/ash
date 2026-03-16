@@ -5,40 +5,24 @@ export const createTurnRoutes = (): Hono<{ Bindings: Env }> => {
   const routes = new Hono<{ Bindings: Env }>();
 
   routes.get("/", async (c) => {
-    const sharedSecret = c.env.TURN_SHARED_SECRET;
-    const turnServerUrl = c.env.TURN_SERVER_URL;
+    const apiKey = c.env.METERED_API_KEY;
+    const appName = c.env.METERED_APP_NAME;
 
-    if (!sharedSecret) {
+    if (!apiKey || !appName) {
       return c.json({ error: "TURN not configured" }, 503);
     }
 
-    const ttl = 86400;
-    const username = `${Math.floor(Date.now() / 1000) + ttl}:thechat`;
+    const url = `https://${appName}.metered.live/api/v1/turn/credentials?apiKey=${apiKey}`;
 
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(sharedSecret),
-      { name: "HMAC", hash: "SHA-1" },
-      false,
-      ["sign"],
-    );
+    const res = await fetch(url);
 
-    const signature = await crypto.subtle.sign(
-      "HMAC",
-      key,
-      encoder.encode(username),
-    );
+    if (!res.ok) {
+      return c.json({ error: "Failed to fetch TURN credentials" }, 502);
+    }
 
-    const credential = btoa(
-      String.fromCharCode(...new Uint8Array(signature)),
-    );
+    const iceServers = await res.json();
 
-    const uris = turnServerUrl
-      ? [turnServerUrl, `${turnServerUrl}?transport=tcp`]
-      : [];
-
-    return c.json({ username, credential, ttl, uris });
+    return c.json({ iceServers });
   });
 
   return routes;

@@ -1,26 +1,28 @@
 {
-  "name": "the-chat-server",
-  "main": "src/index.ts",
-  "compatibility_date": "2025-03-01",
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "SIGNALING_ROOM",
-        "class_name": "SignalingRoom"
-      }
-    ]
-  },
-  "kv_namespaces": [
-    {
-      "binding": "PRESENCE",
-      "id": "placeholder-create-with-wrangler-kv-namespace-create"
-    }
-  ],
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_classes": ["SignalingRoom"]
-    }
-  ]
-  // TURN_SHARED_SECRET and TURN_SERVER_URL set via `wrangler secret put`
+	"name": "the-chat-server",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-01",
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "SIGNALING_ROOM",
+				"class_name": "SignalingRoom"
+			}
+		]
+	},
+	"kv_namespaces": [
+		{
+			"binding": "PRESENCE",
+			"id": "placeholder-create-with-wrangler-kv-namespace-create"
+		}
+	],
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": [
+				"SignalingRoom"
+			]
+		}
+	]
+	// METERED_API_KEY and METERED_APP_NAME set via `wrangler secret put`
 }
