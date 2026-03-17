@@ -40,20 +40,20 @@ This should return your VPS IP. If it doesn't, wait a few minutes and try again.
 SSH into your VPS and run:
 
 ```bash
-git clone https://github.com/isolonenko/the-chat.git && cd the-chat
-sudo ./deploy/bootstrap.sh --domain chat.yourdomain.com --email you@example.com
+curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/main/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
 ```
 
 Replace `chat.yourdomain.com` with your actual domain and `you@example.com` with your email (used for Let's Encrypt certificate notifications).
 
 The script will:
-1. Install Docker + Docker Compose (if not present)
-2. Generate a TURN shared secret
-3. Detect your server's public IP
-4. Build the React client
-5. Start three containers: Caddy (HTTPS + static files), Deno (signaling server), coturn (TURN relay)
-6. Auto-provision a Let's Encrypt HTTPS certificate
-7. Print the live URL
+1. Install git and Docker (if not present)
+2. Clone the repo to `/opt/the-chat`
+3. Generate a TURN shared secret
+4. Detect your server's public IP
+5. Build the React client
+6. Start three containers: Caddy (HTTPS + static files), Deno (signaling server), coturn (TURN relay)
+7. Auto-provision a Let's Encrypt HTTPS certificate
+8. Print the live URL
 
 ## What Gets Deployed
 
@@ -86,7 +86,7 @@ docker compose -f deploy/docker-compose.yml logs -f coturn    # TURN relay only
 #### Full Update (Client + Server)
 
 ```bash
-cd /path/to/the-chat
+cd /opt/the-chat
 git pull
 docker compose -f deploy/docker-compose.yml build client-build server
 docker compose -f deploy/docker-compose.yml up -d --no-deps client-build server
@@ -96,7 +96,7 @@ docker compose -f deploy/docker-compose.yml restart caddy
 #### Update Client Only
 
 ```bash
-cd /path/to/the-chat
+cd /opt/the-chat
 git pull
 docker compose -f deploy/docker-compose.yml build client-build
 docker compose -f deploy/docker-compose.yml up -d --no-deps client-build
@@ -106,7 +106,7 @@ docker compose -f deploy/docker-compose.yml restart caddy
 #### Update Server Only
 
 ```bash
-cd /path/to/the-chat
+cd /opt/the-chat
 git pull
 docker compose -f deploy/docker-compose.yml build server
 docker compose -f deploy/docker-compose.yml up -d --no-deps server

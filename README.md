@@ -6,14 +6,13 @@ Built with WebRTC for direct peer-to-peer connections. A lightweight signaling s
 
 ## Deploy
 
-You need a VPS with a public IP and a domain pointing to it (DNS A record).
+SSH into your VPS and run:
 
 ```bash
-git clone https://github.com/isolonenko/the-chat.git && cd the-chat
-sudo ./deploy/bootstrap.sh --domain chat.yourdomain.com --email you@example.com
+curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/main/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
 ```
 
-That's it. The script installs Docker, sets up HTTPS, and starts everything.
+That's it. The script installs git, Docker, sets up HTTPS, and starts everything.
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for DNS setup, updates, logs, and troubleshooting.
 
