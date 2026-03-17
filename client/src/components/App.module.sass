@@ -77,23 +77,11 @@
     box-shadow: $glow-cyan
 
 .collapseToggle
-  background: transparent
-  font-family: $font-mono
-  cursor: pointer
-  text-transform: uppercase
-  transition: all $transition-fast
-  letter-spacing: 1px
-  border: 1px solid $border-color
-  color: $text-secondary
+  +button-ghost
   padding: $space-xs
   font-size: $font-sm
   border: none
   margin-left: auto
-
-  &:hover
-    border-color: $text-primary
-    color: $text-primary
-    box-shadow: 0 0 5px rgba($text-primary, 0.1)
 
 .sidebarCollapsed .logo
   font-size: $font-base
