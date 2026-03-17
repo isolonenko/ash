@@ -136,3 +136,49 @@
   &Subtitle
     font-size: $font-sm
     color: $text-muted
+
+// ── Mobile overrides ─────────────────────────────────────
+@media (max-width: 768px)
+  .header
+    flex-wrap: wrap
+
+  .backButton
+    min-width: 44px
+    min-height: 36px
+    padding: $space-sm 12px
+
+  .contactName
+    flex: 1 1 50%
+    min-width: 0
+    overflow: hidden
+    text-overflow: ellipsis
+
+  .callButton
+    margin-left: auto
+    min-height: 36px
+    padding: $space-sm 14px
+
+  .connectButton
+    min-height: 36px
+    padding: $space-sm 14px
+
+  .videoCallButton
+    min-height: 36px
+    padding: $space-sm 14px
+
+  .input
+    min-height: 42px
+    font-size: 16px
+    padding: 10px 14px
+
+  .sendButton
+    min-height: 42px
+    padding: 10px $space-md
+
+  .fileButton
+    min-height: 42px
+    min-width: 42px
+    padding: 10px
+
+  .inputArea
+    padding-bottom: max(16px, env(safe-area-inset-bottom))

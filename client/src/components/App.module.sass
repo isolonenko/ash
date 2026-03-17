@@ -149,3 +149,17 @@
     opacity: 1
   50%
     opacity: 0.3
+
+// ── Mobile overrides ─────────────────────────────────────
+@media (max-width: 768px)
+  .app
+    padding-top: env(safe-area-inset-top)
+
+  .addButton
+    padding: 10px 14px
+    min-height: 40px
+    font-size: $font-base
+
+  .collapseToggle
+    padding: 10px 12px
+    min-height: 40px

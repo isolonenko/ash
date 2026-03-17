@@ -119,3 +119,31 @@
   &:hover
     background: rgba($danger, 0.1)
     color: $danger
+
+// ── Mobile overrides ─────────────────────────────────────
+@media (max-width: 768px)
+  .contactItem
+    min-height: 56px
+    padding: 14px $space-md
+
+  .active
+    min-height: 56px
+    padding: 14px $space-md
+
+  .avatar
+    width: 42px
+    height: 42px
+    font-size: $font-base
+
+  .contactName
+    font-size: $font-base
+
+  .contactKey
+    font-size: $font-sm
+
+  .presenceDot
+    width: 10px
+    height: 10px
+
+  .contextMenuItem
+    padding: $space-md

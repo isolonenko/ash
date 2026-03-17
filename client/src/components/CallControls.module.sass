@@ -20,3 +20,23 @@
   +button-red
   padding: $space-xs $space-sm
   font-size: $font-xs
+
+// ── Mobile overrides ─────────────────────────────────────
+@media (max-width: 768px)
+  .controls
+    padding-bottom: max(16px, env(safe-area-inset-bottom))
+
+  .button
+    padding: 10px 14px
+    min-height: 44px
+    font-size: $font-sm
+
+  .buttonMuted
+    padding: 10px 14px
+    min-height: 44px
+    font-size: $font-sm
+
+  .endButton
+    padding: 10px 14px
+    min-height: 44px
+    font-size: $font-sm

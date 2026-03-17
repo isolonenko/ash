@@ -43,3 +43,12 @@
 .read
   composes: readStatus
   color: $neon-cyan
+
+// ── Mobile overrides ─────────────────────────────────────
+@media (max-width: 768px)
+  .bubble
+    max-width: 85%
+    padding: 10px $space-md
+
+  .text
+    font-size: $font-base
