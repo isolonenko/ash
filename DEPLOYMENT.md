@@ -1,255 +1,122 @@
 # Deployment Guide
 
-This guide covers deploying all components of the-chat application to production.
-
-## Overview
-
-The application consists of two deployed components:
-
-1. **React Client** — Hosted on Netlify (auto-deploys from GitHub)
-2. **Signaling Server** — Cloudflare Worker with Durable Objects + KV
-
-TURN relay is provided by [Metered](https://www.metered.ca/) (managed service) — the CF Worker proxies credentials to keep the API key server-side.
+Deploy the-chat on any VPS with a single command. No external providers needed.
 
 ## Prerequisites
 
-- **Cloudflare account** — For signaling server hosting ([dash.cloudflare.com](https://dash.cloudflare.com))
-- **Netlify account** — For client hosting ([netlify.com](https://netlify.com))
-- **Metered account** — For TURN relay ([metered.ca](https://www.metered.ca/)) — free tier: 500 GB/month
-- **GitHub repository** — For CI/CD automation
+1. **A VPS** with a public IP address (any Linux distro — Ubuntu, Debian, Fedora, etc.)
+2. **A domain name** with DNS A record pointing to your VPS IP
+3. That's it. The script installs Docker if it's missing.
 
-## Bootstrapping Order
-
-Deploy in this order because each component depends on the previous one's URL:
-
-1. **Metered TURN** (sign up) → get API key and app name
-2. **Signaling Server** (Cloudflare Workers) → requires Metered credentials, generates Worker URL
-3. **Client** (Netlify) → requires signaling server URL
-
-## Step 1: Metered TURN (Managed Service)
-
-1. Sign up at [metered.ca](https://www.metered.ca/)
-2. Create a new app (or use the default one)
-3. Note these values from the dashboard:
-   - **App Name** — the subdomain part (e.g., `the-chat`)
-   - **API Key** — found in the API section
-
-No server setup needed — Metered handles TURN infrastructure globally.
-
-## Step 2: Signaling Server (Cloudflare Workers)
-
-### Install Wrangler
+## Quick Start
 
 ```bash
-cd server
-npm install
+sudo ./deploy/bootstrap.sh --domain chat.yourdomain.com --email you@example.com
 ```
 
-### Login to Cloudflare
+This will:
+1. Install Docker + Docker Compose (if not present)
+2. Generate a TURN shared secret
+3. Detect your server's public IP
+4. Build the React client
+5. Start three containers: Caddy (HTTPS + static files), Deno (signaling server), coturn (TURN relay)
+6. Wait for HTTPS to become healthy (Caddy auto-provisions a Let's Encrypt certificate)
+7. Print the live URL
+
+## What Gets Deployed
+
+| Container | Role | Ports |
+|-----------|------|-------|
+| **Caddy** | Reverse proxy, auto-TLS, serves React client | 80, 443 |
+| **Deno server** | WebSocket signaling, presence, TURN credentials | 8000 (internal) |
+| **coturn** | TURN/STUN relay for NAT traversal | 3478, 5349, 49152-65535 (UDP) |
+
+All services use a single domain. Caddy routes traffic:
+- `/signal/*` → Deno (WebSocket)
+- `/presence/*` → Deno (HTTP)
+- `/turn-credentials/*` → Deno (HTTP)
+- `/health` → Deno (HTTP)
+- Everything else → static React client
+
+## Operations
+
+### View Logs
 
 ```bash
-npx wrangler login
+docker compose -f deploy/docker-compose.yml logs -f          # All services
+docker compose -f deploy/docker-compose.yml logs -f caddy     # Caddy only
+docker compose -f deploy/docker-compose.yml logs -f server    # Deno server only
+docker compose -f deploy/docker-compose.yml logs -f coturn    # TURN relay only
 ```
 
-### Create KV Namespace
+### Update
 
 ```bash
-npx wrangler kv namespace create PRESENCE
+git pull
+sudo ./deploy/bootstrap.sh --domain chat.yourdomain.com --email you@example.com
 ```
 
-Copy the `id` from the output and replace `placeholder-create-with-wrangler-kv-namespace-create` in `server/wrangler.jsonc`.
-
-### Set Runtime Secrets
+### Stop
 
 ```bash
-npx wrangler secret put METERED_API_KEY      # paste your Metered API key
-npx wrangler secret put METERED_APP_NAME     # paste your Metered app name
+docker compose -f deploy/docker-compose.yml down
 ```
 
-### Deploy
+### Uninstall (removes all data including TLS certs)
 
 ```bash
-npm run deploy
+docker compose -f deploy/docker-compose.yml down -v
 ```
 
-This runs `wrangler deploy` and outputs your Worker URL (e.g., `https://the-chat-server.<subdomain>.workers.dev`).
+## TLS Certificates
 
-### Verify Deployment
+Caddy automatically provisions and renews Let's Encrypt certificates. No manual configuration needed. The email address is used for Let's Encrypt account registration and expiry notifications.
 
-**Health check:**
-```bash
-curl https://the-chat-server.<subdomain>.workers.dev/health
-```
-
-Expected response:
-```json
-{"status":"ok","service":"the-chat-server","timestamp":"..."}
-```
-
-**TURN credentials endpoint:**
-```bash
-curl https://the-chat-server.<subdomain>.workers.dev/turn-credentials
-```
-
-Expected response (proxied from Metered):
-```json
-{
-  "iceServers": [
-    {"urls":"stun:a.relay.metered.ca:80"},
-    {"urls":"turn:a.relay.metered.ca:80","username":"...","credential":"..."},
-    {"urls":"turn:a.relay.metered.ca:443","username":"...","credential":"..."},
-    {"urls":"turn:a.relay.metered.ca:443?transport=tcp","username":"...","credential":"..."}
-  ]
-}
-```
-
-If you get a 503 error, verify that `METERED_API_KEY` and `METERED_APP_NAME` are set correctly.
-
-## Step 3: Client (Netlify)
-
-### Connect Repository
-
-1. Log in to [Netlify](https://netlify.com)
-2. Click "Add new site" → "Import an existing project"
-3. Connect your GitHub repository
-4. Select the `the-chat` repository
-
-### Build Settings
-
-Netlify auto-detects build settings from `netlify.toml`:
-
-```toml
-[build]
-  base = "."
-  command = "cd client && npm ci && npm run build"
-  publish = "client/dist"
-```
-
-No manual configuration needed.
-
-### Set Environment Variable
-
-In the Netlify UI, configure the signaling server URL:
-
-1. Go to **Site settings** → **Environment variables**
-2. Add a new variable:
-   - **Key:** `VITE_SIGNALING_URL`
-   - **Value:** `wss://the-chat-server.<subdomain>.workers.dev`
-
-**Important:** Use `wss://` (WebSocket Secure), not `ws://`.
-
-### Deploy
-
-Netlify auto-deploys when you push to the `main` branch. The initial deployment starts immediately after connecting the repository.
-
-## Environment Variables Reference
-
-| Variable | Service | Where to Set | Example |
-|----------|---------|--------------|---------|
-| `METERED_API_KEY` | CF Worker | `wrangler secret put` | (from Metered dashboard) |
-| `METERED_APP_NAME` | CF Worker | `wrangler secret put` | `the-chat` |
-| `VITE_SIGNALING_URL` | Client | Netlify UI | `wss://the-chat-server.xxx.workers.dev` |
-
-## Secrets Management
-
-### METERED_API_KEY / METERED_APP_NAME
-
-Set via `wrangler secret put`. The Worker uses these to proxy TURN credential requests to Metered's API, keeping the API key server-side.
-
-To rotate:
-1. Generate a new API key in the Metered dashboard
-2. Update: `npx wrangler secret put METERED_API_KEY`
-
-### VITE_SIGNALING_URL
-
-This is **not a secret** but is deployment-specific. It's set in the Netlify UI and baked into the client build.
-
-Use the WebSocket Secure protocol: `wss://the-chat-server.<subdomain>.workers.dev`
+coturn uses Caddy's certificates for TURN-over-TLS on port 5349 (standard TURNS port), providing encrypted relay for clients behind restrictive NATs.
 
 ## Local Development
 
 ```bash
-# Start the client dev server
+# Client (terminal 1)
 cd client && npm run dev
 
-# Start the CF Worker locally (separate terminal)
-cd server && npm run dev
+# Server (terminal 2)
+cd server && deno task dev
 ```
 
-`npm run dev` in the server runs `wrangler dev`, which starts a local Worker with Durable Objects and KV.
+The client dev server defaults to `ws://localhost:8000` for signaling. The Deno dev server starts on port 8000 with file watching.
 
-**Note:** TURN credentials require `METERED_API_KEY` and `METERED_APP_NAME` to be set. Create a `.dev.vars` file in `server/`:
+## Environment Variables
 
-```
-METERED_API_KEY=your-api-key
-METERED_APP_NAME=your-app-name
-```
+The bootstrap script auto-generates all configuration. For reference:
 
-If TURN is not configured, the client falls back to STUN-only (direct connections still work on most networks).
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `DOMAIN` | `deploy/.env` | Your domain name |
+| `EMAIL` | `deploy/.env` | Let's Encrypt registration email |
+| `TURN_SECRET` | `deploy/.env` | HMAC shared secret for TURN credentials (auto-generated) |
+| `EXTERNAL_IP` | `deploy/.env` | Server's public IP (auto-detected) |
 
 ## Troubleshooting
 
-### TURN Credential 503 Error
+### Health check times out
 
-**Symptom:** `/turn-credentials` returns 503.
+The most common cause is DNS not pointing to the server. Verify:
 
-**Cause:** `METERED_API_KEY` or `METERED_APP_NAME` not set.
-
-**Fix:**
 ```bash
-npx wrangler secret put METERED_API_KEY
-npx wrangler secret put METERED_APP_NAME
+dig +short chat.yourdomain.com
 ```
 
-### TURN Credential 502 Error
+This should return your VPS's public IP. If not, update your DNS and wait for propagation.
 
-**Symptom:** `/turn-credentials` returns 502.
+### WebRTC connection fails
 
-**Cause:** Metered API is unreachable or returning errors (wrong app name, expired key, etc.)
+1. Check coturn is running: `docker compose -f deploy/docker-compose.yml ps coturn`
+2. Verify TURN credentials: `curl https://chat.yourdomain.com/turn-credentials`
+3. Test TURN connectivity at https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/
 
-**Fix:**
-1. Verify your Metered app name and API key in the Metered dashboard
-2. Test directly: `curl "https://<app-name>.metered.live/api/v1/turn/credentials?apiKey=<key>"`
+### Caddy can't provision TLS
 
-### Client Can't Connect to Signaling Server
-
-**Symptom:** "Connecting..." appears indefinitely in the UI.
-
-**Causes:**
-1. `VITE_SIGNALING_URL` not set in Netlify
-2. Using `ws://` instead of `wss://`
-3. Wrong Worker URL
-
-**Fix:**
-1. Go to Netlify **Site settings** → **Environment variables**
-2. Verify `VITE_SIGNALING_URL` is set to `wss://the-chat-server.<subdomain>.workers.dev`
-3. Trigger a rebuild in Netlify (env var changes require rebuild)
-
-### TURN Authentication Fails
-
-**Symptom:** WebRTC connection fails, console shows ICE gathering errors.
-
-**Causes:**
-1. Metered credentials not configured on Worker
-2. Metered account issue (quota exceeded, expired)
-
-**Fix:**
-1. Check `/turn-credentials` endpoint returns valid ICE servers
-2. Check Metered dashboard for usage/status
-3. Test TURN connectivity: https://webrtc.github.io/samples/web/content/trickle-ice/
-
-### Netlify 404 on Page Refresh
-
-**Symptom:** Navigating to `/room/123` directly returns 404.
-
-**Cause:** Netlify serves static files, doesn't handle React Router.
-
-**Fix:** Verify redirect rules in `netlify.toml`:
-```toml
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-```
-
-This should already be configured. If not, add it and redeploy.
+1. Ensure ports 80 and 443 are open in your firewall
+2. Ensure no other service is using ports 80/443
+3. Check Caddy logs: `docker compose -f deploy/docker-compose.yml logs caddy`
