@@ -10,7 +10,7 @@ services:
       - caddy_data:/data
       - client_dist:/srv/client:ro
     healthcheck:
-      test: ["CMD", "wget", "--no-check-certificate", "--spider", "-q", "https://localhost"]
+      test: ["CMD-SHELL", "wget --no-check-certificate --spider -q https://$DOMAIN || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
