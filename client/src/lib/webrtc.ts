@@ -116,7 +116,9 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
       }
 
       if (mapped === "failed") {
-        console.warn("[WebRTC] ICE connection failed — TURN relay may be misconfigured");
+        console.warn(
+          "[WebRTC] ICE connection failed — TURN relay may be misconfigured",
+        );
       }
 
       if (mapped === "connected") {
@@ -138,14 +140,15 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
       if (!hasEstablishedConnection) return;
       try {
         makingOffer = true;
+        isRenegotiating = true;
         await connection.setLocalDescription();
         send({
           type: "sdp-renegotiate-offer",
           payload: { sdp: connection.localDescription },
         });
-        isRenegotiating = true;
       } catch (err) {
         console.error("[WebRTC] renegotiation offer error:", err);
+        isRenegotiating = false;
       } finally {
         makingOffer = false;
       }
@@ -203,9 +206,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     });
   };
 
-  const handleOffer = async (
-    sdp: RTCSessionDescriptionInit,
-  ): Promise<void> => {
+  const handleOffer = async (sdp: RTCSessionDescriptionInit): Promise<void> => {
     pc = createPeerConnection();
     setState("connecting");
 
@@ -317,8 +318,7 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
         payload: { fileId, chunkIndex: index, data: base64 },
       });
 
-      const needsDelay =
-        index > 0 && index % FILE_CHUNK_BATCH_SIZE === 0;
+      const needsDelay = index > 0 && index % FILE_CHUNK_BATCH_SIZE === 0;
 
       if (needsDelay) {
         await new Promise<void>((r) => setTimeout(r, FILE_CHUNK_BATCH_DELAY));
@@ -360,11 +360,10 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
       const offerCollision = makingOffer || pc.signalingState !== "stable";
       if (offerCollision && !isPolite()) return;
 
+      isRenegotiating = true;
+
       if (offerCollision) {
-        await Promise.all([
-          pc.setLocalDescription({ type: "rollback" }),
-          pc.setRemoteDescription(new RTCSessionDescription(sdp)),
-        ]);
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
       } else {
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
       }
@@ -375,8 +374,11 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
         type: "sdp-renegotiate-answer",
         payload: { sdp: pc.localDescription },
       });
+
+      isRenegotiating = false;
     } catch (err) {
       console.error("[WebRTC] handleRenegotiationOffer error:", err);
+      isRenegotiating = false;
     }
   };
 
@@ -386,9 +388,10 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     if (!pc) return;
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-      isRenegotiating = false;
     } catch (err) {
       console.error("[WebRTC] handleRenegotiationAnswer error:", err);
+    } finally {
+      isRenegotiating = false;
     }
   };
 

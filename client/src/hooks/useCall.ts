@@ -8,14 +8,13 @@ import type {
   CallAcceptPayload,
   CallMediaStatePayload,
 } from "@/types";
-import type { createWebRTCManager } from "@/lib/webrtc";
+import type { WebRTCManager } from "@/hooks/useConnection";
 import { CALL_MEDIA_TIMEOUT_MS } from "@/lib/constants";
 
 // ── Types ────────────────────────────────────────────────
 
 export interface UseCallOptions {
-  rtcManager: ReturnType<typeof createWebRTCManager> | null;
-  getRtcManager?: () => ReturnType<typeof createWebRTCManager> | null;
+  rtcManager: WebRTCManager | null;
   send: (msg: DataChannelMessage) => void;
   localPublicKey: string;
   peerPublicKey: string | null;
@@ -88,8 +87,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   }, []);
 
   const removeSenders = useCallback(() => {
-    const freshRtc =
-      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    const freshRtc = optionsRef.current.rtcManager;
     if (!freshRtc) return;
     sendersRef.current.forEach((sender) => {
       freshRtc.removeMediaTrack(sender);
@@ -111,8 +109,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
   const startCall = useCallback(
     async (type: CallType) => {
       const { send } = optionsRef.current;
-      const freshRtc =
-        optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+      const freshRtc = optionsRef.current.rtcManager;
       if (!freshRtc) return;
 
       setCallState("outgoing-ringing");
@@ -151,8 +148,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
   const acceptCall = useCallback(async () => {
     const { send } = optionsRef.current;
-    const freshRtc =
-      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    const freshRtc = optionsRef.current.rtcManager;
     if (!freshRtc || !incomingCallType) return;
 
     try {
@@ -225,8 +221,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
 
   const toggleVideo = useCallback(async () => {
     const { send } = optionsRef.current;
-    const freshRtc =
-      optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+    const freshRtc = optionsRef.current.rtcManager;
     if (!freshRtc) return;
 
     const stream = localStreamRef.current;
@@ -354,8 +349,7 @@ export const useCall = (options: UseCallOptions): UseCallResult => {
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
       // Remove senders from peer connection (external side effect)
-      const freshRtc =
-        optionsRef.current.getRtcManager?.() ?? optionsRef.current.rtcManager;
+      const freshRtc = optionsRef.current.rtcManager;
       if (freshRtc) {
         sendersRef.current.forEach((sender) => {
           freshRtc.removeMediaTrack(sender);

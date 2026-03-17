@@ -4,7 +4,7 @@ import type {
   DataChannelMessage,
   PeerConnectionState,
 } from "@/types";
-import type { createWebRTCManager } from "@/lib/webrtc";
+import type { WebRTCManager } from "@/hooks/useConnection";
 
 export interface ConnectionContextValue {
   connectionState: PeerConnectionState;
@@ -12,8 +12,7 @@ export interface ConnectionContextValue {
   presenceRoomId: string | null;
   isConnecting: boolean;
   connectionMessage: string | null;
-  rtcManager: ReturnType<typeof createWebRTCManager> | null;
-  getRtcManager: () => ReturnType<typeof createWebRTCManager> | null;
+  rtcManager: WebRTCManager | null;
   incomingChat: ChatPayload | null;
   peerTyping: boolean;
   connectTo: (peerPublicKey: string) => Promise<void>;

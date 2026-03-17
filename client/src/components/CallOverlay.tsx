@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useCallback } from "react";
 import type { CallState, CallType } from "@/types";
 import { CallControls } from "./CallControls";
 import styles from "./CallOverlay.module.scss";
@@ -28,28 +28,32 @@ export const CallOverlay = ({
   onToggleVideo,
   onEndCall,
 }: CallOverlayProps) => {
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const localVideoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      if (node) {
+        node.srcObject = localStream;
+      }
+    },
+    [localStream],
+  );
 
-  useEffect(() => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
+  const remoteVideoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      if (node) {
+        node.srcObject = remoteStream;
+      }
+    },
+    [remoteStream],
+  );
 
-  useEffect(() => {
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
-
-  // Audio-only: play remote stream through a hidden audio element
-  useEffect(() => {
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
+  const remoteAudioRef = useCallback(
+    (node: HTMLAudioElement | null) => {
+      if (node) {
+        node.srcObject = remoteStream;
+      }
+    },
+    [remoteStream],
+  );
 
   const hasVideo = callType === "video" || isVideoEnabled;
 

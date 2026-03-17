@@ -24,7 +24,7 @@ import {
   CONNECT_RETRY_DELAY,
 } from "@/lib/constants";
 
-// ── Options ──────────────────────────────────────────────
+export type WebRTCManager = ReturnType<typeof createWebRTCManager>;
 
 interface UseConnectionOptions {
   publicKey: string;
@@ -42,8 +42,7 @@ interface UseConnectionResult {
   presenceRoomId: string | null;
   isConnecting: boolean;
   connectionMessage: string | null;
-  rtcManager: ReturnType<typeof createWebRTCManager> | null;
-  getRtcManager: () => ReturnType<typeof createWebRTCManager> | null;
+  rtcManager: WebRTCManager | null;
   connectTo: (peerPublicKey: string) => Promise<void>;
   sendChat: (id: string, text: string) => void;
   sendTyping: (isTyping: boolean) => void;
@@ -64,7 +63,9 @@ export const useConnection = (
     null,
   );
 
-  const rtcRef = useRef<ReturnType<typeof createWebRTCManager> | null>(null);
+  const [rtcManager, setRtcManager] = useState<WebRTCManager | null>(null);
+
+  const rtcRef = useRef<WebRTCManager | null>(null);
   const signalingRef = useRef<ReturnType<typeof createSignalingClient> | null>(
     null,
   );
@@ -74,16 +75,13 @@ export const useConnection = (
     null,
   );
   const relistenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Monotonically increasing connection ID to ignore stale callbacks from old connections
+  // Monotonic ID to ignore stale callbacks from superseded connections
   const connectionIdRef = useRef(0);
-  // Mutex: true while connectTo is in-flight (prevents duplicate calls)
+  // Prevents duplicate connectTo calls
   const connectingRef = useRef(false);
 
-  // Use ref for callbacks to avoid stale closures
   const optionsRef = useRef(options);
   optionsRef.current = options;
-
-  // ── DataChannel message handler ────────────────────────
 
   const handleDataChannelMessage = useCallback((msg: DataChannelMessage) => {
     switch (msg.type) {
@@ -145,17 +143,13 @@ export const useConnection = (
     }
   }, []);
 
-  // ── Core: open signaling + WebRTC to a room ────────────
-
   const openConnection = useCallback(
     async (roomId: string, asInitiator: boolean, peerPublicKey?: string) => {
       rtcRef.current?.close();
       signalingRef.current?.disconnect();
 
-      // Bump connection ID so stale callbacks from the old RTC/signaling are ignored
       const connId = ++connectionIdRef.current;
 
-      // Fetch TURN credentials before creating WebRTC connection
       const turnConfig = await fetchTurnCredentials();
 
       const rtc = createWebRTCManager({
@@ -165,11 +159,11 @@ export const useConnection = (
         iceServers: turnConfig.iceServers,
         iceTransportPolicy: turnConfig.iceTransportPolicy,
         onStateChange: (state) => {
-          // Ignore callbacks from a superseded connection
           if (connId !== connectionIdRef.current) return;
           setConnectionState(state);
           if (state === "closed" || state === "failed") {
             setConnectedPeerKey(null);
+            setRtcManager(null);
           }
         },
         onMessage: handleDataChannelMessage,
@@ -214,13 +208,12 @@ export const useConnection = (
       });
 
       rtcRef.current = rtc;
+      setRtcManager(rtc);
       signalingRef.current = signaling;
       signaling.connect(roomId);
     },
     [options.publicKey, handleDataChannelMessage],
   );
-
-  // ── Start listening: publish presence + open signaling ──
 
   useEffect(() => {
     if (!options.publicKey) return;
@@ -229,22 +222,13 @@ export const useConnection = (
     presenceRoomRef.current = roomId;
     setPresenceRoomId(roomId);
 
-    // Publish presence so others can find us
     publishPresence(options.publicKey, roomId);
 
     presenceIntervalRef.current = setInterval(() => {
       publishPresence(options.publicKey, roomId);
     }, PRESENCE_PUBLISH_INTERVAL);
 
-    // Open a signaling WebSocket on this room, waiting for incoming peers
-    // We are NOT the initiator — we wait for someone to join and send an offer
-    // Actually: whoever joins our room is the one who looked us up, so they
-    // expect us to be the answerer. They are the initiator (they found us).
-    // But wait — the joiner calls connectTo which does lookupPresence -> joins
-    // our room as answerer (asInitiator=false). So WE need to be the initiator.
-    //
-    // Flow: User A listens on room X (initiator). User B looks up A, joins room X.
-    // Server sends peer-joined to A. A creates offer. B gets offer, sends answer.
+    // We listen as initiator: when a peer joins our room, we create the offer
     openConnection(roomId, true);
 
     return () => {
@@ -258,8 +242,6 @@ export const useConnection = (
       signalingRef.current?.disconnect();
     };
   }, [options.publicKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Connect to a specific peer ─────────────────────────
 
   const connectTo = useCallback(
     async (peerPublicKey: string) => {
@@ -314,8 +296,6 @@ export const useConnection = (
     [openConnection],
   );
 
-  // ── Send helpers ───────────────────────────────────────
-
   const sendChat = useCallback((id: string, text: string) => {
     rtcRef.current?.sendChat(id, text);
   }, []);
@@ -335,6 +315,8 @@ export const useConnection = (
 
   const disconnect = useCallback(() => {
     rtcRef.current?.close();
+    rtcRef.current = null;
+    setRtcManager(null);
     signalingRef.current?.disconnect();
     setConnectionState("closed");
     setConnectedPeerKey(null);
@@ -366,8 +348,7 @@ export const useConnection = (
     presenceRoomId,
     isConnecting,
     connectionMessage,
-    rtcManager: rtcRef.current,
-    getRtcManager: () => rtcRef.current,
+    rtcManager,
     connectTo,
     sendChat,
     sendTyping,

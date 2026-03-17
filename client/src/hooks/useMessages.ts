@@ -7,7 +7,7 @@ import {
 } from "@/lib/storage";
 import { generateId } from "@/lib/crypto";
 
-interface UseMessagesResult {
+export interface UseMessagesResult {
   messages: readonly ChatMessage[];
   loading: boolean;
   sendMessage: (text: string) => Promise<ChatMessage>;

@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import type { Contact } from "@/types";
 import { useConnectionContext } from "@/context/connection-context";
 import { useCallContext } from "@/context/call-context";
-import { useMessages } from "@/hooks/useMessages";
+import type { UseMessagesResult } from "@/hooks/useMessages";
 import { shortenKey } from "@/lib/crypto";
 import { MessageBubble } from "./MessageBubble";
 import { CallOverlay } from "./CallOverlay";
@@ -10,9 +10,10 @@ import styles from "./ChatWindow.module.scss";
 
 interface ChatMessagesProps {
   contact: Contact;
+  messagesHook: UseMessagesResult;
 }
 
-export const ChatMessages = ({ contact }: ChatMessagesProps) => {
+export const ChatMessages = ({ contact, messagesHook }: ChatMessagesProps) => {
   const { connectedPeerKey, incomingChat, peerTyping, connectionState } =
     useConnectionContext();
 
@@ -31,7 +32,7 @@ export const ChatMessages = ({ contact }: ChatMessagesProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const processedIncomingRef = useRef<string | null>(null);
 
-  const { messages, receiveMessage } = useMessages(contact.publicKey);
+  const { messages, receiveMessage } = messagesHook;
 
   const isConnectedToThisContact =
     connectionState === "connected" && connectedPeerKey === contact.publicKey;

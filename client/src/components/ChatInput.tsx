@@ -7,15 +7,16 @@ import {
 } from "react";
 import type { Contact } from "@/types";
 import { useConnectionContext } from "@/context/connection-context";
-import { useMessages } from "@/hooks/useMessages";
+import type { UseMessagesResult } from "@/hooks/useMessages";
 import { TYPING_DEBOUNCE_MS } from "@/lib/constants";
 import styles from "./ChatWindow.module.scss";
 
 interface ChatInputProps {
   contact: Contact;
+  messagesHook: UseMessagesResult;
 }
 
-export const ChatInput = ({ contact }: ChatInputProps) => {
+export const ChatInput = ({ contact, messagesHook }: ChatInputProps) => {
   const { connectionState, connectedPeerKey, sendChat, sendTyping, sendFile } =
     useConnectionContext();
 
@@ -23,7 +24,7 @@ export const ChatInput = ({ contact }: ChatInputProps) => {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { sendMessage } = useMessages(contact.publicKey);
+  const { sendMessage } = messagesHook;
 
   const isConnectedToThisContact =
     connectionState === "connected" && connectedPeerKey === contact.publicKey;

@@ -22,12 +22,11 @@ export const CallProvider = ({
   remoteTrackRef,
   children,
 }: CallProviderProps) => {
-  const { rtcManager, getRtcManager, sendCallSignal, connectedPeerKey } =
+  const { rtcManager, sendCallSignal, connectedPeerKey } =
     useConnectionContext();
 
   const call = useCall({
     rtcManager,
-    getRtcManager,
     send: sendCallSignal,
     localPublicKey,
     peerPublicKey: connectedPeerKey,
