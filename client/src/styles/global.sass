@@ -57,13 +57,7 @@ body::after
   content: ""
   position: fixed
   inset: 0
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
-  );
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.03) 2px, rgba(0, 0, 0, 0.03) 4px)
   pointer-events: none
   z-index: 9999
 
@@ -82,23 +76,18 @@ body::before
   0%
     clip-path: inset(40% 0 61% 0)
     transform: translate(-2px, 2px)
-
   20%
     clip-path: inset(92% 0 1% 0)
     transform: translate(1px, -1px)
-
   40%
     clip-path: inset(43% 0 1% 0)
     transform: translate(-1px, 2px)
-
   60%
     clip-path: inset(25% 0 58% 0)
     transform: translate(2px, 1px)
-
   80%
     clip-path: inset(54% 0 7% 0)
     transform: translate(-1px, -1px)
-
   100%
     clip-path: inset(58% 0 43% 0)
     transform: translate(0)
@@ -107,23 +96,20 @@ body::before
   0%,
   100%
     opacity: 1
-
   50%
     opacity: 0.7
 
 @keyframes slide-in
-  from {
-  opacity: 0
-  transform: translateY(8px)
-
-  to {
-  opacity: 1
-  transform: translateY(0)
+  from
+    opacity: 0
+    transform: translateY(8px)
+  to
+    opacity: 1
+    transform: translateY(0)
 
 @keyframes blink
   0%,
   100%
     opacity: 1
-
   50%
     opacity: 0
