@@ -1,29 +1,40 @@
 import { Hono } from "hono";
-import type { Env } from "../env";
 
-export const createTurnRoutes = (): Hono<{ Bindings: Env }> => {
-  const routes = new Hono<{ Bindings: Env }>();
+export const createTurnRoutes = (domain: string, secret: string): Hono => {
+  const routes = new Hono();
 
   routes.get("/", async (c) => {
-    const apiKey = c.env.METERED_API_KEY;
-    const appName = c.env.METERED_APP_NAME;
+    const { username, credential } = await generateTurnCredentials(secret);
 
-    if (!apiKey || !appName) {
-      return c.json({ error: "TURN not configured" }, 503);
-    }
-
-    const url = `https://${appName}.metered.live/api/v1/turn/credentials?apiKey=${apiKey}`;
-
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      return c.json({ error: "Failed to fetch TURN credentials" }, 502);
-    }
-
-    const iceServers = await res.json();
-
-    return c.json({ iceServers });
+    return c.json({
+      iceServers: [
+        { urls: `stun:${domain}:3478` },
+        { urls: `turn:${domain}:3478`, username, credential },
+        { urls: `turns:${domain}:5349?transport=tcp`, username, credential },
+      ],
+    });
   });
 
   return routes;
 };
+
+async function generateTurnCredentials(
+  secret: string,
+): Promise<{ username: string; credential: string }> {
+  const ttl = 86400; // 24 hours
+  const timestamp = Math.floor(Date.now() / 1000) + ttl;
+  const username = `${timestamp}:thechat`;
+
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(username));
+  const credential = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  return { username, credential };
+}

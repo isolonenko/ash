@@ -1,14 +1,25 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { Env } from "./env";
-import { createSignalingRoutes } from "./routes/signaling";
-import { createPresenceRoutes } from "./routes/presence";
-import { createTurnRoutes } from "./routes/turn";
+import { RoomManager } from "./lib/room-manager.ts";
+import { PresenceStore } from "./lib/presence-store.ts";
+import { createSignalingRoutes } from "./routes/signaling.ts";
+import { createPresenceRoutes } from "./routes/presence.ts";
+import { createTurnRoutes } from "./routes/turn.ts";
 
-// Re-export Durable Object for wrangler to discover
-export { SignalingRoom } from "./durable-objects/signaling-room";
+// ── Config ──────────────────────────────────────────────
 
-const app = new Hono<{ Bindings: Env }>();
+const PORT = parseInt(Deno.env.get("PORT") ?? "8000", 10);
+const TURN_DOMAIN = Deno.env.get("TURN_DOMAIN") ?? "localhost";
+const TURN_SECRET = Deno.env.get("TURN_SECRET") ?? "";
+
+// ── Shared State ────────────────────────────────────────
+
+const roomManager = new RoomManager();
+const presenceStore = new PresenceStore();
+
+// ── App ─────────────────────────────────────────────────
+
+const app = new Hono();
 
 // CORS for HTTP routes (WebSocket upgrade doesn't need CORS)
 app.use("/presence/*", cors());
@@ -20,8 +31,10 @@ app.get("/health", (c) =>
 );
 
 // Routes
-app.route("/signal", createSignalingRoutes());
-app.route("/presence", createPresenceRoutes());
-app.route("/turn-credentials", createTurnRoutes());
+app.route("/signal", createSignalingRoutes(roomManager));
+app.route("/presence", createPresenceRoutes(presenceStore));
+app.route("/turn-credentials", createTurnRoutes(TURN_DOMAIN, TURN_SECRET));
 
-export default app;
+// ── Start ───────────────────────────────────────────────
+
+Deno.serve({ port: PORT }, app.fetch);

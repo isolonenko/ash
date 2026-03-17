@@ -16,8 +16,8 @@ export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
     const data = await res.json();
     return {
       iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
         ...data.iceServers,
+        { urls: "stun:stun.l.google.com:19302" },
       ],
       iceTransportPolicy: "all",
     };

@@ -1,0 +1,55 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - client_dist:/srv/client:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-check-certificate", "--spider", "-q", "https://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    depends_on:
+      client-build:
+        condition: service_completed_successfully
+
+  client-build:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+      args:
+        VITE_SIGNALING_URL: "wss://${DOMAIN}"
+    volumes:
+      - client_dist:/output
+
+  server:
+    build: ../server
+    restart: unless-stopped
+    environment:
+      - PORT=8000
+      - TURN_DOMAIN=${DOMAIN}
+      - TURN_SECRET=${TURN_SECRET}
+    expose:
+      - "8000"
+
+  coturn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./turnserver.conf:/etc/turnserver.conf:ro
+      - caddy_data:/caddy-certs:ro
+    depends_on:
+      caddy:
+        condition: service_healthy
+    command: ["-c", "/etc/turnserver.conf"]
+
+volumes:
+  caddy_data:
+  client_dist:

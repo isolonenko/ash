@@ -1,0 +1,19 @@
+# Network
+listening-port=3478
+tls-listening-port=5349
+min-port=49152
+max-port=65535
+external-ip={EXTERNAL_IP}
+realm={DOMAIN}
+
+# Authentication (shared secret with Deno server)
+use-auth-secret
+static-auth-secret={TURN_SECRET}
+
+# TLS (Caddy's certificates)
+cert=/caddy-certs/certificates/acme-v02.api.letsencrypt.org-directory/{DOMAIN}/{DOMAIN}.crt
+pkey=/caddy-certs/certificates/acme-v02.api.letsencrypt.org-directory/{DOMAIN}/{DOMAIN}.key
+
+# Logging
+log-file=stdout
+verbose
