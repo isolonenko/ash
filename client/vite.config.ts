@@ -15,7 +15,7 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       sass: {
-        additionalData: `@use "@/styles/variables" as *\n`,
+        additionalData: `@use "@/styles/variables" as *\n@use "@/styles/buttons" as *\n`,
       },
     },
   },

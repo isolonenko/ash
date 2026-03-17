@@ -1,0 +1,88 @@
+// Shared button mixins for cyberpunk UI
+// All buttons share base properties; color variants add border/color/hover
+
+=button-base
+  background: transparent
+  font-family: $font-mono
+  cursor: pointer
+  text-transform: uppercase
+  transition: all $transition-fast
+  letter-spacing: 1px
+
+=button-cyan
+  +button-base
+  border: 1px solid $neon-cyan
+  color: $neon-cyan
+  &:hover
+    background: rgba($neon-cyan, 0.1)
+    box-shadow: $glow-cyan
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
+
+=button-green
+  +button-base
+  border: 1px solid $neon-green
+  color: $neon-green
+  &:hover
+    background: rgba($neon-green, 0.1)
+    box-shadow: 0 0 10px rgba($neon-green, 0.3)
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
+
+=button-danger
+  +button-base
+  border: 1px solid $danger
+  color: $danger
+  &:hover
+    background: rgba($danger, 0.1)
+    box-shadow: $glow-magenta
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
+
+=button-ghost
+  +button-base
+  border: 1px solid $border-color
+  color: $text-secondary
+  &:hover
+    border-color: $text-primary
+    color: $text-primary
+    box-shadow: 0 0 5px rgba($text-primary, 0.1)
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
+
+=button-magenta
+  +button-base
+  border: 1px solid $neon-magenta
+  color: $neon-magenta
+  &:hover
+    background: rgba($neon-magenta, 0.1)
+    box-shadow: $glow-magenta
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
+
+=button-purple
+  +button-base
+  border: 1px solid $neon-purple
+  color: $neon-purple
+  &:hover
+    background: rgba($neon-purple, 0.1)
+    box-shadow: 0 0 10px rgba($neon-purple, 0.5), 0 0 20px rgba($neon-purple, 0.2)
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
+
+=button-red
+  +button-base
+  border: 1px solid $neon-red
+  color: $neon-red
+  &:hover
+    background: rgba($neon-red, 0.1)
+    box-shadow: $glow-red
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
