@@ -120,13 +120,15 @@ const AppInner = ({
       >
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>TheChat</div>
+          <button className={styles.addButton} onClick={onAdd}>
+            + Add
+          </button>
         </div>
         <ContactList
           contacts={contacts}
           onlineMap={onlineMap}
           activeContactKey={activeContactKey}
           onSelect={onSelectContact}
-          onAdd={onAdd}
           onRename={onRename}
           onDelete={onDelete}
         />

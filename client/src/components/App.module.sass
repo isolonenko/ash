@@ -37,6 +37,7 @@
 .sidebarHeader
   display: flex
   align-items: center
+  justify-content: space-between
   height: $header-height
   padding: 0 $space-md
   border-bottom: 1px solid $border-color
@@ -50,6 +51,20 @@
   text-shadow: $text-glow-cyan
   letter-spacing: 2px
   text-transform: uppercase
+
+.addButton
+  padding: $space-xs $space-sm
+  background: transparent
+  border: 1px solid $neon-cyan
+  color: $neon-cyan
+  font-family: $font-mono
+  font-size: $font-sm
+  cursor: pointer
+  transition: all $transition-fast
+
+  &:hover
+    background: rgba($neon-cyan, 0.1)
+    box-shadow: $glow-cyan
 
 // ── Main panel ───────────────────────────────────────────
 
