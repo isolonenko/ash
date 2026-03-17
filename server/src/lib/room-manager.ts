@@ -1,4 +1,4 @@
-import { MAX_ROOM_SIZE } from "./signaling-logic.ts";
+import { MAX_ROOM_SIZE, extractPublicKeyFromTags } from "./signaling-logic.ts";
 
 interface Room {
   sockets: Map<WebSocket, string[]>;
@@ -20,7 +20,24 @@ export class RoomManager {
     }
 
     if (room.sockets.size >= MAX_ROOM_SIZE) {
-      throw new Error("Room is full");
+      // Before rejecting, check for stale socket with same publicKey.
+      // This happens when a client reconnects before the old socket's
+      // onclose has fired (e.g., brief network interruption).
+      const joinerKey = extractPublicKeyFromTags(tags);
+      if (joinerKey) {
+        for (const [existingWs, existingTags] of room.sockets) {
+          if (extractPublicKeyFromTags(existingTags) === joinerKey) {
+            try { existingWs.close(1000, "Superseded by new connection"); } catch { /* already closing */ }
+            room.sockets.delete(existingWs);
+            break;
+          }
+        }
+      }
+
+      // Re-check after eviction
+      if (room.sockets.size >= MAX_ROOM_SIZE) {
+        throw new Error("Room is full");
+      }
     }
 
     room.sockets.set(ws, tags);

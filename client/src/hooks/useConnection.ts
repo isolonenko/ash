@@ -79,6 +79,8 @@ export const useConnection = (
   const connectionIdRef = useRef(0);
   // Prevents duplicate connectTo calls
   const connectingRef = useRef(false);
+  // Ref to disconnect function so onStateChange can trigger recovery without circular deps
+  const disconnectRef = useRef<(() => void) | null>(null);
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -161,7 +163,11 @@ export const useConnection = (
         onStateChange: (state) => {
           if (connId !== connectionIdRef.current) return;
           setConnectionState(state);
-          if (state === "closed" || state === "failed") {
+          if (state === "failed") {
+            // Connection failed — trigger full disconnect to re-establish
+            // presence room so both sides become discoverable again
+            disconnectRef.current?.();
+          } else if (state === "closed") {
             setConnectedPeerKey(null);
             setRtcManager(null);
           }
@@ -273,6 +279,15 @@ export const useConnection = (
             setConnectionMessage("Connecting…");
             setConnectedPeerKey(peerPublicKey);
             openConnection(presence.roomId, false, peerPublicKey);
+
+            // Keep publishing presence to OUR room so peer can find us on reconnect
+            if (presenceRoomRef.current) {
+              const ourRoom = presenceRoomRef.current;
+              presenceIntervalRef.current = setInterval(() => {
+                publishPresence(options.publicKey, ourRoom);
+              }, PRESENCE_PUBLISH_INTERVAL);
+            }
+
             return;
           }
 
@@ -285,6 +300,17 @@ export const useConnection = (
             "Peer offline — waiting for them to come online",
           );
           setConnectionState("new");
+
+          // Peer not found — re-listen on our own room so peer can find us
+          if (presenceRoomRef.current) {
+            const ourRoom = presenceRoomRef.current;
+            openConnection(ourRoom, true);
+            publishPresence(options.publicKey, ourRoom);
+
+            presenceIntervalRef.current = setInterval(() => {
+              publishPresence(options.publicKey, ourRoom);
+            }, PRESENCE_PUBLISH_INTERVAL);
+          }
         };
 
         await tryLookup(0);
@@ -293,7 +319,7 @@ export const useConnection = (
         setIsConnecting(false);
       }
     },
-    [openConnection],
+    [openConnection, options.publicKey],
   );
 
   const sendChat = useCallback((id: string, text: string) => {
@@ -341,6 +367,9 @@ export const useConnection = (
       }, RELISTEN_DELAY);
     }
   }, [options.publicKey, openConnection]);
+
+  // Keep disconnectRef in sync so onStateChange can trigger recovery
+  disconnectRef.current = disconnect;
 
   return {
     connectionState,
