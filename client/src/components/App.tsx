@@ -123,10 +123,14 @@ const AppInner = ({
         className={`${styles.sidebar} ${showSidebar ? styles.sidebarVisible : ""} ${sidebarCollapsed ? styles.sidebarCollapsed : ""}`}
       >
         <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>{sidebarCollapsed ? "TC" : "TheChat"}</div>
-          <button className={styles.addButton} onClick={onAdd}>
-            {sidebarCollapsed ? "+" : "+ Add"}
-          </button>
+          <div className={styles.logo}>
+            {sidebarCollapsed ? "TC" : "TheChat"}
+          </div>
+          {!sidebarCollapsed && (
+            <button className={styles.addButton} onClick={onAdd}>
+              + Add
+            </button>
+          )}
           <button className={styles.collapseToggle} onClick={onToggleCollapse}>
             {sidebarCollapsed ? "\u203A" : "\u2039"}
           </button>
@@ -273,14 +277,17 @@ export const App = () => {
     process();
   }, [pendingInvite, isAuthenticated, identity, contacts, addContact]);
 
-  const handleSelectContact = useCallback((publicKey: string) => {
-    setActiveContactKey(publicKey);
-    setShowSidebar(false);
-    if (sidebarCollapsed) {
-      setSidebarCollapsed(false);
-      localStorage.setItem("sidebarCollapsed", "false");
-    }
-  }, [sidebarCollapsed]);
+  const handleSelectContact = useCallback(
+    (publicKey: string) => {
+      setActiveContactKey(publicKey);
+      setShowSidebar(false);
+      if (sidebarCollapsed) {
+        setSidebarCollapsed(false);
+        localStorage.setItem("sidebarCollapsed", "false");
+      }
+    },
+    [sidebarCollapsed],
+  );
 
   const handleBack = useCallback(() => {
     setShowSidebar(true);
