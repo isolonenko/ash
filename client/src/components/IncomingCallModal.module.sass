@@ -1,4 +1,3 @@
-@use '../styles/variables' as *
 
 .overlay
   position: fixed
@@ -56,33 +55,10 @@
   justify-content: center
 
 .acceptButton
+  +button-green
   padding: $space-sm $space-lg
-  background: transparent
-  border: 1px solid $neon-green
-  color: $neon-green
-  font-family: $font-mono
   font-size: $font-sm
-  cursor: pointer
-  text-transform: uppercase
-  letter-spacing: 1px
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-green, 0.1)
-    box-shadow: 0 0 10px rgba($neon-green, 0.3)
-
 .rejectButton
+  +button-red
   padding: $space-sm $space-lg
-  background: transparent
-  border: 1px solid $neon-red
-  color: $neon-red
-  font-family: $font-mono
   font-size: $font-sm
-  cursor: pointer
-  text-transform: uppercase
-  letter-spacing: 1px
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-red, 0.1)
-    box-shadow: $glow-red

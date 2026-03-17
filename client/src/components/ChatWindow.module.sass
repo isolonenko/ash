@@ -13,18 +13,13 @@
   min-height: $header-height
 
 .backButton
+  +button-ghost
   padding: $space-xs $space-sm
-  background: transparent
-  border: 1px solid $border-color
-  color: $text-secondary
-  font-family: $font-mono
   font-size: $font-sm
-  cursor: pointer
   display: none
 
   @media (max-width: 768px)
     display: block
-
 .contactName
   font-family: $font-display
   font-size: $font-base
@@ -52,49 +47,19 @@
   color: $text-muted
 
 .connectButton
+  +button-cyan
   padding: $space-xs $space-sm
-  background: transparent
-  border: 1px solid $neon-cyan
-  color: $neon-cyan
-  font-family: $font-mono
   font-size: $font-xs
-  cursor: pointer
-  text-transform: uppercase
   margin-left: auto
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-cyan, 0.1)
-
 .callButton
+  +button-green
   padding: $space-xs $space-sm
-  background: transparent
-  border: 1px solid $neon-green
-  color: $neon-green
-  font-family: $font-mono
   font-size: $font-xs
-  cursor: pointer
-  text-transform: uppercase
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-green, 0.1)
-    box-shadow: 0 0 10px rgba($neon-green, 0.3)
 
 .videoCallButton
+  +button-cyan
   padding: $space-xs $space-sm
-  background: transparent
-  border: 1px solid $neon-cyan
-  color: $neon-cyan
-  font-family: $font-mono
   font-size: $font-xs
-  cursor: pointer
-  text-transform: uppercase
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-cyan, 0.1)
-    box-shadow: $glow-cyan
 
 .messages
   flex: 1
@@ -143,38 +108,16 @@
     color: $text-muted
 
 .sendButton
+  +button-cyan
   padding: $space-sm $space-lg
-  background: transparent
-  border: 1px solid $neon-cyan
-  color: $neon-cyan
-  font-family: $font-mono
   font-size: $font-sm
-  cursor: pointer
-  text-transform: uppercase
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-cyan, 0.1)
-    box-shadow: $glow-cyan
-
-  &:disabled
-    opacity: 0.3
-    cursor: not-allowed
-
 .fileButton
+  +button-ghost
   padding: $space-sm
-  background: transparent
-  border: 1px solid $border-color
-  color: $text-secondary
-  font-family: $font-mono
   font-size: $font-sm
-  cursor: pointer
-  transition: all $transition-fast
-
   &:hover
     border-color: $neon-yellow
     color: $neon-yellow
-
 .noChat
   display: flex
   align-items: center

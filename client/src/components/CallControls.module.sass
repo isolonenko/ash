@@ -1,5 +1,3 @@
-@use '../styles/variables' as *
-
 .controls
   display: flex
   justify-content: center
@@ -8,45 +6,17 @@
   padding: $space-md
 
 .button
+  +button-cyan
   padding: $space-xs $space-sm
-  background: transparent
-  border: 1px solid $neon-cyan
-  color: $neon-cyan
-  font-family: $font-mono
   font-size: $font-xs
-  cursor: pointer
-  text-transform: uppercase
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-cyan, 0.1)
 
   &Muted
+    +button-ghost
     padding: $space-xs $space-sm
-    background: transparent
-    border: 1px solid $text-muted
-    color: $text-muted
-    font-family: $font-mono
     font-size: $font-xs
-    cursor: pointer
-    text-transform: uppercase
-    transition: all $transition-fast
     opacity: 0.6
 
-  &:hover
-    background: rgba($text-muted, 0.1)
-
 .endButton
+  +button-red
   padding: $space-xs $space-sm
-  background: transparent
-  border: 1px solid $neon-red
-  color: $neon-red
-  font-family: $font-mono
   font-size: $font-xs
-  cursor: pointer
-  text-transform: uppercase
-  transition: all $transition-fast
-
-  &:hover
-    background: rgba($neon-red, 0.1)
-    box-shadow: $glow-red
