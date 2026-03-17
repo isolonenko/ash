@@ -51,8 +51,37 @@ docker compose -f deploy/docker-compose.yml logs -f coturn    # TURN relay only
 
 ### Update
 
+#### Full Update (Client + Server)
+
 ```bash
+cd /path/to/the-chat
 git pull
+docker compose -f deploy/docker-compose.yml build client-build server
+docker compose -f deploy/docker-compose.yml up -d --no-deps client-build server
+docker compose -f deploy/docker-compose.yml restart caddy
+```
+
+#### Update Client Only
+
+```bash
+cd /path/to/the-chat
+git pull
+docker compose -f deploy/docker-compose.yml build client-build
+docker compose -f deploy/docker-compose.yml up -d --no-deps client-build
+docker compose -f deploy/docker-compose.yml restart caddy
+```
+
+#### Update Server Only
+
+```bash
+cd /path/to/the-chat
+git pull
+docker compose -f deploy/docker-compose.yml build server
+docker compose -f deploy/docker-compose.yml up -d --no-deps server
+```
+
+**Note:** For config changes (Caddyfile, coturn), re-run the full bootstrap:
+```bash
 sudo ./deploy/bootstrap.sh --domain chat.yourdomain.com --email you@example.com
 ```
 
