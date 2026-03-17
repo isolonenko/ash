@@ -9,7 +9,7 @@ Built with WebRTC for direct peer-to-peer connections. A lightweight signaling s
 SSH into your VPS and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/main/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
+curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/master/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
 ```
 
 That's it. The script installs git, Docker, sets up HTTPS, and starts everything.

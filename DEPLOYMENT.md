@@ -40,7 +40,7 @@ This should return your VPS IP. If it doesn't, wait a few minutes and try again.
 SSH into your VPS and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/main/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
+curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/master/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
 ```
 
 Replace `chat.yourdomain.com` with your actual domain and `you@example.com` with your email (used for Let's Encrypt certificate notifications).

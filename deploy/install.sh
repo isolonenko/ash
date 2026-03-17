@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -z "$DOMAIN" ]] && fatal "Usage: curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/main/deploy/install.sh | sudo bash -s -- --domain <domain> --email <email>"
+[[ -z "$DOMAIN" ]] && fatal "Usage: curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/master/deploy/install.sh | sudo bash -s -- --domain <domain> --email <email>"
 [[ -z "$EMAIL" ]]  && fatal "Missing required argument: --email <email>"
 
 # ── Preflight ────────────────────────────────────────────
