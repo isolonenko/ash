@@ -9,7 +9,8 @@ import { retryWithBackoff } from "@/lib/retry";
 
 // ── Config ───────────────────────────────────────────────
 
-const SIGNALING_URL = "ws://localhost:8787";
+const SIGNALING_URL =
+  import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8787";
 
 // ── Types ────────────────────────────────────────────────
 
