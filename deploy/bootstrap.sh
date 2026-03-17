@@ -44,15 +44,34 @@ install_docker_amzn() {
   systemctl enable --now docker
   info "Docker installed successfully"
 
+  local arch
+  arch=$(uname -m)
+  # buildx uses amd64/arm64 naming, not x86_64/aarch64
+  local buildx_arch
+  case "$arch" in
+    x86_64)  buildx_arch="amd64" ;;
+    aarch64) buildx_arch="arm64" ;;
+    *)       buildx_arch="$arch" ;;
+  esac
+
+  mkdir -p /usr/local/libexec/docker/cli-plugins
+
   if ! docker compose version &>/dev/null; then
     info "Installing Docker Compose plugin..."
-    local arch
-    arch=$(uname -m)
-    mkdir -p /usr/local/libexec/docker/cli-plugins
     curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${arch}" \
       -o /usr/local/libexec/docker/cli-plugins/docker-compose
     chmod +x /usr/local/libexec/docker/cli-plugins/docker-compose
     info "Docker Compose plugin installed"
+  fi
+
+  if ! docker buildx version &>/dev/null; then
+    info "Installing Docker Buildx plugin..."
+    local buildx_version
+    buildx_version=$(curl -fsSL https://api.github.com/repos/docker/buildx/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+    curl -fsSL "https://github.com/docker/buildx/releases/download/${buildx_version}/buildx-${buildx_version}.linux-${buildx_arch}" \
+      -o /usr/local/libexec/docker/cli-plugins/docker-buildx
+    chmod +x /usr/local/libexec/docker/cli-plugins/docker-buildx
+    info "Docker Buildx plugin installed"
   fi
 }
 
