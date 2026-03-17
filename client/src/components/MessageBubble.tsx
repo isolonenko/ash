@@ -1,5 +1,5 @@
 import type { ChatMessage } from "@/types";
-import styles from "./MessageBubble.module.scss";
+import styles from "./MessageBubble.module.sass";
 
 interface MessageBubbleProps {
   message: ChatMessage;

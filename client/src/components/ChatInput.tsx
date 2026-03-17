@@ -9,7 +9,7 @@ import type { Contact } from "@/types";
 import { useConnectionContext } from "@/context/connection-context";
 import type { UseMessagesResult } from "@/hooks/useMessages";
 import { TYPING_DEBOUNCE_MS } from "@/lib/constants";
-import styles from "./ChatWindow.module.scss";
+import styles from "./ChatWindow.module.sass";
 
 interface ChatInputProps {
   contact: Contact;

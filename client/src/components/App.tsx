@@ -12,7 +12,7 @@ import { ContactList } from "./ContactList";
 import { ChatWindow } from "./ChatWindow";
 import { AddContact } from "./AddContact";
 import { IncomingCallModal } from "./IncomingCallModal";
-import styles from "./App.module.scss";
+import styles from "./App.module.sass";
 
 // ── Deep link parser ─────────────────────────────────────
 

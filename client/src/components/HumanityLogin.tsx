@@ -1,5 +1,5 @@
 import { useHumanityAuth } from "@/hooks/useHumanityAuth";
-import styles from "./HumanityLogin.module.scss";
+import styles from "./HumanityLogin.module.sass";
 
 interface HumanityLoginProps {
   onAuthenticated: (credential: {

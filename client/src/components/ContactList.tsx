@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, type FormEvent } from "react";
 import type { Contact } from "@/types";
 import { shortenKey } from "@/lib/crypto";
-import styles from "./ContactList.module.scss";
+import styles from "./ContactList.module.sass";
 
 interface ContactListProps {
   contacts: readonly Contact[];

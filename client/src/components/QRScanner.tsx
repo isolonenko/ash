@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import type { ConnectionInvite } from "@/types";
-import styles from "./QRScanner.module.scss";
+import styles from "./QRScanner.module.sass";
 
 interface QRScannerProps {
   onScan: (invite: ConnectionInvite) => void;

@@ -3,7 +3,7 @@ import type { ConnectionInvite } from "@/types";
 import { shortenKey } from "@/lib/crypto";
 import { QRGenerator } from "./QRGenerator";
 import { QRScanner } from "./QRScanner";
-import styles from "./AddContact.module.scss";
+import styles from "./AddContact.module.sass";
 
 interface AddContactProps {
   publicKey: string;

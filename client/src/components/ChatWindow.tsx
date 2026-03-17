@@ -3,7 +3,7 @@ import { useMessages } from "@/hooks/useMessages";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
-import styles from "./ChatWindow.module.scss";
+import styles from "./ChatWindow.module.sass";
 interface ChatWindowProps {
   contact: Contact | null;
   onBack?: () => void;
