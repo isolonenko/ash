@@ -34,6 +34,16 @@
   @media (max-width: 768px)
     transform: translateX(0)
 
+.sidebarCollapsed
+  width: 60px
+  min-width: 60px
+  transition: width $transition-base, min-width $transition-base
+
+  @media (max-width: 768px)
+    width: 100%
+    min-width: 100%
+
+
 .sidebarHeader
   display: flex
   align-items: center
@@ -65,6 +75,49 @@
   &:hover
     background: rgba($neon-cyan, 0.1)
     box-shadow: $glow-cyan
+
+.collapseToggle
+  background: transparent
+  font-family: $font-mono
+  cursor: pointer
+  text-transform: uppercase
+  transition: all $transition-fast
+  letter-spacing: 1px
+  border: 1px solid $border-color
+  color: $text-secondary
+  padding: $space-xs
+  font-size: $font-sm
+  border: none
+  margin-left: auto
+
+  &:hover
+    border-color: $text-primary
+    color: $text-primary
+    box-shadow: 0 0 5px rgba($text-primary, 0.1)
+
+.sidebarCollapsed .logo
+  font-size: $font-base
+  letter-spacing: 0
+
+.sidebarCollapsed .addButton
+  padding: $space-xs
+  font-size: $font-xs
+  min-width: 0
+
+.sidebarCollapsed :global(.contactInfo)
+  display: none
+
+.sidebarCollapsed :global(.contactItem)
+  position: relative
+  justify-content: center
+  padding: $space-sm
+
+.sidebarCollapsed :global(.presenceDot),
+.sidebarCollapsed :global(.online),
+.sidebarCollapsed :global(.offline)
+  position: absolute
+  bottom: 4px
+  right: 4px
 
 // ── Main panel ───────────────────────────────────────────
 

@@ -88,6 +88,8 @@ interface AppInnerProps {
   onRename: ReturnType<typeof useContacts>["renameContact"];
   onDelete: ReturnType<typeof useContacts>["deleteContact"];
   getContactName: (key: string | null) => string;
+  sidebarCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const AppInner = ({
@@ -95,6 +97,7 @@ const AppInner = ({
   onlineMap,
   activeContactKey,
   showSidebar,
+  sidebarCollapsed,
   showAddContact,
   identity,
   onSelectContact,
@@ -105,6 +108,7 @@ const AppInner = ({
   onRename,
   onDelete,
   getContactName,
+  onToggleCollapse,
 }: AppInnerProps) => {
   const { connectedPeerKey } = useConnectionContext();
 
@@ -116,12 +120,15 @@ const AppInner = ({
   return (
     <div className={styles.app}>
       <div
-        className={`${styles.sidebar} ${showSidebar ? styles.sidebarVisible : ""}`}
+        className={`${styles.sidebar} ${showSidebar ? styles.sidebarVisible : ""} ${sidebarCollapsed ? styles.sidebarCollapsed : ""}`}
       >
         <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>TheChat</div>
+          <div className={styles.logo}>{sidebarCollapsed ? "TC" : "TheChat"}</div>
           <button className={styles.addButton} onClick={onAdd}>
-            + Add
+            {sidebarCollapsed ? "+" : "+ Add"}
+          </button>
+          <button className={styles.collapseToggle} onClick={onToggleCollapse}>
+            {sidebarCollapsed ? "\u203A" : "\u2039"}
           </button>
         </div>
         <ContactList
@@ -188,6 +195,9 @@ export const App = () => {
     },
   );
   const [showSidebar, setShowSidebar] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem("sidebarCollapsed") === "true";
+  });
 
   const callSignalRef = useRef<(msg: DataChannelMessage) => void>(() => {});
   const remoteTrackRef = useRef<(event: RTCTrackEvent) => void>(() => {});
@@ -266,10 +276,22 @@ export const App = () => {
   const handleSelectContact = useCallback((publicKey: string) => {
     setActiveContactKey(publicKey);
     setShowSidebar(false);
-  }, []);
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+      localStorage.setItem("sidebarCollapsed", "false");
+    }
+  }, [sidebarCollapsed]);
 
   const handleBack = useCallback(() => {
     setShowSidebar(true);
+  }, []);
+
+  const handleToggleCollapse = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebarCollapsed", String(next));
+      return next;
+    });
   }, []);
 
   const handleContactAdded = useCallback(
@@ -337,6 +359,8 @@ export const App = () => {
           onRename={renameContact}
           onDelete={deleteContact}
           getContactName={getContactName}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleCollapse}
         />
       </CallProvider>
     </ConnectionProvider>
