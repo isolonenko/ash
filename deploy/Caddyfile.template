@@ -1,0 +1,23 @@
+{
+    email {EMAIL}
+}
+
+{DOMAIN} {
+    handle /signal/* {
+        reverse_proxy server:8000
+    }
+    handle /presence/* {
+        reverse_proxy server:8000
+    }
+    handle /turn-credentials/* {
+        reverse_proxy server:8000
+    }
+    handle /health {
+        reverse_proxy server:8000
+    }
+    handle {
+        root * /srv/client
+        try_files {path} /index.html
+        file_server
+    }
+}
