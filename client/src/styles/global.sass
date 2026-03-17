@@ -1,0 +1,129 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap")
+
+// ── Reset ────────────────────────────────────────────────
+*,
+*::before,
+*::after
+  margin: 0
+  padding: 0
+  box-sizing: border-box
+
+html
+  font-size: 16px
+  -webkit-font-smoothing: antialiased
+  -moz-osx-font-smoothing: grayscale
+
+body
+  font-family: $font-mono
+  background: $bg-primary
+  color: $text-primary
+  min-height: 100vh
+  overflow: hidden
+
+#root
+  min-height: 100vh
+  display: flex
+  flex-direction: column
+
+// ── Scrollbar ────────────────────────────────────────────
+::-webkit-scrollbar
+  width: 6px
+
+::-webkit-scrollbar-track
+  background: $bg-secondary
+
+::-webkit-scrollbar-thumb
+  background: $border-color
+  border-radius: 0
+
+  &:hover
+    background: $neon-cyan
+
+// ── Selection ────────────────────────────────────────────
+::selection
+  background: rgba($neon-cyan, 0.3)
+  color: $text-primary
+
+// ── Links ────────────────────────────────────────────────
+a
+  color: $neon-cyan
+  text-decoration: none
+
+  &:hover
+    text-shadow: $text-glow-cyan
+
+// ── Scanline overlay ─────────────────────────────────────
+body::after
+  content: ""
+  position: fixed
+  inset: 0
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none
+  z-index: 9999
+
+// ── Noise texture ────────────────────────────────────────
+body::before
+  content: ""
+  position: fixed
+  inset: 0
+  opacity: 0.015
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")
+  pointer-events: none
+  z-index: 9998
+
+// ── Glitch animation ─────────────────────────────────────
+@keyframes glitch
+  0%
+    clip-path: inset(40% 0 61% 0)
+    transform: translate(-2px, 2px)
+
+  20%
+    clip-path: inset(92% 0 1% 0)
+    transform: translate(1px, -1px)
+
+  40%
+    clip-path: inset(43% 0 1% 0)
+    transform: translate(-1px, 2px)
+
+  60%
+    clip-path: inset(25% 0 58% 0)
+    transform: translate(2px, 1px)
+
+  80%
+    clip-path: inset(54% 0 7% 0)
+    transform: translate(-1px, -1px)
+
+  100%
+    clip-path: inset(58% 0 43% 0)
+    transform: translate(0)
+
+@keyframes pulse-glow
+  0%,
+  100%
+    opacity: 1
+
+  50%
+    opacity: 0.7
+
+@keyframes slide-in
+  from {
+  opacity: 0
+  transform: translateY(8px)
+
+  to {
+  opacity: 1
+  transform: translateY(0)
+
+@keyframes blink
+  0%,
+  100%
+    opacity: 1
+
+  50%
+    opacity: 0

@@ -1,0 +1,64 @@
+.container
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: $space-lg
+
+.qrWrapper
+  padding: $space-md
+  background: #fff
+  border: 2px solid $neon-cyan
+  box-shadow: $glow-cyan
+
+.linkSection
+  width: 100%
+
+.label
+  font-size: $font-xs
+  color: $neon-cyan
+  text-transform: uppercase
+  letter-spacing: 1px
+  margin-bottom: $space-xs
+
+.linkBox
+  display: flex
+  gap: $space-sm
+
+.linkInput
+  flex: 1
+  padding: $space-sm $space-md
+  background: $bg-input
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-xs
+
+  &:focus
+    outline: none
+    border-color: $neon-cyan
+
+.copyButton
+  padding: $space-sm $space-md
+  background: transparent
+  border: 1px solid $neon-cyan
+  color: $neon-cyan
+  font-family: $font-mono
+  font-size: $font-xs
+  cursor: pointer
+  text-transform: uppercase
+  transition: all $transition-fast
+  white-space: nowrap
+
+  &:hover
+    background: rgba($neon-cyan, 0.1)
+    box-shadow: $glow-cyan
+
+.copied
+  composes: copyButton
+  border-color: $neon-green
+  color: $neon-green
+
+.info
+  font-size: $font-xs
+  color: $text-muted
+  text-align: center

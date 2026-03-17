@@ -1,0 +1,93 @@
+// App layout — split sidebar + main panel, responsive
+// Cyberpunk 2077 aesthetic: sharp edges, neon borders, dark surfaces
+
+.app
+  display: flex
+  width: 100vw
+  height: 100vh
+  overflow: hidden
+  background: $bg-primary
+
+// ── Sidebar ──────────────────────────────────────────────
+
+.sidebar
+  display: flex
+  flex-direction: column
+  width: $sidebar-width
+  min-width: $sidebar-width
+  height: 100%
+  border-right: 1px solid $border-color
+  background: $bg-secondary
+
+  @media (max-width: 768px)
+    position: absolute
+    top: 0
+    left: 0
+    width: 100%
+    min-width: 100%
+    height: 100%
+    z-index: 10
+    transform: translateX(-100%)
+    transition: transform $transition-base
+
+.sidebarVisible
+  @media (max-width: 768px)
+    transform: translateX(0)
+
+.sidebarHeader
+  display: flex
+  align-items: center
+  height: $header-height
+  padding: 0 $space-md
+  border-bottom: 1px solid $border-color
+  background: $bg-surface
+
+.logo
+  font-family: $font-display
+  font-size: $font-xl
+  font-weight: 700
+  color: $neon-cyan
+  text-shadow: $text-glow-cyan
+  letter-spacing: 2px
+  text-transform: uppercase
+
+// ── Main panel ───────────────────────────────────────────
+
+.main
+  flex: 1
+  height: 100%
+  overflow: hidden
+
+  @media (max-width: 768px)
+    position: absolute
+    top: 0
+    left: 0
+    width: 100%
+    height: 100%
+    z-index: 5
+    transform: translateX(100%)
+    transition: transform $transition-base
+
+.mainVisible
+  @media (max-width: 768px)
+    transform: translateX(0)
+
+// ── Loading screen ───────────────────────────────────────
+
+.loading
+  display: flex
+  align-items: center
+  justify-content: center
+  width: 100vw
+  height: 100vh
+  background: $bg-primary
+
+  &Text
+    font-family: $font-mono
+    font-size: $font-base
+    color: $text-secondary
+    animation: blink 1.2s step-end infinite
+
+@keyframes blink
+  0%, 100%  opacity: 1
+  50%  opacity: 0.3

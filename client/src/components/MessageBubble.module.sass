@@ -1,0 +1,45 @@
+.bubble
+  max-width: 75%
+  padding: $space-sm $space-md
+  margin-bottom: $space-sm
+  animation: slide-in 0.2s ease
+  position: relative
+
+.mine
+  composes: bubble
+  align-self: flex-end
+  background: rgba($neon-cyan, 0.1)
+  border: 1px solid rgba($neon-cyan, 0.2)
+  border-right: 2px solid $neon-cyan
+
+.theirs
+  composes: bubble
+  align-self: flex-start
+  background: rgba($neon-magenta, 0.08)
+  border: 1px solid rgba($neon-magenta, 0.15)
+  border-left: 2px solid $neon-magenta
+
+.text
+  font-size: $font-sm
+  color: $text-primary
+  line-height: 1.5
+  word-break: break-word
+
+.meta
+  display: flex
+  align-items: center
+  justify-content: flex-end
+  gap: $space-xs
+  margin-top: $space-xs
+
+.time
+  font-size: $font-xs
+  color: $text-muted
+
+.readStatus
+  font-size: $font-xs
+  color: $text-muted
+
+.read
+  composes: readStatus
+  color: $neon-cyan

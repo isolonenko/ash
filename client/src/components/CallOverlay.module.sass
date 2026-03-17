@@ -1,0 +1,95 @@
+@use '../styles/variables' as *
+
+.overlay
+  position: absolute
+  inset: 0
+  z-index: 50
+  background: $bg-primary
+  display: flex
+  flex-direction: column
+
+.remoteVideo
+  width: 100%
+  height: 100%
+  object-fit: cover
+  background: $bg-primary
+
+.localVideo
+  position: absolute
+  bottom: 80px
+  right: $space-md
+  width: 150px
+  aspect-ratio: 4 / 3
+  border: 1px solid $neon-cyan
+  border-radius: 4px
+  z-index: 10
+  object-fit: cover
+  background: $bg-secondary
+
+.audioPlaceholder
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: $space-sm
+
+.audioName
+  font-family: $font-display
+  font-size: $font-2xl
+  color: $neon-cyan
+  text-transform: uppercase
+  letter-spacing: 2px
+  animation: pulse-glow 1.5s infinite
+
+.audioLabel
+  font-family: $font-mono
+  font-size: $font-sm
+  color: $text-muted
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.ringing
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: $space-sm
+
+  &Text
+    font-family: $font-display
+    font-size: $font-2xl
+    color: $neon-yellow
+    text-transform: uppercase
+    letter-spacing: 2px
+    animation: pulse-glow 1.5s infinite
+
+  &Name
+    font-family: $font-mono
+    font-size: $font-base
+    color: $text-primary
+
+.controls
+  position: absolute
+  bottom: 0
+  left: 0
+  right: 0
+  display: flex
+  justify-content: center
+  padding: $space-md
+
+.endButton
+  padding: $space-xs $space-sm
+  background: transparent
+  border: 1px solid $neon-red
+  color: $neon-red
+  font-family: $font-mono
+  font-size: $font-xs
+  cursor: pointer
+  text-transform: uppercase
+  transition: all $transition-fast
+
+  &:hover
+    background: rgba($neon-red, 0.1)
+    box-shadow: $glow-red

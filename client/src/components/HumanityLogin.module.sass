@@ -1,0 +1,137 @@
+.container
+  display: flex
+  flex-direction: column
+  gap: $space-lg
+  align-items: center
+
+.description
+  font-size: $font-sm
+  color: $text-secondary
+  line-height: 1.6
+  text-align: center
+  max-width: 360px
+
+.loginButton
+  width: 100%
+  padding: $space-md $space-lg
+  background: transparent
+  border: 1px solid $neon-purple
+  color: $neon-purple
+  font-family: $font-mono
+  font-size: $font-base
+  cursor: pointer
+  text-transform: uppercase
+  letter-spacing: 2px
+  transition: all $transition-fast
+  position: relative
+  overflow: hidden
+
+  &:hover:not(:disabled)
+    background: rgba($neon-purple, 0.1)
+    box-shadow: 0 0 10px rgba($neon-purple, 0.5), 0 0 20px rgba($neon-purple, 0.2)
+    text-shadow: 0 0 8px rgba($neon-purple, 0.6)
+
+  &:active:not(:disabled)
+    transform: scale(0.98)
+
+  &:disabled
+    opacity: 0.3
+    cursor: not-allowed
+
+  &::after
+    content: ""
+    position: absolute
+    top: 0
+    left: -100%
+    width: 100%
+    height: 100%
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba($neon-purple, 0.1),
+      transparent
+    );
+    transition: left 0.5s
+
+  &:hover:not(:disabled)::after
+    left: 100%
+
+.hint
+  font-size: $font-xs
+  color: $text-muted
+  font-family: $font-mono
+
+.skipButton
+  padding: $space-sm $space-md
+  background: transparent
+  border: none
+  color: $text-muted
+  font-family: $font-mono
+  font-size: $font-xs
+  cursor: pointer
+  text-transform: uppercase
+  letter-spacing: 1px
+  transition: color $transition-fast
+
+  &:hover
+    color: $text-secondary
+
+.status
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: $space-md
+  padding: $space-xl
+
+  &Text
+    font-size: $font-sm
+    color: $neon-purple
+    text-transform: uppercase
+    letter-spacing: 2px
+    animation: pulse-glow 1.5s infinite
+
+.spinner
+  width: 32px
+  height: 32px
+  border: 2px solid $border-color
+  border-top-color: $neon-purple
+  animation: spin 0.8s linear infinite
+
+@keyframes spin
+  to {
+  transform: rotate(360deg)
+
+.errorBox
+  display: flex
+  flex-direction: column
+  gap: $space-md
+  padding: $space-lg
+  border: 1px solid rgba($danger, 0.3)
+  background: rgba($danger, 0.05)
+  text-align: center
+
+.errorTitle
+  font-family: $font-display
+  font-size: $font-lg
+  color: $danger
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.errorMessage
+  font-size: $font-sm
+  color: $text-secondary
+
+.retryButton
+  padding: $space-sm $space-md
+  background: transparent
+  border: 1px solid $danger
+  color: $danger
+  font-family: $font-mono
+  font-size: $font-sm
+  cursor: pointer
+  text-transform: uppercase
+  letter-spacing: 1px
+  transition: all $transition-fast
+
+  &:hover
+    background: rgba($danger, 0.1)
