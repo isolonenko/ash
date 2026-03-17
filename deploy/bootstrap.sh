@@ -43,7 +43,28 @@ install_docker_amzn() {
   dnf install -y -q docker
   systemctl enable --now docker
   info "Docker installed successfully"
+}
 
+install_docker_generic() {
+  info "Installing Docker via get.docker.com..."
+  curl -fsSL https://get.docker.com | sh
+  systemctl enable --now docker
+  info "Docker installed successfully"
+}
+
+if ! command -v docker &>/dev/null; then
+  if [[ -f /etc/os-release ]] && grep -q 'amzn' /etc/os-release; then
+    install_docker_amzn
+  else
+    install_docker_generic
+  fi
+else
+  info "Docker found: $(docker --version)"
+fi
+
+# ── Ensure Docker Compose & Buildx Plugins ──────────────
+
+ensure_docker_plugins() {
   local arch
   arch=$(uname -m)
   # buildx uses amd64/arm64 naming, not x86_64/aarch64
@@ -75,22 +96,7 @@ install_docker_amzn() {
   fi
 }
 
-install_docker_generic() {
-  info "Installing Docker via get.docker.com..."
-  curl -fsSL https://get.docker.com | sh
-  systemctl enable --now docker
-  info "Docker installed successfully"
-}
-
-if ! command -v docker &>/dev/null; then
-  if [[ -f /etc/os-release ]] && grep -q 'amzn' /etc/os-release; then
-    install_docker_amzn
-  else
-    install_docker_generic
-  fi
-else
-  info "Docker found: $(docker --version)"
-fi
+ensure_docker_plugins
 
 if ! docker compose version &>/dev/null; then
   fatal "Docker Compose plugin not found. Install Docker Compose v2."
@@ -119,10 +125,10 @@ fi
 
 # ── Detect External IP ───────────────────────────────────
 
-EXTERNAL_IP=$(curl -s --max-time 5 ifconfig.me || \
-              curl -s --max-time 5 api.ipify.org || \
-              curl -s --max-time 5 icanhazip.com || \
-              fatal "Could not detect external IP")
+EXTERNAL_IP=$(curl -4 -s --max-time 5 ifconfig.me || \
+              curl -4 -s --max-time 5 api.ipify.org || \
+              curl -4 -s --max-time 5 icanhazip.com || \
+              fatal "Could not detect external IP (IPv4 required)")
 
 info "External IP: ${EXTERNAL_IP}"
 
@@ -155,6 +161,9 @@ render_template "${DEPLOY_DIR}/Caddyfile.template" "${DEPLOY_DIR}/Caddyfile"
 render_template "${DEPLOY_DIR}/coturn/turnserver.conf.template" "${DEPLOY_DIR}/turnserver.conf"
 
 # ── Build & Start ────────────────────────────────────────
+
+info "Stopping any existing containers..."
+docker compose -f "${DEPLOY_DIR}/docker-compose.yml" down --remove-orphans 2>/dev/null || true
 
 info "Building and starting containers..."
 docker compose -f "${DEPLOY_DIR}/docker-compose.yml" \
