@@ -38,11 +38,37 @@ fi
 
 # ── Install Docker if Missing ────────────────────────────
 
-if ! command -v docker &>/dev/null; then
-  info "Docker not found — installing via get.docker.com..."
+install_docker_amzn() {
+  info "Amazon Linux detected — installing Docker via dnf..."
+  dnf install -y -q docker
+  systemctl enable --now docker
+  info "Docker installed successfully"
+
+  if ! docker compose version &>/dev/null; then
+    info "Installing Docker Compose plugin..."
+    local arch
+    arch=$(uname -m)
+    mkdir -p /usr/local/libexec/docker/cli-plugins
+    curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${arch}" \
+      -o /usr/local/libexec/docker/cli-plugins/docker-compose
+    chmod +x /usr/local/libexec/docker/cli-plugins/docker-compose
+    info "Docker Compose plugin installed"
+  fi
+}
+
+install_docker_generic() {
+  info "Installing Docker via get.docker.com..."
   curl -fsSL https://get.docker.com | sh
   systemctl enable --now docker
   info "Docker installed successfully"
+}
+
+if ! command -v docker &>/dev/null; then
+  if [[ -f /etc/os-release ]] && grep -q 'amzn' /etc/os-release; then
+    install_docker_amzn
+  else
+    install_docker_generic
+  fi
 else
   info "Docker found: $(docker --version)"
 fi
