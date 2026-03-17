@@ -9,7 +9,7 @@
     handle /presence/* {
         reverse_proxy server:8000
     }
-    handle /turn-credentials/* {
+    handle /turn-credentials {
         reverse_proxy server:8000
     }
     handle /health {

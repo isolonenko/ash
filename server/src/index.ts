@@ -23,7 +23,7 @@ const app = new Hono();
 
 // CORS for HTTP routes (WebSocket upgrade doesn't need CORS)
 app.use("/presence/*", cors());
-app.use("/turn-credentials/*", cors());
+app.use("/turn-credentials", cors());
 
 // Health check
 app.get("/health", (c) =>
