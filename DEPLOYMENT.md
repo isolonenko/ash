@@ -2,25 +2,57 @@
 
 Deploy the-chat on any VPS with a single command. No external providers needed.
 
-## Prerequisites
+## 1. Get a VPS
 
-1. **A VPS** with a public IP address (any Linux distro — Ubuntu, Debian, Fedora, etc.)
-2. **A domain name** with DNS A record pointing to your VPS IP
-3. That's it. The script installs Docker if it's missing.
+Any Linux VPS with a public IP address works (Ubuntu, Debian, Fedora, etc.).
+The script installs Docker if it's missing.
 
-## Quick Start
+**Open these ports** in your VPS firewall:
+
+| Port | Protocol | Service |
+|------|----------|---------|
+| 80 | TCP | HTTP (Caddy, for Let's Encrypt) |
+| 443 | TCP | HTTPS (Caddy) |
+| 3478 | TCP/UDP | STUN/TURN (coturn) |
+| 5349 | TCP | TURNS — TURN over TLS (coturn) |
+| 49152–65535 | UDP | TURN relay range (coturn) |
+
+## 2. Point your domain to the VPS
+
+In your domain registrar's DNS settings, create an **A record**:
+
+| Field | Value |
+|-------|-------|
+| **Type** | A |
+| **Host** | `chat` (or whatever subdomain you want) |
+| **Value** | Your VPS IP address |
+
+Wait for DNS to propagate. Verify with:
 
 ```bash
+dig +short chat.yourdomain.com
+```
+
+This should return your VPS IP. If it doesn't, wait a few minutes and try again.
+
+## 3. Deploy
+
+SSH into your VPS and run:
+
+```bash
+git clone https://github.com/isolonenko/the-chat.git && cd the-chat
 sudo ./deploy/bootstrap.sh --domain chat.yourdomain.com --email you@example.com
 ```
 
-This will:
+Replace `chat.yourdomain.com` with your actual domain and `you@example.com` with your email (used for Let's Encrypt certificate notifications).
+
+The script will:
 1. Install Docker + Docker Compose (if not present)
 2. Generate a TURN shared secret
 3. Detect your server's public IP
 4. Build the React client
 5. Start three containers: Caddy (HTTPS + static files), Deno (signaling server), coturn (TURN relay)
-6. Wait for HTTPS to become healthy (Caddy auto-provisions a Let's Encrypt certificate)
+6. Auto-provision a Let's Encrypt HTTPS certificate
 7. Print the live URL
 
 ## What Gets Deployed

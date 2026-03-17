@@ -4,25 +4,18 @@ Private, peer-to-peer encrypted chat. No accounts, no servers storing messages �
 
 Built with WebRTC for direct peer-to-peer connections. A lightweight signaling server helps peers find each other, then gets out of the way.
 
-## Self-Hosted Deployment
+## Deploy
 
-Deploy on any VPS with a single command. You need:
-
-1. A VPS with a public IP (any Linux distro)
-2. A domain name with DNS pointing to your VPS
+You need a VPS with a public IP and a domain pointing to it (DNS A record).
 
 ```bash
+git clone https://github.com/isolonenko/the-chat.git && cd the-chat
 sudo ./deploy/bootstrap.sh --domain chat.yourdomain.com --email you@example.com
 ```
 
-This sets up everything automatically:
-- **Caddy** — HTTPS reverse proxy with auto-provisioned Let's Encrypt certificates
-- **Deno signaling server** — WebSocket signaling, presence, TURN credential generation
-- **coturn** — TURN/STUN relay for NAT traversal
+That's it. The script installs Docker, sets up HTTPS, and starts everything.
 
-No external providers. No accounts. No tracking. Your server, your rules.
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed operations guide.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for DNS setup, updates, logs, and troubleshooting.
 
 ## Local Development
 
