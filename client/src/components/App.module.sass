@@ -47,9 +47,9 @@
 .sidebarHeader
   display: flex
   align-items: center
-  justify-content: space-between
-  height: $header-height
-  padding: 0 $space-md
+  gap: $space-sm
+  min-height: $header-height
+  padding: $space-sm $space-md
   border-bottom: 1px solid $border-color
   background: $bg-secondary
 
@@ -63,6 +63,7 @@
   text-transform: uppercase
 
 .addButton
+  margin-left: auto
   padding: $space-xs $space-sm
   background: transparent
   border: 1px solid $neon-cyan
@@ -81,7 +82,6 @@
   padding: $space-xs
   font-size: $font-sm
   border: none
-  margin-left: auto
 
 .sidebarCollapsed .logo
   font-size: $font-base
