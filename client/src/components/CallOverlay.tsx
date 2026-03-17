@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { CallState, CallType } from "@/types";
 import { CallControls } from "./CallControls";
-import styles from "./CallOverlay.module.scss";
+import styles from "./CallOverlay.module.sass";
 
 interface CallOverlayProps {
   localStream: MediaStream | null;

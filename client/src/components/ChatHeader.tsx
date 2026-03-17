@@ -3,7 +3,7 @@ import type { Contact, CallType } from "@/types";
 import { useConnectionContext } from "@/context/connection-context";
 import { useCallContext } from "@/context/call-context";
 import { shortenKey } from "@/lib/crypto";
-import styles from "./ChatWindow.module.scss";
+import styles from "./ChatWindow.module.sass";
 
 interface ChatHeaderProps {
   contact: Contact;

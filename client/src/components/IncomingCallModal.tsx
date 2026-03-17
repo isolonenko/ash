@@ -1,5 +1,5 @@
 import type { CallType } from "@/types";
-import styles from "./IncomingCallModal.module.scss";
+import styles from "./IncomingCallModal.module.sass";
 
 interface IncomingCallModalProps {
   callerName: string;

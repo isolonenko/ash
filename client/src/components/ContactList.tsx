@@ -1,14 +1,13 @@
 import { useState, useCallback, useRef, useEffect, type FormEvent } from "react";
 import type { Contact } from "@/types";
 import { shortenKey } from "@/lib/crypto";
-import styles from "./ContactList.module.scss";
+import styles from "./ContactList.module.sass";
 
 interface ContactListProps {
   contacts: readonly Contact[];
   onlineMap: ReadonlyMap<string, boolean>;
   activeContactKey: string | null;
   onSelect: (publicKey: string) => void;
-  onAdd: () => void;
   onRename: (publicKey: string, name: string) => void;
   onDelete: (publicKey: string) => void;
 }
@@ -24,7 +23,6 @@ export const ContactList = ({
   onlineMap,
   activeContactKey,
   onSelect,
-  onAdd,
   onRename,
   onDelete,
 }: ContactListProps) => {
@@ -96,12 +94,6 @@ export const ContactList = ({
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.title}>Contacts</div>
-        <button className={styles.addButton} onClick={onAdd}>
-          + Add
-        </button>
-      </div>
 
       <div className={styles.list}>
         {contacts.length === 0 ? (

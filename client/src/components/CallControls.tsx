@@ -7,7 +7,7 @@ interface CallControlsProps {
   showVideoToggle?: boolean;
 }
 
-import styles from "./CallControls.module.scss";
+import styles from "./CallControls.module.sass";
 
 export const CallControls = ({
   isAudioEnabled,

@@ -1,0 +1,138 @@
+.container
+  display: flex
+  flex-direction: column
+  height: 100%
+
+.header
+  display: flex
+  align-items: center
+  gap: $space-md
+  padding: $space-sm $space-md
+  border-bottom: 1px solid $border-color
+  background: $bg-secondary
+  min-height: $header-height
+
+.backButton
+  +button-ghost
+  padding: $space-xs $space-sm
+  font-size: $font-sm
+  display: none
+
+  @media (max-width: 768px)
+    display: block
+.contactName
+  font-family: $font-display
+  font-size: $font-base
+  color: $text-primary
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.connectionStatus
+  font-size: $font-xs
+  text-transform: uppercase
+  letter-spacing: 1px
+  margin-left: auto
+
+.connected
+  composes: connectionStatus
+  color: $neon-green
+
+.connecting
+  composes: connectionStatus
+  color: $neon-yellow
+  animation: pulse-glow 1.5s infinite
+
+.disconnected
+  composes: connectionStatus
+  color: $text-muted
+
+.connectButton
+  +button-cyan
+  padding: $space-xs $space-sm
+  font-size: $font-xs
+  margin-left: auto
+.callButton
+  +button-green
+  padding: $space-xs $space-sm
+  font-size: $font-xs
+
+.videoCallButton
+  +button-cyan
+  padding: $space-xs $space-sm
+  font-size: $font-xs
+
+.messages
+  flex: 1
+  overflow-y: auto
+  padding: $space-md
+  display: flex
+  flex-direction: column
+  gap: $space-xs
+  position: relative
+
+.empty
+  display: flex
+  align-items: center
+  justify-content: center
+  height: 100%
+  color: $text-muted
+  font-size: $font-sm
+
+.typingIndicator
+  font-size: $font-xs
+  color: $neon-magenta
+  padding: 0 $space-md
+  animation: blink 1.5s infinite
+
+.inputArea
+  display: flex
+  gap: $space-sm
+  padding: $space-md
+  border-top: 1px solid $border-color
+  background: $bg-secondary
+
+.input
+  flex: 1
+  padding: $space-sm $space-md
+  background: $bg-input
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-sm
+
+  &:focus
+    outline: none
+    border-color: $neon-cyan
+
+  &::placeholder
+    color: $text-muted
+
+.sendButton
+  +button-cyan
+  padding: $space-sm $space-lg
+  font-size: $font-sm
+.fileButton
+  +button-ghost
+  padding: $space-sm
+  font-size: $font-sm
+  &:hover
+    border-color: $neon-yellow
+    color: $neon-yellow
+.noChat
+  display: flex
+  align-items: center
+  justify-content: center
+  height: 100%
+  flex-direction: column
+  gap: $space-md
+
+  &Title
+    font-family: $font-display
+    font-size: $font-xl
+    color: $text-muted
+    text-transform: uppercase
+    letter-spacing: 2px
+
+  &Subtitle
+    font-size: $font-sm
+    color: $text-muted

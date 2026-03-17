@@ -3,7 +3,7 @@ import type { UserIdentity, HumanityCredential } from "@/types";
 import { shortenKey } from "@/lib/crypto";
 import { isHumanityConfigured } from "@/lib/humanity";
 import { HumanityLogin } from "./HumanityLogin";
-import styles from "./Login.module.scss";
+import styles from "./Login.module.sass";
 
 type LoginStep = "hp-auth" | "generate" | "ready";
 

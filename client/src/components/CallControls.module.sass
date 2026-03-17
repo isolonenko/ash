@@ -1,0 +1,22 @@
+.controls
+  display: flex
+  justify-content: center
+  align-items: center
+  gap: $space-md
+  padding: $space-md
+
+.button
+  +button-cyan
+  padding: $space-xs $space-sm
+  font-size: $font-xs
+
+  &Muted
+    +button-ghost
+    padding: $space-xs $space-sm
+    font-size: $font-xs
+    opacity: 0.6
+
+.endButton
+  +button-red
+  padding: $space-xs $space-sm
+  font-size: $font-xs

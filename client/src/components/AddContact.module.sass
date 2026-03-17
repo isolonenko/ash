@@ -1,0 +1,209 @@
+@use "@/styles/variables" as *
+
+.overlay
+  position: fixed
+  inset: 0
+  background: rgba(0, 0, 0, 0.8)
+  display: flex
+  align-items: center
+  justify-content: center
+  z-index: 100
+  backdrop-filter: blur(4px)
+
+.modal
+  background: $bg-secondary
+  border: 1px solid $border-color
+  width: 90%
+  max-width: 500px
+  max-height: 90vh
+  overflow-y: auto
+  position: relative
+
+  &::before
+    content: ""
+    position: absolute
+    inset: -1px
+    background: linear-gradient(135deg, $neon-cyan, transparent, $neon-magenta)
+    z-index: -1
+    opacity: 0.3
+
+.header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: $space-md
+  border-bottom: 1px solid $border-color
+
+.title
+  font-family: $font-display
+  font-size: $font-lg
+  color: $neon-cyan
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.closeButton
+  +button-ghost
+  padding: $space-xs $space-sm
+
+.content
+  padding: $space-lg
+  display: flex
+  flex-direction: column
+  gap: $space-lg
+
+.section
+  display: flex
+  flex-direction: column
+  gap: $space-sm
+
+.sectionLabel
+  font-size: $font-xs
+  color: $neon-cyan
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.linkBox
+  display: flex
+  gap: $space-sm
+
+.linkInput
+  flex: 1
+  padding: $space-sm $space-md
+  background: $bg-input
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-xs
+
+  &:focus
+    outline: none
+    border-color: $neon-cyan
+
+.copyButton
+  +button-cyan
+  padding: $space-sm $space-md
+  font-size: $font-xs
+  white-space: nowrap
+
+.copied
+  +button-cyan
+  padding: $space-sm $space-md
+  font-size: $font-xs
+  white-space: nowrap
+  border-color: $neon-green
+  color: $neon-green
+
+.hint
+  font-size: $font-xs
+  color: $text-muted
+
+.divider
+  display: flex
+  align-items: center
+  gap: $space-md
+  color: $text-muted
+  font-size: $font-xs
+  text-transform: uppercase
+  letter-spacing: 2px
+
+  &::before,
+  &::after
+    content: ""
+    flex: 1
+    height: 1px
+    background: $border-color
+
+.pasteInput
+  width: 100%
+  padding: $space-sm $space-md
+  background: $bg-input
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-sm
+
+  &:focus
+    outline: none
+    border-color: $neon-cyan
+
+  &::placeholder
+    color: $text-muted
+
+.pasteInputError
+  border-color: $neon-magenta
+
+  &:focus
+    border-color: $neon-magenta
+
+.pasteErrorText
+  font-size: $font-xs
+  color: $neon-magenta
+
+.connectButton
+  +button-green
+  padding: $space-sm $space-md
+  font-size: $font-sm
+
+// ── Name Contact form (unchanged from original) ────────
+
+.nameForm
+  padding: $space-lg
+  display: flex
+  flex-direction: column
+  gap: $space-md
+
+.scannedKey
+  padding: $space-md
+  background: $bg-primary
+  border: 1px solid rgba($neon-cyan, 0.3)
+
+  &Label
+    font-size: $font-xs
+    color: $neon-cyan
+    text-transform: uppercase
+    letter-spacing: 1px
+    margin-bottom: $space-xs
+
+  &Value
+    font-size: $font-sm
+    color: $text-secondary
+    font-family: $font-mono
+
+.nameLabel
+  font-size: $font-xs
+  color: $neon-cyan
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.nameInput
+  width: 100%
+  padding: $space-sm $space-md
+  background: $bg-input
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-sm
+
+  &:focus
+    outline: none
+    border-color: $neon-cyan
+
+  &::placeholder
+    color: $text-muted
+
+.nameActions
+  display: flex
+  gap: $space-md
+  margin-top: $space-sm
+
+.backButton
+  +button-ghost
+  flex: 1
+  padding: $space-sm $space-md
+  font-size: $font-sm
+
+.confirmButton
+  +button-green
+  flex: 2
+  padding: $space-sm $space-md
+  font-size: $font-sm

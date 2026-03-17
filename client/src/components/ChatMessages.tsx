@@ -6,7 +6,7 @@ import type { UseMessagesResult } from "@/hooks/useMessages";
 import { shortenKey } from "@/lib/crypto";
 import { MessageBubble } from "./MessageBubble";
 import { CallOverlay } from "./CallOverlay";
-import styles from "./ChatWindow.module.scss";
+import styles from "./ChatWindow.module.sass";
 
 interface ChatMessagesProps {
   contact: Contact;
