@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { describe, it, afterEach } from "@std/testing/bdd";
+import { afterEach, describe, it } from "@std/testing/bdd";
 import { PresenceStore } from "./presence-store.ts";
 
 describe("PresenceStore", () => {

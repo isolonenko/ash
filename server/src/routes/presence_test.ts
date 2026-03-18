@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { describe, it, afterEach } from "@std/testing/bdd";
+import { afterEach, describe, it } from "@std/testing/bdd";
 import { Hono } from "hono";
 import { createPresenceRoutes } from "./presence.ts";
 import { PresenceStore } from "../lib/presence-store.ts";

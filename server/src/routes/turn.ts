@@ -33,7 +33,11 @@ async function generateTurnCredentials(
     false,
     ["sign"],
   );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(username));
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(username),
+  );
   const credential = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
   return { username, credential };

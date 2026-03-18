@@ -17,20 +17,27 @@ export const MAX_ROOM_SIZE = 2;
 
 // ── Pure Functions ───────────────────────────────────────
 
-export const extractPublicKeyFromTags = (tags: readonly string[]): string | undefined =>
-  tags.find((t) => t.startsWith("pk:"))?.slice(3);
+export const extractPublicKeyFromTags = (
+  tags: readonly string[],
+): string | undefined => tags.find((t) => t.startsWith("pk:"))?.slice(3);
 
 export const extractRoomIdFromTags = (tags: readonly string[]): string =>
   tags.find((t) => t.startsWith("room:"))?.slice(5) ?? "unknown";
 
-export const buildPeerJoinedMessage = (roomId: string, publicKey?: string): string =>
+export const buildPeerJoinedMessage = (
+  roomId: string,
+  publicKey?: string,
+): string =>
   JSON.stringify({
     type: "peer-joined",
     roomId,
     senderPublicKey: publicKey,
   });
 
-export const buildPeerLeftMessage = (roomId: string, publicKey?: string): string =>
+export const buildPeerLeftMessage = (
+  roomId: string,
+  publicKey?: string,
+): string =>
   JSON.stringify({
     type: "peer-left",
     roomId,

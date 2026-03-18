@@ -1,4 +1,4 @@
-import { MAX_ROOM_SIZE, extractPublicKeyFromTags } from "./signaling-logic.ts";
+import { extractPublicKeyFromTags, MAX_ROOM_SIZE } from "./signaling-logic.ts";
 
 interface Room {
   sockets: Map<WebSocket, string[]>;
@@ -11,7 +11,11 @@ export class RoomManager {
     return this.rooms.size;
   }
 
-  join(roomId: string, ws: WebSocket, tags: string[]): Map<WebSocket, string[]> {
+  join(
+    roomId: string,
+    ws: WebSocket,
+    tags: string[],
+  ): Map<WebSocket, string[]> {
     let room = this.rooms.get(roomId);
 
     if (!room) {
@@ -27,7 +31,9 @@ export class RoomManager {
       if (joinerKey) {
         for (const [existingWs, existingTags] of room.sockets) {
           if (extractPublicKeyFromTags(existingTags) === joinerKey) {
-            try { existingWs.close(1000, "Superseded by new connection"); } catch { /* already closing */ }
+            try {
+              existingWs.close(1000, "Superseded by new connection");
+            } catch { /* already closing */ }
             room.sockets.delete(existingWs);
             break;
           }

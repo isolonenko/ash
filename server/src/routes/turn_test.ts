@@ -32,7 +32,10 @@ describe("TURN credential routes", () => {
     assertEquals(typeof body.iceServers[1].credential, "string");
 
     // Third entry: TURNS TCP (port 5349)
-    assertEquals(body.iceServers[2].urls, `turns:${TEST_DOMAIN}:5349?transport=tcp`);
+    assertEquals(
+      body.iceServers[2].urls,
+      `turns:${TEST_DOMAIN}:5349?transport=tcp`,
+    );
   });
 
   it("credential username contains a future timestamp", async () => {

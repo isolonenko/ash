@@ -26,8 +26,14 @@ app.use("/presence/*", cors());
 app.use("/turn-credentials", cors());
 
 // Health check
-app.get("/health", (c) =>
-  c.json({ status: "ok", service: "thechat-signaling", timestamp: Date.now() }),
+app.get(
+  "/health",
+  (c) =>
+    c.json({
+      status: "ok",
+      service: "thechat-signaling",
+      timestamp: Date.now(),
+    }),
 );
 
 // Routes
