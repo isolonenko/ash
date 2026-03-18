@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import type { Participant, DataChannelMessage, ChatMessage } from "@/types";
-import { useRoom } from "@/hooks/useRoom";
+import { useRoomContext } from "@/context/room-context";
 import { useMesh } from "@/hooks/useMesh";
 import { useMessages } from "@/hooks/useMessages";
 import { useMediaControls } from "@/hooks/useMediaControls";
@@ -22,7 +22,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
   const [chatOpen, setChatOpen] = useState(false);
 
   // ── useRoom ──────────────────────────────────────────
-  const { state: roomState, leaveRoom } = useRoom();
+  const { state: roomState, leaveRoom } = useRoomContext();
   const localUserId = roomState.peerId ?? "";
   const displayName = roomState.displayName ?? "Anonymous";
 
