@@ -7,7 +7,7 @@ import { navigateTo } from "@/lib/router";
 
 const API_URL =
   import.meta.env.VITE_SIGNALING_URL?.replace(/^ws/, "http") ||
-  "http://localhost:8080";
+  "http://localhost:8000";
 
 const SIGNALING_URL =
   import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8000";
