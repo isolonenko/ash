@@ -1,0 +1,88 @@
+@use "../styles/variables" as *
+@use "../styles/buttons" as *
+
+.controlBar
+  position: fixed
+  bottom: 0
+  left: 0
+  right: 0
+  z-index: 100
+  background: rgba($bg-secondary, 0.95)
+  border-top: 1px solid $border-color
+  padding: $space-md $space-lg
+  display: flex
+  align-items: center
+  justify-content: space-between
+  backdrop-filter: blur(10px)
+
+.roomInfo
+  display: flex
+  align-items: center
+  gap: $space-md
+
+.roomCode
+  font-family: $font-mono
+  font-size: $font-lg
+  color: $text-primary
+  letter-spacing: 2px
+  text-transform: lowercase
+
+.copyButton
+  +button-cyan
+  font-size: $font-sm
+  padding: $space-xs $space-sm
+  min-width: 110px
+
+  &:disabled
+    color: $neon-green
+    border-color: $neon-green
+    box-shadow: $glow-cyan
+
+.controls
+  display: flex
+  align-items: center
+  gap: $space-md
+
+.buttonActive
+  +button-cyan
+
+.buttonInactive
+  +button-ghost
+
+.buttonChat
+  +button-green
+
+.buttonChatInactive
+  +button-ghost
+
+.buttonLeave
+  +button-red
+
+// Mobile responsive
+@media (max-width: 768px)
+  .controlBar
+    flex-direction: column
+    gap: $space-md
+    padding: $space-md
+
+  .roomInfo
+    width: 100%
+    justify-content: space-between
+
+  .roomCode
+    font-size: $font-base
+
+  .copyButton
+    font-size: $font-xs
+    padding: $space-xs $space-sm
+
+  .controls
+    width: 100%
+    justify-content: space-evenly
+    gap: $space-sm
+
+    button
+      flex: 1
+      min-width: 60px
+      font-size: $font-xs
+      padding: $space-xs $space-sm
