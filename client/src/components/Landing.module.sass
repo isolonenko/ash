@@ -1,0 +1,130 @@
+@use '../styles/variables' as *
+@use '../styles/buttons' as *
+
+.landing
+  position: relative
+  display: flex
+  align-items: center
+  justify-content: center
+  width: 100vw
+  height: 100vh
+  background: $bg-primary
+  overflow: hidden
+
+  // Scanline overlay effect
+  &::after
+    content: ""
+    position: absolute
+    top: 0
+    left: 0
+    width: 100%
+    height: 100%
+    background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0px, transparent 1px, transparent 2px, rgba(0, 0, 0, 0.15) 3px)
+    pointer-events: none
+    z-index: 1
+
+.container
+  position: relative
+  z-index: 2
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: $space-2xl
+  max-width: 500px
+  width: 100%
+  padding: $space-xl
+
+.title
+  font-family: $font-display
+  font-size: $font-3xl
+  font-weight: 700
+  color: $neon-cyan
+  text-shadow: $text-glow-cyan
+  text-transform: uppercase
+  letter-spacing: 4px
+  margin: 0
+
+.actions
+  display: flex
+  flex-direction: column
+  gap: $space-xl
+  width: 100%
+
+.section
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: $space-md
+
+.createButton
+  +button-cyan
+  padding: $space-md $space-xl
+  font-size: $font-lg
+  min-width: 200px
+
+.divider
+  position: relative
+  width: 100%
+  height: 1px
+  background: $border-color
+  display: flex
+  align-items: center
+  justify-content: center
+
+.dividerText
+  position: absolute
+  background: $bg-primary
+  padding: 0 $space-md
+  font-family: $font-mono
+  font-size: $font-sm
+  color: $text-muted
+  text-transform: uppercase
+  letter-spacing: 2px
+
+.joinForm
+  display: flex
+  flex-direction: column
+  gap: $space-md
+  width: 100%
+
+.input
+  width: 100%
+  padding: $space-md
+  background: transparent
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-base
+  text-align: center
+  text-transform: lowercase
+  letter-spacing: 2px
+  transition: border-color $transition-fast, box-shadow $transition-fast
+
+  &::placeholder
+    color: $text-muted
+
+  &:focus
+    outline: none
+    border-color: $neon-green
+    box-shadow: 0 0 8px rgba($neon-green, 0.3)
+
+.joinButton
+  +button-green
+  padding: $space-md $space-xl
+  font-size: $font-lg
+  min-width: 200px
+
+// Responsive: stack vertically on mobile, maintain layout on desktop
+@media (max-width: 768px)
+  .container
+    gap: $space-xl
+    padding: $space-lg
+
+  .title
+    font-size: $font-2xl
+
+  .createButton,
+  .joinButton
+    min-width: 100%
+    padding: $space-md $space-lg
+    font-size: $font-base
