@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { UserIdentity, HumanityCredential } from "@/types";
+import type { UserIdentity } from "@/types";
 import { generateKeyPair } from "@/lib/crypto";
 import { getIdentity, saveIdentity, deleteIdentity } from "@/lib/storage";
 
@@ -7,7 +7,7 @@ interface UseIdentityResult {
   identity: UserIdentity | null;
   loading: boolean;
   isAuthenticated: boolean;
-  createIdentity: (credential?: HumanityCredential) => Promise<void>;
+  createIdentity: () => Promise<void>;
   destroyIdentity: () => Promise<void>;
 }
 
@@ -27,13 +27,12 @@ export const useIdentity = (): UseIdentityResult => {
   }, []);
 
   const createIdentity = useCallback(
-    async (credential?: HumanityCredential) => {
+    async () => {
       const keyPair = generateKeyPair();
       const newIdentity: UserIdentity = {
         publicKey: keyPair.publicKey,
         privateKey: keyPair.privateKey,
         createdAt: Date.now(),
-        humanityCredential: credential,
       };
       await saveIdentity(newIdentity);
       setIdentity(newIdentity);

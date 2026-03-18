@@ -4,17 +4,9 @@ export interface UserIdentity {
   publicKey: string; // base64-encoded Ed25519 public key
   privateKey: string; // base64-encoded Ed25519 private key
   createdAt: number;
-  humanityCredential?: HumanityCredential;
+
 }
 
-export interface HumanityCredential {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt: number;
-  userId: string; // app-scoped user ID from HP
-  isHuman: boolean;
-  verifiedAt?: number;
-}
 
 // ── Contacts ─────────────────────────────────────────────
 
