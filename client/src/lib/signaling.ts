@@ -2,10 +2,7 @@ import type { SignalingMessage } from "@/types";
 import {
   RECONNECT_BASE_DELAY,
   RECONNECT_MAX_DELAY,
-  PRESENCE_RETRY_ATTEMPTS,
-  PRESENCE_RETRY_BASE_DELAY,
 } from "@/lib/constants";
-import { retryWithBackoff } from "@/lib/retry";
 
 // ── Config ───────────────────────────────────────────────
 
@@ -22,7 +19,8 @@ interface SignalingClientOptions {
   onConnectionChange?: ConnectionHandler;
   onError?: (error: "room-full" | "unknown") => void;
   onReconnected?: () => void;
-  publicKey?: string; // our public key, sent as query param for peer identification
+  peerId: string;
+  displayName: string;
 }
 
 // ── Signaling Client ─────────────────────────────────────
@@ -39,10 +37,7 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
     intentionallyClosed = false;
     currentRoomId = roomId;
 
-    const keyParam = options.publicKey
-      ? `?publicKey=${encodeURIComponent(options.publicKey)}`
-      : "";
-    const url = `${SIGNALING_URL}/signal/${roomId}${keyParam}`;
+    const url = `${SIGNALING_URL}/signal/${roomId}?peerId=${encodeURIComponent(options.peerId)}&displayName=${encodeURIComponent(options.displayName)}`;
     ws = new WebSocket(url);
 
     ws.onopen = () => {
@@ -81,9 +76,10 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
     };
   };
 
-  const send = (msg: SignalingMessage): void => {
+  const send = (msg: SignalingMessage, targetPeerId?: string): void => {
     if (ws?.readyState === WebSocket.OPEN) {
-      ws!.send(JSON.stringify(msg));
+      const outgoing = targetPeerId ? { ...msg, targetPeerId } : msg;
+      ws!.send(JSON.stringify(outgoing));
     }
   };
 
@@ -130,61 +126,4 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
   const isConnected = (): boolean => ws?.readyState === WebSocket.OPEN;
 
   return { connect, send, disconnect, isConnected };
-};
-
-// ── Presence API (HTTP) ──────────────────────────────────
-
-const PRESENCE_URL =
-  import.meta.env.VITE_SIGNALING_URL?.replace(/^ws/, "http") ||
-  "http://localhost:8080";
-
-export const publishPresence = async (
-  publicKey: string,
-  roomId: string,
-): Promise<void> => {
-  await retryWithBackoff(
-    () =>
-      fetch(`${PRESENCE_URL}/presence/${encodeURIComponent(publicKey)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomId }),
-      }).then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      }),
-    {
-      attempts: PRESENCE_RETRY_ATTEMPTS,
-      baseDelay: PRESENCE_RETRY_BASE_DELAY,
-      label: "publishPresence",
-    },
-  ).catch(() => {
-    // Swallow after all retries — presence is best-effort
-  });
-};
-
-export const lookupPresence = async (
-  publicKey: string,
-): Promise<{ online: boolean; roomId?: string } | null> => {
-  try {
-    const res = await fetch(
-      `${PRESENCE_URL}/presence/${encodeURIComponent(publicKey)}`,
-    );
-    if (!res.ok) return { online: false };
-    return res.json();
-  } catch {
-    return null;
-  }
-};
-
-export const removePresence = async (publicKey: string): Promise<void> => {
-  try {
-    const res = await fetch(
-      `${PRESENCE_URL}/presence/${encodeURIComponent(publicKey)}`,
-      { method: "DELETE" },
-    );
-    if (!res.ok) {
-      console.warn(`[Presence] removePresence failed: HTTP ${res.status}`);
-    }
-  } catch (err) {
-    console.warn("[Presence] removePresence error:", err);
-  }
 };
