@@ -91,3 +91,11 @@ export type PeerConnectionState =
 // ── Room state (for useRoom hook) ─────────────────────────
 
 export type RoomPhase = "landing" | "preview" | "joined" | "error";
+
+// ── Mesh (multi-peer WebRTC) ─────────────────────────────
+
+export interface PeerState {
+  connection: RTCPeerConnection;
+  dataChannel: RTCDataChannel | null;
+  remoteStream: MediaStream | null;
+}
