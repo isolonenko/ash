@@ -19,3 +19,7 @@ export const TYPING_DEBOUNCE_MS = 2_000; // ms
 
 export const CALL_MEDIA_TIMEOUT_MS = 15_000; // ms — max wait for remote media tracks after call becomes active
 export const ICE_RESTART_MAX_ATTEMPTS = 2;
+
+// ── WebRTC media quality ─────────────────────────────────
+export const VIDEO_MAX_BITRATE = 2_500_000; // 2.5 Mbps — good for 720p
+export const AUDIO_MAX_BITRATE = 48_000; // 48 kbps — richer voice quality over default ~32 kbps

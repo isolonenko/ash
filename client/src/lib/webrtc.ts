@@ -9,6 +9,8 @@ import {
   FILE_CHUNK_BATCH_SIZE,
   FILE_CHUNK_BATCH_DELAY,
   ICE_RESTART_MAX_ATTEMPTS,
+  VIDEO_MAX_BITRATE,
+  AUDIO_MAX_BITRATE,
 } from "@/lib/constants";
 
 // ── Connection state mapping ─────────────────────────────
@@ -338,7 +340,52 @@ export const createWebRTCManager = (options: WebRTCManagerOptions) => {
     stream: MediaStream,
   ): RTCRtpSender | null => {
     if (!pc) return null;
-    return pc.addTrack(track, stream);
+    const sender = pc.addTrack(track, stream);
+
+    if (track.kind === "video") {
+      // Prefer VP9 codec for better quality at same bitrate
+      const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
+      if (
+        transceiver &&
+        typeof transceiver.setCodecPreferences === "function"
+      ) {
+        const capabilities = RTCRtpReceiver.getCapabilities("video");
+        if (capabilities) {
+          const vp9 = capabilities.codecs.filter(
+            (c) => c.mimeType.toLowerCase() === "video/vp9",
+          );
+          const rest = capabilities.codecs.filter(
+            (c) => c.mimeType.toLowerCase() !== "video/vp9",
+          );
+          if (vp9.length > 0) {
+            transceiver.setCodecPreferences([...vp9, ...rest]);
+          }
+        }
+      }
+
+      // Set max bitrate and degradation preference
+      const params = sender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) {
+        params.encodings = [{}];
+      }
+      params.encodings[0].maxBitrate = VIDEO_MAX_BITRATE;
+      params.degradationPreference = "maintain-resolution";
+      sender.setParameters(params).catch((err) => {
+        console.warn("[WebRTC] Failed to set video encoding params:", err);
+      });
+    } else if (track.kind === "audio") {
+      // Bump Opus bitrate for richer voice quality
+      const params = sender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) {
+        params.encodings = [{}];
+      }
+      params.encodings[0].maxBitrate = AUDIO_MAX_BITRATE;
+      sender.setParameters(params).catch((err) => {
+        console.warn("[WebRTC] Failed to set audio encoding params:", err);
+      });
+    }
+
+    return sender;
   };
 
   const removeMediaTrack = (sender: RTCRtpSender): void => {
