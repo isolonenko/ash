@@ -20,6 +20,7 @@ const roomManager = new RoomManager();
 const app = new Hono();
 
 app.use("/turn-credentials", cors());
+app.use("/rooms/*", cors());
 
 // Health check
 app.get(
@@ -34,8 +35,6 @@ app.get(
 
 // Routes
 app.route("/signal", createSignalingRoutes(roomManager));
-app.route("/turn-credentials", createTurnRoutes(TURN_DOMAIN, TURN_SECRET));
-app.route("/rooms", createRoomsRoutes(roomManager));
 app.route("/turn-credentials", createTurnRoutes(TURN_DOMAIN, TURN_SECRET));
 app.route("/rooms", createRoomsRoutes(roomManager));
 
