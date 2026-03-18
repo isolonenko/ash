@@ -10,17 +10,6 @@ import { ChatPanel } from "./ChatPanel";
 import { RoomControls } from "./RoomControls";
 import styles from "./App.module.sass";
 
-// ── Utility: useCallbackRef ──────────────────────────────
-// Keeps a stable ref to the latest callback value
-
-function useCallbackRef<T>(value: T): React.MutableRefObject<T> {
-  const ref = useRef(value);
-  useEffect(() => {
-    ref.current = value;
-  }, [value]);
-  return ref;
-}
-
 // ── Props ────────────────────────────────────────────────
 
 interface RoomViewProps {
