@@ -1,4 +1,4 @@
-name: Deno test
+name: Deno Test
 
 on:
   push:
@@ -17,18 +17,28 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        deno-version: [1.34, 1.35]
+
     defaults:
       run:
         working-directory: the-chat/server
 
     steps:
-      - name: Setup repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31
+        uses: denoland/setup-deno@61fe2dfa3283
         with:
-          deno-version: v1.x
+          deno-version: ${{ matrix.deno-version }}
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/deno
+          key: ${{ runner.os }}-cache-${{ matrix.deno-version }}
 
       - name: Verify formatting
         run: deno fmt --check
@@ -37,4 +47,4 @@ jobs:
         run: deno lint
 
       - name: Run tests
-        run: deno test -A
+        run: deno test --allow-all
