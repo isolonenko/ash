@@ -34,13 +34,14 @@ describe("RoomManager", () => {
     assertEquals(rm.getSockets("room-1").size, 2);
   });
 
-  it("throws when room is full (MAX_ROOM_SIZE = 2)", () => {
+  it("throws when room is full (MAX_ROOM_SIZE = 6)", () => {
     const rm = new RoomManager();
-    rm.join("room-1", mockWs(), ["room:room-1", "pk:a"]);
-    rm.join("room-1", mockWs(), ["room:room-1", "pk:b"]);
+    for (let i = 0; i < 6; i++) {
+      rm.join("room-1", mockWs(), ["room:room-1", `pk:peer${i}`]);
+    }
 
     assertThrows(
-      () => rm.join("room-1", mockWs(), ["room:room-1", "pk:c"]),
+      () => rm.join("room-1", mockWs(), ["room:room-1", "pk:overflow"]),
       Error,
       "Room is full",
     );
@@ -74,5 +75,33 @@ describe("RoomManager", () => {
   it("returns empty array for unknown socket tags", () => {
     const rm = new RoomManager();
     assertEquals(rm.getTags(mockWs()), []);
+  });
+
+  it("createRoom returns true for new room, false if already exists", () => {
+    const rm = new RoomManager();
+    assertEquals(rm.createRoom("room-new"), true);
+    assertEquals(rm.roomCount, 1);
+    assertEquals(rm.createRoom("room-new"), false);
+    assertEquals(rm.roomCount, 1);
+  });
+
+  it("getRoomInfo returns room details for existing room", () => {
+    const rm = new RoomManager();
+    rm.createRoom("room-1");
+    rm.join("room-1", mockWs(), ["room:room-1", "pk:alice"]);
+    rm.join("room-1", mockWs(), ["room:room-1", "pk:bob"]);
+
+    const info = rm.getRoomInfo("room-1");
+    assertEquals(info.exists, true);
+    assertEquals(info.participantCount, 2);
+    assertEquals(info.maxSize, 6);
+  });
+
+  it("getRoomInfo returns exists=false for nonexistent room", () => {
+    const rm = new RoomManager();
+    const info = rm.getRoomInfo("no-such-room");
+    assertEquals(info.exists, false);
+    assertEquals(info.participantCount, 0);
+    assertEquals(info.maxSize, 6);
   });
 });
