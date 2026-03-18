@@ -1,17 +1,17 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import type { ConnectionInvite, DataChannelMessage } from "@/types";
-import { useIdentity } from "@/hooks/useIdentity";
-import { useContacts } from "@/hooks/useContacts";
+// import { useIdentity } from "@/hooks/useIdentity"; // TODO: Task 4 - re-implement identity system
+// import { useContacts } from "@/hooks/useContacts"; // TODO: Task 4 - re-implement contacts system
 import { ConnectionProvider } from "@/context/ConnectionContext";
 import { useConnectionContext } from "@/context/connection-context";
 import { CallProvider } from "@/context/CallContext";
 import { useCallContext } from "@/context/call-context";
-import { shortenKey } from "@/lib/crypto";
-import { Login } from "./Login";
-import { ContactList } from "./ContactList";
+// import { shortenKey } from "@/lib/crypto"; // TODO: Task 4 - use new crypto utilities
+// import { Login } from "./Login"; // TODO: Task 7 - implement new login flow
+// import { ContactList } from "./ContactList"; // TODO: Task 4 - implement new contacts UI
 import { ChatWindow } from "./ChatWindow";
-import { AddContact } from "./AddContact";
-import { IncomingCallModal } from "./IncomingCallModal";
+// import { AddContact } from "./AddContact"; // TODO: Task 4 - implement new add contact UI
+// import { IncomingCallModal } from "./IncomingCallModal"; // TODO: Task 9 - implement new call flow
 import styles from "./App.module.sass";
 
 // ── Deep link parser ─────────────────────────────────────

@@ -8,8 +8,8 @@ import type {
   SdpRenegotiatePayload,
   IceRenegotiatePayload,
 } from "@/types";
-import type { IncomingFile } from "@/lib/fileTransfer";
-import { handleFileMeta, handleFileChunk } from "@/lib/fileTransfer";
+// import type { IncomingFile } from "@/lib/fileTransfer"; // TODO: Task 9 - re-implement file transfer
+// import { handleFileMeta, handleFileChunk } from "@/lib/fileTransfer"; // TODO: Task 9 - re-implement file transfer
 import { createWebRTCManager } from "@/lib/webrtc";
 import {
   createSignalingClient,

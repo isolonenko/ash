@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import type { Contact, CallType } from "@/types";
 import { useConnectionContext } from "@/context/connection-context";
 import { useCallContext } from "@/context/call-context";
-import { shortenKey } from "@/lib/crypto";
+// import { shortenKey } from "@/lib/crypto"; // TODO: Task 8 - implement in new messaging system
 import styles from "./ChatWindow.module.sass";
 
 interface ChatHeaderProps {

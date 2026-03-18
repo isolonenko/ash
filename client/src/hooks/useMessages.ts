@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import type { ChatMessage } from "@/types";
-import {
-  getMessages,
-  saveMessage,
-  markMessageRead as markRead,
-} from "@/lib/storage";
-import { generateId } from "@/lib/crypto";
+// import {
+  //   getMessages,
+  //   saveMessage,
+  //   markMessageRead as markRead,
+// } from "@/lib/storage"; // TODO: Task 8 - re-implement message storage
+// import { generateId } from "@/lib/crypto"; // TODO: Task 4 - use new identity system
 
 export interface UseMessagesResult {
   messages: readonly ChatMessage[];

@@ -3,7 +3,7 @@ import type { Contact } from "@/types";
 import { useConnectionContext } from "@/context/connection-context";
 import { useCallContext } from "@/context/call-context";
 import type { UseMessagesResult } from "@/hooks/useMessages";
-import { shortenKey } from "@/lib/crypto";
+// import { shortenKey } from "@/lib/crypto"; // TODO: Task 8 - implement in new messaging system
 import { MessageBubble } from "./MessageBubble";
 import { CallOverlay } from "./CallOverlay";
 import styles from "./ChatWindow.module.sass";

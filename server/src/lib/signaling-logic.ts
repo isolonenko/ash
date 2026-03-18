@@ -4,7 +4,9 @@ export interface SignalingMessage {
   type: string;
   roomId: string;
   payload?: unknown;
-  senderPublicKey?: string;
+  peerId?: string;
+  targetPeerId?: string;
+  displayName?: string;
 }
 
 export const ALLOWED_SIGNAL_TYPES = [
@@ -13,35 +15,54 @@ export const ALLOWED_SIGNAL_TYPES = [
   "ice-candidate",
 ] as const;
 
-export const MAX_ROOM_SIZE = 2;
+export const MAX_ROOM_SIZE = 6;
 
 // ── Pure Functions ───────────────────────────────────────
 
-export const extractPublicKeyFromTags = (
+export const extractPeerIdFromTags = (
   tags: readonly string[],
-): string | undefined => tags.find((t) => t.startsWith("pk:"))?.slice(3);
+): string | undefined => tags.find((t) => t.startsWith("peer:"))?.slice(5);
+
+export const extractDisplayNameFromTags = (
+  tags: readonly string[],
+): string | undefined => tags.find((t) => t.startsWith("name:"))?.slice(5);
 
 export const extractRoomIdFromTags = (tags: readonly string[]): string =>
   tags.find((t) => t.startsWith("room:"))?.slice(5) ?? "unknown";
 
 export const buildPeerJoinedMessage = (
   roomId: string,
-  publicKey?: string,
+  peerId?: string,
+  displayName?: string,
 ): string =>
   JSON.stringify({
     type: "peer-joined",
     roomId,
-    senderPublicKey: publicKey,
+    peerId,
+    displayName,
   });
 
 export const buildPeerLeftMessage = (
   roomId: string,
-  publicKey?: string,
+  peerId?: string,
 ): string =>
   JSON.stringify({
     type: "peer-left",
     roomId,
-    senderPublicKey: publicKey,
+    peerId,
+  });
+
+export const buildTargetedMessage = (
+  roomId: string,
+  senderPeerId: string,
+  targetPeerId: string,
+  message: SignalingMessage,
+): string =>
+  JSON.stringify({
+    ...message,
+    roomId,
+    peerId: senderPeerId,
+    targetPeerId,
   });
 
 export const isAllowedSignalType = (type: string): boolean =>
@@ -65,11 +86,15 @@ export const broadcastToOthers = (
 
 export const buildSocketTags = (
   roomId: string,
-  publicKey?: string,
+  peerId?: string,
+  displayName?: string,
 ): string[] => {
   const tags = [`room:${roomId}`];
-  if (publicKey) {
-    tags.push(`pk:${publicKey}`);
+  if (peerId) {
+    tags.push(`peer:${peerId}`);
+  }
+  if (displayName) {
+    tags.push(`name:${displayName}`);
   }
   return tags;
 };
