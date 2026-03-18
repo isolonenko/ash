@@ -32,7 +32,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
         node.playsInline = true;
       }
     },
-    [localStream]
+    [localStream],
   );
 
   // ── Room validation on mount ─────────────────────────────────────
@@ -41,10 +41,16 @@ export const Preview = ({ roomId }: PreviewProps) => {
     const validateRoom = async () => {
       try {
         await checkRoom(roomId);
-        // Room valid, get preview stream
-        await getPreviewStream();
-      } catch (err) {
+      } catch {
         setError("Room not found or full");
+        return;
+      }
+
+      // Camera failure should NOT block preview — just show placeholder
+      try {
+        await getPreviewStream();
+      } catch {
+        // Silently fail — user sees "CAMERA OFF" placeholder
       }
     };
 
@@ -67,14 +73,16 @@ export const Preview = ({ roomId }: PreviewProps) => {
 
   if (error) {
     return (
-      <div className={styles.errorContainer}>
-        <div className={styles.errorMessage}>{error}</div>
-        <button
-          className={styles.backButton}
-          onClick={() => navigateTo({ page: "landing" })}
-        >
-          ← Back to Home
-        </button>
+      <div className={styles.container}>
+        <div className={styles.errorContainer}>
+          <div className={styles.errorMessage}>{error}</div>
+          <button
+            className={styles.backButton}
+            onClick={() => navigateTo({ page: "landing" })}
+          >
+            ← Back to Home
+          </button>
+        </div>
       </div>
     );
   }
@@ -111,14 +119,18 @@ export const Preview = ({ roomId }: PreviewProps) => {
 
         <div className={styles.controls}>
           <button
-            className={audioEnabled ? styles.buttonActive : styles.buttonInactive}
+            className={
+              audioEnabled ? styles.buttonActive : styles.buttonInactive
+            }
             onClick={toggleAudio}
           >
             {audioEnabled ? "[MIC]" : "[MIC OFF]"}
           </button>
 
           <button
-            className={videoEnabled ? styles.buttonActive : styles.buttonInactive}
+            className={
+              videoEnabled ? styles.buttonActive : styles.buttonInactive
+            }
             onClick={toggleVideo}
           >
             {videoEnabled ? "[CAM]" : "[CAM OFF]"}

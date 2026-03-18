@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { MediaStatePayload } from "@/types";
 
 // ── Mesh interface (subset consumed by this hook) ────────
@@ -33,6 +33,14 @@ export const useMediaControls = (): UseMediaControlsResult => {
   const sendersRef = useRef<RTCRtpSender[]>([]);
   const connectionIdRef = useRef(0);
   const meshRef = useRef<MeshHandle | null>(null);
+
+  // Cleanup: stop all tracks on unmount
+  useEffect(() => {
+    return () => {
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    };
+  }, []);
 
   // ── Broadcast media state via mesh DataChannel ─────────
 
