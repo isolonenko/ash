@@ -3,7 +3,7 @@ import { useRoomContext } from "@/context/room-context";
 import { navigateTo } from "@/lib/router";
 import styles from "./Landing.module.sass";
 
-export default function Landing() {
+export const Landing = () => {
   const { createRoom } = useRoomContext();
   const [roomCode, setRoomCode] = useState("");
 
@@ -64,4 +64,4 @@ export default function Landing() {
       </div>
     </div>
   );
-}
+};
