@@ -1,114 +1,122 @@
-import { useState, useEffect, useCallback } from "react";
-import type { ChatMessage } from "@/types";
-import {
-  getMessages,
-  saveMessage,
-  markMessageRead as markRead,
-} from "@/lib/storage";
-import { generateId } from "@/lib/crypto";
+import { useState, useCallback } from "react";
+import type { ChatMessage, DataChannelMessage, ChatPayload } from "@/types";
 
 export interface UseMessagesResult {
   messages: readonly ChatMessage[];
-  loading: boolean;
-  sendMessage: (text: string) => Promise<ChatMessage>;
-  receiveMessage: (text: string, messageId?: string) => Promise<ChatMessage>;
-  markMessageRead: (messageId: string) => Promise<void>;
-  reload: () => Promise<void>;
+  sendMessage: (text: string) => void;
+  receiveDataChannelMessage: (data: string, senderPeerId: string) => void;
+  clearMessages: () => void;
 }
 
-export const useMessages = (
-  contactPublicKey: string | null,
-): UseMessagesResult => {
-  const [messages, setMessages] = useState<readonly ChatMessage[]>([]);
-  const [loadedKey, setLoadedKey] = useState<string | null | undefined>(
-    undefined,
+function storageKey(roomId: string): string {
+  return `messages-${roomId}`;
+}
+
+function loadMessages(roomId: string): ChatMessage[] {
+  const stored = sessionStorage.getItem(storageKey(roomId));
+  return stored ? (JSON.parse(stored) as ChatMessage[]) : [];
+}
+
+function persistMessages(roomId: string, msgs: readonly ChatMessage[]): void {
+  sessionStorage.setItem(storageKey(roomId), JSON.stringify(msgs));
+}
+
+export function useMessages(
+  roomId: string | null,
+  localPeerId: string | null,
+  localDisplayName: string,
+  sendToAll?: (msg: string) => void,
+): UseMessagesResult {
+  const [messages, setMessages] = useState<readonly ChatMessage[]>(() =>
+    roomId ? loadMessages(roomId) : [],
   );
-  const loading = loadedKey !== contactPublicKey;
 
-  const reload = useCallback(async () => {
-    if (!contactPublicKey) {
+  // Auto-load/clear messages when room changes
+  const [prevRoomId, setPrevRoomId] = useState<string | null>(roomId);
+  if (prevRoomId !== roomId) {
+    setPrevRoomId(roomId);
+    if (roomId) {
+      setMessages(loadMessages(roomId));
+    } else {
       setMessages([]);
-      setLoadedKey(contactPublicKey);
-      return;
     }
-    const msgs = await getMessages(contactPublicKey);
-    setMessages(msgs);
-    setLoadedKey(contactPublicKey);
-  }, [contactPublicKey]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!contactPublicKey) {
-        setMessages([]);
-        setLoadedKey(contactPublicKey);
-        return;
-      }
-      const msgs = await getMessages(contactPublicKey);
-      if (!cancelled) {
-        setMessages(msgs);
-        setLoadedKey(contactPublicKey);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [contactPublicKey]);
+  }
 
   const sendMessage = useCallback(
-    async (text: string): Promise<ChatMessage> => {
-      if (!contactPublicKey) throw new Error("No active contact");
+    (text: string): void => {
+      if (!roomId || !localPeerId) return;
 
       const msg: ChatMessage = {
-        id: generateId(),
-        contactPublicKey,
-        type: "text",
+        id: crypto.randomUUID(),
+        senderId: localPeerId,
+        senderName: localDisplayName,
         text,
         timestamp: Date.now(),
         fromMe: true,
-        read: true,
       };
-      await saveMessage(msg);
-      setMessages((prev) => [...prev, msg]);
-      return msg;
+
+      setMessages((prev) => {
+        const next = [...prev, msg];
+        persistMessages(roomId, next);
+        return next;
+      });
+
+      // Broadcast via mesh DataChannel
+      const dcMessage: DataChannelMessage = {
+        type: "chat",
+        payload: {
+          id: msg.id,
+          senderName: msg.senderName,
+          text: msg.text,
+          timestamp: msg.timestamp,
+        } satisfies ChatPayload,
+      };
+      sendToAll?.(JSON.stringify(dcMessage));
     },
-    [contactPublicKey],
+    [roomId, localPeerId, localDisplayName, sendToAll],
   );
 
-  const receiveMessage = useCallback(
-    async (text: string, messageId?: string): Promise<ChatMessage> => {
-      if (!contactPublicKey) throw new Error("No active contact");
+  const receiveDataChannelMessage = useCallback(
+    (data: string, senderPeerId: string): void => {
+      if (!roomId) return;
 
+      let parsed: DataChannelMessage;
+      try {
+        parsed = JSON.parse(data) as DataChannelMessage;
+      } catch {
+        return;
+      }
+
+      // Type discrimination: only handle chat messages
+      if (parsed.type !== "chat") return;
+
+      const payload = parsed.payload as ChatPayload;
       const msg: ChatMessage = {
-        id: messageId ?? generateId(),
-        contactPublicKey,
-        type: "text",
-        text,
-        timestamp: Date.now(),
+        id: payload.id,
+        senderId: senderPeerId,
+        senderName: payload.senderName,
+        text: payload.text,
+        timestamp: payload.timestamp,
         fromMe: false,
-        read: false,
       };
-      await saveMessage(msg);
-      setMessages((prev) => [...prev, msg]);
-      return msg;
+
+      setMessages((prev) => {
+        // Deduplicate by id
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        const next = [...prev, msg];
+        persistMessages(roomId, next);
+        return next;
+      });
     },
-    [contactPublicKey],
+    [roomId],
   );
 
-  const markMessageRead = useCallback(async (messageId: string) => {
-    await markRead(messageId);
-    setMessages((prev) =>
-      prev.map((m) => (m.id === messageId ? { ...m, read: true } : m)),
-    );
-  }, []);
+  const clearMessages = useCallback((): void => {
+    if (roomId) {
+      sessionStorage.removeItem(storageKey(roomId));
+    }
+    setMessages([]);
+  }, [roomId]);
 
-  return {
-    messages,
-    loading,
-    sendMessage,
-    receiveMessage,
-    markMessageRead,
-    reload,
-  };
-};
+  return { messages, sendMessage, receiveDataChannelMessage, clearMessages };
+}

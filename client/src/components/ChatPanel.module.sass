@@ -1,0 +1,209 @@
+@use "../styles/variables" as *
+@use "../styles/buttons" as *
+
+// ── Overlay (for mobile) ─────────────────────────────────────
+.overlay
+  display: none
+  position: fixed
+  inset: 0
+  background: rgba(0, 0, 0, 0.7)
+  backdrop-filter: blur(4px)
+  opacity: 0
+  transition: opacity $transition-base
+  pointer-events: none
+  z-index: 998
+
+  &Visible
+    pointer-events: auto
+    opacity: 1
+
+// ── Panel ─────────────────────────────────────────────────────
+.panel
+  position: fixed
+  top: 0
+  right: 0
+  width: 320px
+  height: 100%
+  background: $bg-secondary
+  border-left: 1px solid $border-color
+  display: flex
+  flex-direction: column
+  transform: translateX(100%)
+  transition: transform $transition-base
+  z-index: 999
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5)
+
+  &Open
+    transform: translateX(0)
+
+// ── Header ─────────────────────────────────────────────────────
+.header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: $space-md
+  border-bottom: 1px solid $border-color
+  background: $bg-tertiary
+  min-height: $header-height
+
+.title
+  font-family: $font-display
+  font-size: $font-base
+  color: $neon-cyan
+  text-transform: uppercase
+  letter-spacing: 2px
+  text-shadow: $text-glow-cyan
+
+.closeButton
+  +button-ghost
+  width: 32px
+  height: 32px
+  padding: 0
+  font-size: 28px
+  line-height: 1
+  display: flex
+  align-items: center
+  justify-content: center
+  border-radius: 2px
+  
+  &:hover
+    border-color: $neon-cyan
+    color: $neon-cyan
+    box-shadow: $glow-cyan
+
+// ── Messages ───────────────────────────────────────────────────
+.messages
+  flex: 1
+  overflow-y: auto
+  padding: $space-md
+  display: flex
+  flex-direction: column
+  gap: $space-md
+  background: $bg-primary
+
+.empty
+  display: flex
+  align-items: center
+  justify-content: center
+  height: 100%
+  color: $text-muted
+  font-size: $font-sm
+  font-family: $font-mono
+
+// ── Message Bubbles ────────────────────────────────────────────
+.messageOwn,
+.messageOther
+  max-width: 85%
+  padding: $space-sm $space-md
+  animation: slide-in 0.2s ease
+  position: relative
+  display: flex
+  flex-direction: column
+  gap: $space-xs
+
+.messageOwn
+  align-self: flex-end
+  background: rgba($neon-cyan, 0.1)
+  border: 1px solid rgba($neon-cyan, 0.2)
+  border-right: 2px solid $neon-cyan
+
+.messageOther
+  align-self: flex-start
+  background: rgba($neon-magenta, 0.08)
+  border: 1px solid rgba($neon-magenta, 0.15)
+  border-left: 2px solid $neon-magenta
+
+.messageSender
+  font-size: $font-xs
+  font-family: $font-display
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.messageOwn .messageSender
+  color: $neon-cyan
+  text-align: right
+
+.messageOther .messageSender
+  color: $neon-magenta
+
+.messageText
+  font-size: $font-sm
+  color: $text-primary
+  line-height: 1.5
+  word-break: break-word
+
+.messageTime
+  font-size: $font-xs
+  color: $text-muted
+  font-family: $font-mono
+
+.messageOwn .messageTime
+  text-align: right
+
+// ── Input Area ─────────────────────────────────────────────────
+.inputArea
+  display: flex
+  gap: $space-sm
+  padding: $space-md
+  border-top: 1px solid $border-color
+  background: $bg-secondary
+
+.input
+  flex: 1
+  padding: $space-sm $space-md
+  background: $bg-input
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-sm
+  transition: border-color $transition-fast
+
+  &:focus
+    outline: none
+    border-color: $neon-cyan
+    box-shadow: 0 0 0 1px rgba($neon-cyan, 0.2)
+
+  &::placeholder
+    color: $text-muted
+
+.sendButton
+  +button-cyan
+  padding: $space-sm $space-md
+  font-size: $font-xs
+
+// ── Animations ─────────────────────────────────────────────────
+@keyframes slide-in
+  from
+    opacity: 0
+    transform: translateY(8px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+// ── Mobile overrides ───────────────────────────────────────────
+@media (max-width: 768px)
+  .overlay
+    display: block
+
+  .panel
+    width: 100%
+    height: 50%
+    top: auto
+    bottom: 0
+    right: 0
+    border-left: none
+    border-top: 1px solid $border-color
+    transform: translateY(100%)
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5)
+
+    &Open
+      transform: translateY(0)
+
+  .input
+    font-size: 16px
+    min-height: 42px
+    padding: 10px 14px
+
+  .sendButton
+    min-height: 42px
+    padding: 10px $space-md

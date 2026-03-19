@@ -1,0 +1,197 @@
+@use "../styles/variables" as *
+@use "../styles/buttons" as *
+
+// ── Container ─────────────────────────────────────────────────────
+
+.container
+  position: relative
+  width: 100vw
+  height: 100vh
+  background: $bg-primary
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  padding: $space-lg
+  z-index: 2
+
+  // Scanline overlay effect
+  &::after
+    content: ""
+    position: absolute
+    top: 0
+    left: 0
+    width: 100%
+    height: 100%
+    background: repeating-linear-gradient( 0deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 3px )
+    pointer-events: none
+    z-index: 1
+
+// ── Header ────────────────────────────────────────────────────────
+
+.header
+  position: absolute
+  top: 0
+  left: 0
+  width: 100%
+  padding: $space-lg
+  display: flex
+  justify-content: center
+  z-index: 3
+
+.roomCode
+  font-family: $font-mono
+  font-size: $font-lg
+  color: $text-primary
+  text-transform: uppercase
+  letter-spacing: 4px
+
+// ── Preview Section ───────────────────────────────────────────────
+
+.previewSection
+  position: relative
+  z-index: 3
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: $space-lg
+  max-width: 640px
+  width: 100%
+
+// ── Video Container ───────────────────────────────────────────────
+
+.videoContainer
+  position: relative
+  width: 100%
+  aspect-ratio: 16 / 9
+  background: $bg-secondary
+  border: 1px solid $border-color
+  border-radius: 4px
+  overflow: hidden
+
+.video
+  width: 100%
+  height: 100%
+  object-fit: cover
+
+.videoPlaceholder
+  width: 100%
+  height: 100%
+  display: flex
+  align-items: center
+  justify-content: center
+  background: $bg-tertiary
+
+.placeholderText
+  font-family: $font-mono
+  font-size: $font-xl
+  color: $text-muted
+  letter-spacing: 2px
+
+// ── Name Input ────────────────────────────────────────────────────
+
+.nameInput
+  width: 100%
+  padding: $space-md
+  background: transparent
+  border: 1px solid $border-color
+  color: $text-primary
+  font-family: $font-mono
+  font-size: $font-base
+  text-align: center
+  border-radius: 4px
+  outline: none
+  transition: all $transition-fast
+
+  &::placeholder
+    color: $text-muted
+
+  &:focus
+    border-color: $neon-green
+    box-shadow: 0 0 8px rgba($neon-green, 0.3)
+
+// ── Controls ──────────────────────────────────────────────────────
+
+.controls
+  display: flex
+  gap: $space-md
+  width: 100%
+  justify-content: center
+
+.buttonActive
+  +button-cyan
+  padding: $space-md $space-xl
+  font-size: $font-base
+
+.buttonInactive
+  +button-ghost
+  padding: $space-md $space-xl
+  font-size: $font-base
+
+// ── Join Button ───────────────────────────────────────────────────
+
+.joinButton
+  +button-green
+  width: 100%
+  padding: $space-md
+  font-size: $font-lg
+
+// ── Error State ───────────────────────────────────────────────────
+
+.errorContainer
+  position: relative
+  z-index: 3
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: $space-xl
+  max-width: 500px
+  width: 100%
+  padding: $space-2xl
+  background: $bg-secondary
+  border: 1px solid $border-color
+  border-radius: 4px
+
+.errorMessage
+  font-family: $font-mono
+  font-size: $font-xl
+  color: $danger
+  text-align: center
+  text-shadow: $text-glow-red
+
+.backButton
+  +button-cyan
+  padding: $space-md $space-xl
+  font-size: $font-base
+
+// ── Responsive ────────────────────────────────────────────────────
+
+@media (max-width: 768px)
+  .container
+    padding: $space-md
+
+  .header
+    padding: $space-md
+
+  .roomCode
+    font-size: $font-base
+    letter-spacing: 2px
+
+  .previewSection
+    max-width: 100%
+
+  .placeholderText
+    font-size: $font-lg
+
+  .nameInput
+    font-size: $font-sm
+
+  .controls
+    flex-direction: column
+    width: 100%
+
+  .buttonActive, .buttonInactive
+    width: 100%
+
+  .joinButton
+    font-size: $font-base
