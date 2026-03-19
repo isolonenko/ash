@@ -4,6 +4,13 @@ export const createTurnRoutes = (domain: string, secret: string): Hono => {
   const routes = new Hono();
 
   routes.get("/", async (c) => {
+    // No secret configured — return STUN-only (expected in local dev)
+    if (!secret) {
+      return c.json({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      });
+    }
+
     const { username, credential } = await generateTurnCredentials(secret);
 
     return c.json({
