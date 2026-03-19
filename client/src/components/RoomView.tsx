@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import type { Participant, DataChannelMessage, ChatMessage } from "@/types";
+import type { Participant, DataChannelMessage, ChatMessage, MediaStatePayload } from "@/types";
 import { useRoomContext } from "@/context/room-context";
 import { useMesh } from "@/hooks/useMesh";
 import { useMessages } from "@/hooks/useMessages";
@@ -32,16 +32,31 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     audioEnabled,
     videoEnabled,
     getPreviewStream,
+    getLocalTracks,
     toggleAudio,
     toggleVideo,
+    setBroadcastSend,
   } = useMediaControls();
 
-  // Acquire camera/mic on mount
+  // ── Acquire camera/mic on mount ──────────────────────
+  const [mediaReady, setMediaReady] = useState(false);
+
   useEffect(() => {
-    getPreviewStream().catch(() => {
-      // Camera unavailable — participant tile shows initial placeholder
-    });
-  }, [getPreviewStream]);
+    getPreviewStream()
+      .then(() => {
+        if (!roomState.initialAudioEnabled) toggleAudio();
+        if (!roomState.initialVideoEnabled) toggleVideo();
+      })
+      .catch(() => {})
+      .finally(() => {
+        setMediaReady(true);
+      });
+  }, [getPreviewStream, toggleAudio, toggleVideo, roomState.initialAudioEnabled, roomState.initialVideoEnabled]);
+
+  // ── Remote media state tracking ─────────────────────
+  const [remoteMediaState, setRemoteMediaState] = useState<
+    Map<string, { audioEnabled: boolean; videoEnabled: boolean }>
+  >(() => new Map());
 
   // ── Ref for receiving DC messages (solves circular dep) ─
   const receiveDcMessageRef = useRef<
@@ -50,8 +65,21 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
 
   // ── useMesh ──────────────────────────────────────────
   const handleDataChannelMessage = useCallback(
-    (_peerId: string, msg: DataChannelMessage) => {
-      receiveDcMessageRef.current?.(JSON.stringify(msg), _peerId);
+    (peerId: string, msg: DataChannelMessage) => {
+      if (msg.type === "media-state") {
+        const payload = msg.payload as MediaStatePayload;
+        setRemoteMediaState((prev) => {
+          const next = new Map(prev);
+          next.set(peerId, {
+            audioEnabled: payload.audioEnabled,
+            videoEnabled: payload.videoEnabled,
+          });
+          return next;
+        });
+        return;
+      }
+
+      receiveDcMessageRef.current?.(JSON.stringify(msg), peerId);
     },
     [],
   );
@@ -60,11 +88,12 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     peerId: localUserId,
     displayName,
     roomId,
+    streamReady: mediaReady,
     onMessage: handleDataChannelMessage,
+    getLocalTracks,
   });
 
-  // ── useMessages ──────────────────────────────────────
-  // useMesh.sendToAll expects DataChannelMessage, useMessages passes JSON string
+  // Wire broadcast channel for media state messages
   const sendToAllString = useCallback(
     (msg: string) => {
       try {
@@ -77,6 +106,12 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     [sendToAll],
   );
 
+  useEffect(() => {
+    setBroadcastSend(sendToAllString);
+    return () => setBroadcastSend(null);
+  }, [sendToAllString, setBroadcastSend]);
+
+  // ── useMessages ──────────────────────────────────────
   const { messages, sendMessage, receiveDataChannelMessage } = useMessages(
     roomId,
     localUserId || null,
@@ -120,18 +155,19 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
 
     // Remote participants from mesh peers
     for (const [peerId, peer] of peers) {
+      const mediaState = remoteMediaState.get(peerId);
       result.push({
         peerId,
-        displayName: peerId,
-        audioEnabled: true,
-        videoEnabled: true,
+        displayName: peer.displayName ?? peerId,
+        audioEnabled: mediaState?.audioEnabled ?? true,
+        videoEnabled: mediaState?.videoEnabled ?? true,
         stream: peer.remoteStream,
         isSpeaking: speakingMap.get(peerId) ?? false,
       });
     }
 
     return result;
-  }, [localUserId, displayName, audioEnabled, videoEnabled, localStream, peers, speakingMap]);
+  }, [localUserId, displayName, audioEnabled, videoEnabled, localStream, peers, speakingMap, remoteMediaState]);
 
   // ── Build display names map ──────────────────────────
   const displayNames = useMemo(() => {
@@ -139,8 +175,8 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     if (localUserId) {
       map.set(localUserId, displayName);
     }
-    for (const [peerId] of peers) {
-      map.set(peerId, peerId);
+    for (const [peerId, peer] of peers) {
+      map.set(peerId, peer.displayName ?? peerId);
     }
     return map;
   }, [localUserId, displayName, peers]);

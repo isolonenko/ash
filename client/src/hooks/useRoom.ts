@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { RoomInfo } from "@/types";
 import type { RoomState, RoomStatus } from "@/context/room-context";
 import { navigateTo } from "@/lib/router";
-import { API_URL, SIGNALING_URL } from "@/lib/config";
+import { API_URL } from "@/lib/config";
 
 // ── Initial State ───────────────────────────────────────
 
@@ -13,14 +13,14 @@ const initialState: RoomState = {
   displayName: null,
   peerId: null,
   error: null,
+  initialAudioEnabled: true,
+  initialVideoEnabled: true,
 };
 
 // ── Hook ────────────────────────────────────────────────
 
 export const useRoom = () => {
   const [state, setState] = useState<RoomState>(initialState);
-
-  const wsRef = useRef<WebSocket | null>(null);
 
   const setStatus = useCallback((status: RoomStatus) => {
     setState((prev) => ({ ...prev, status }));
@@ -108,73 +108,31 @@ export const useRoom = () => {
 
   // ── joinRoom ────────────────────────────────────────
 
+  // ── joinRoom ────────────────────────────────────────
+
   const joinRoom = useCallback(
-    async (id: string, displayName: string) => {
+    async (id: string, displayName: string, mediaState: { audioEnabled: boolean; videoEnabled: boolean }) => {
+      const peerId = crypto.randomUUID();
+
       setState((prev) => ({
         ...prev,
-        status: "joining",
+        status: "joined",
+        roomId: id,
+        peerId,
         displayName,
         error: null,
+        initialAudioEnabled: mediaState.audioEnabled,
+        initialVideoEnabled: mediaState.videoEnabled,
       }));
 
-      try {
-        const peerId = crypto.randomUUID();
-
-        // Disconnect existing WebSocket if any
-        if (wsRef.current) {
-          wsRef.current.onclose = null;
-          wsRef.current.close();
-          wsRef.current = null;
-        }
-
-        const params = new URLSearchParams({
-          peerId,
-          displayName,
-        });
-        const url = `${SIGNALING_URL}/signal/${id}?${params.toString()}`;
-        const ws = new WebSocket(url);
-
-        ws.onopen = () => {
-          setState((prev) => ({
-            ...prev,
-            status: "joined",
-            roomId: id,
-            peerId,
-            displayName,
-            error: null,
-          }));
-
-          navigateTo({ page: "room", roomId: id });
-        };
-
-        ws.onclose = (event) => {
-          if (event.code === 1013 || event.code === 4409) {
-            setError("Room is full");
-          }
-          // No reconnection by design — ephemeral rooms
-        };
-
-        ws.onerror = () => {
-          setError("Connection error");
-        };
-
-        wsRef.current = ws;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to join room");
-      }
+      navigateTo({ page: "room", roomId: id });
     },
-    [setError],
+    [],
   );
 
   // ── leaveRoom ───────────────────────────────────────
 
   const leaveRoom = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.onclose = null;
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-
     setState(initialState);
     navigateTo({ page: "landing" });
   }, []);

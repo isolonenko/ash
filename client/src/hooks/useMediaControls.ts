@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { MediaStatePayload } from "@/types";
+import type { DataChannelMessage } from "@/types";
 
 // ── Mesh interface (subset consumed by this hook) ────────
 
 export interface MeshHandle {
   sendToAll: (msg: string) => void;
-  addTrackToAll: (track: MediaStreamTrack, stream: MediaStream) => void;
+  addTrackToAll: (track: MediaStreamTrack, stream: MediaStream) => RTCRtpSender[];
   removeTrackFromAll: (sender: RTCRtpSender) => void;
 }
 
@@ -16,8 +16,10 @@ export interface UseMediaControlsResult {
   audioEnabled: boolean;
   videoEnabled: boolean;
   getPreviewStream: () => Promise<MediaStream>;
+  getLocalTracks: () => { tracks: MediaStreamTrack[]; stream: MediaStream } | null;
   toggleAudio: () => void;
   toggleVideo: () => void;
+  setBroadcastSend: (send: ((msg: string) => void) | null) => void;
   addTracksToMesh: (mesh: MeshHandle) => void;
   removeTracksFromMesh: (mesh: MeshHandle) => void;
 }
@@ -33,6 +35,7 @@ export const useMediaControls = (): UseMediaControlsResult => {
   const sendersRef = useRef<RTCRtpSender[]>([]);
   const connectionIdRef = useRef(0);
   const meshRef = useRef<MeshHandle | null>(null);
+  const broadcastSendRef = useRef<((msg: string) => void) | null>(null);
 
   // Cleanup: stop all tracks on unmount
   useEffect(() => {
@@ -46,21 +49,31 @@ export const useMediaControls = (): UseMediaControlsResult => {
 
   const broadcastMediaState = useCallback(
     (audio: boolean, video: boolean) => {
-      const mesh = meshRef.current;
-      if (!mesh) return;
+      const send = broadcastSendRef.current;
+      if (!send) return;
 
-      const payload: MediaStatePayload & { timestamp: number } = {
-        audioEnabled: audio,
-        videoEnabled: video,
-        timestamp: Date.now(),
+      const msg: DataChannelMessage = {
+        type: "media-state",
+        payload: {
+          audioEnabled: audio,
+          videoEnabled: video,
+        },
       };
 
-      mesh.sendToAll(JSON.stringify({ type: "media-state" as const, ...payload }));
+      send(JSON.stringify(msg));
     },
     [],
   );
 
-  // ── getPreviewStream ───────────────────────────────────
+  const setBroadcastSend = useCallback((send: ((msg: string) => void) | null) => {
+    broadcastSendRef.current = send;
+  }, []);
+
+  const getLocalTracks = useCallback((): { tracks: MediaStreamTrack[]; stream: MediaStream } | null => {
+    const stream = localStreamRef.current;
+    if (!stream) return null;
+    return { tracks: stream.getTracks(), stream };
+  }, []);
 
   const getPreviewStream = useCallback(async (): Promise<MediaStream> => {
     const capturedId = ++connectionIdRef.current;
@@ -152,7 +165,8 @@ export const useMediaControls = (): UseMediaControlsResult => {
 
     const newSenders: RTCRtpSender[] = [];
     stream.getTracks().forEach((track) => {
-      mesh.addTrackToAll(track, stream);
+      const trackSenders = mesh.addTrackToAll(track, stream);
+      newSenders.push(...trackSenders);
     });
 
     sendersRef.current = newSenders;
@@ -173,8 +187,10 @@ export const useMediaControls = (): UseMediaControlsResult => {
     audioEnabled,
     videoEnabled,
     getPreviewStream,
+    getLocalTracks,
     toggleAudio,
     toggleVideo,
+    setBroadcastSend,
     addTracksToMesh,
     removeTracksFromMesh,
   };

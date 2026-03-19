@@ -98,4 +98,5 @@ export interface PeerState {
   connection: RTCPeerConnection;
   dataChannel: RTCDataChannel | null;
   remoteStream: MediaStream | null;
+  displayName: string | null;
 }

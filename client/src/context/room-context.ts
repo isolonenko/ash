@@ -18,6 +18,8 @@ export interface RoomState {
   displayName: string | null;
   peerId: string | null;
   error: string | null;
+  initialAudioEnabled: boolean;
+  initialVideoEnabled: boolean;
 }
 
 // ── Context Value ───────────────────────────────────────
@@ -26,7 +28,7 @@ export interface RoomContextValue {
   state: RoomState;
   createRoom: () => Promise<void>;
   checkRoom: (id: string) => Promise<void>;
-  joinRoom: (id: string, displayName: string) => Promise<void>;
+  joinRoom: (id: string, displayName: string, mediaState: { audioEnabled: boolean; videoEnabled: boolean }) => Promise<void>;
   leaveRoom: () => void;
 }
 
