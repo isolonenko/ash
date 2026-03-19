@@ -123,7 +123,9 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
 
   // Stable refs for options so callbacks don't go stale
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   // ICE config cached after first fetch
   const iceConfigRef = useRef<{
@@ -159,6 +161,33 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
   const sendSignaling = useCallback(
     (msg: SignalingMessage, targetPeerId: string) => {
       signalingRef.current?.send(msg, targetPeerId);
+    },
+    [],
+  );
+
+  // ── Setup Data Channel ────────────────────────────────
+
+  const setupDataChannel = useCallback(
+    (peerId: string, channel: RTCDataChannel, connId: number) => {
+      channel.binaryType = "arraybuffer";
+
+      channel.onmessage = (event: MessageEvent) => {
+        if (connId !== connectionIdRef.current) return;
+        try {
+          const msg: DataChannelMessage = JSON.parse(event.data as string);
+          optionsRef.current.onMessage?.(peerId, msg);
+        } catch (err) {
+          console.warn("[Mesh] Failed to parse DataChannel message:", err);
+        }
+      };
+
+      channel.onclose = () => {
+        // Data channel closed — peer may have left
+      };
+
+      channel.onerror = () => {
+        console.warn(`[Mesh] DataChannel error for peer ${peerId}`);
+      };
     },
     [],
   );
@@ -277,34 +306,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
 
       return pc;
     },
-    [sendSignaling, syncPeersState],
-  );
-
-  // ── Setup Data Channel ────────────────────────────────
-
-  const setupDataChannel = useCallback(
-    (peerId: string, channel: RTCDataChannel, connId: number) => {
-      channel.binaryType = "arraybuffer";
-
-      channel.onmessage = (event: MessageEvent) => {
-        if (connId !== connectionIdRef.current) return;
-        try {
-          const msg: DataChannelMessage = JSON.parse(event.data as string);
-          optionsRef.current.onMessage?.(peerId, msg);
-        } catch (err) {
-          console.warn("[Mesh] Failed to parse DataChannel message:", err);
-        }
-      };
-
-      channel.onclose = () => {
-        // Data channel closed — peer may have left
-      };
-
-      channel.onerror = () => {
-        console.warn(`[Mesh] DataChannel error for peer ${peerId}`);
-      };
-    },
-    [],
+    [sendSignaling, syncPeersState, setupDataChannel],
   );
 
   // ── Handle peer joined: create connection and offer ───
@@ -565,20 +567,26 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
     init();
 
     // ── Cleanup on unmount ───────────────────────────
+    const currentPeers = peersRef.current;
+    const currentSenders = sendersRef.current;
+    const currentSignaling = signalingRef.current;
+
     return () => {
       cancelled = true;
-      connectionIdRef.current++;
+      // Invalidate stale callbacks by incrementing connection ID
+      const connIdRef = connectionIdRef;
+      connIdRef.current++;
 
       // Close all peer connections
-      for (const [, internal] of peersRef.current) {
+      for (const [, internal] of currentPeers) {
         internal.dataChannel?.close();
         internal.connection.close();
       }
-      peersRef.current.clear();
-      sendersRef.current.clear();
+      currentPeers.clear();
+      currentSenders.clear();
 
       // Disconnect signaling
-      signalingRef.current?.disconnect();
+      currentSignaling?.disconnect();
       signalingRef.current = null;
     };
   }, [options.roomId, options.peerId, options.displayName, handleSignalingMessage]);

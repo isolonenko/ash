@@ -1,14 +1,6 @@
 import type { SignalingMessage } from "@/types";
-import {
-  RECONNECT_BASE_DELAY,
-  RECONNECT_MAX_DELAY,
-} from "@/lib/constants";
-
-// ── Config ───────────────────────────────────────────────
-
-const SIGNALING_URL =
-  import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8000";
-
+import { RECONNECT_BASE_DELAY, RECONNECT_MAX_DELAY } from "@/lib/constants";
+import { SIGNALING_URL } from "@/lib/config";
 // ── Types ────────────────────────────────────────────────
 
 type MessageHandler = (msg: SignalingMessage) => void;

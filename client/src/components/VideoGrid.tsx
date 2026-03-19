@@ -34,7 +34,7 @@ export const VideoGrid = ({
       {orderedParticipants.map((participant) => {
         const isLocal = participant.peerId === localUserId;
         const stream = isLocal ? localStream : participant.stream;
-        const isSpeaking = speakingMap.get(participant.peerId) ?? false;
+        const isSpeaking = isLocal ? (speakingMap.get("local") ?? false) : (speakingMap.get(participant.peerId) ?? false);
         const displayName = displayNames.get(participant.peerId) ?? participant.displayName;
 
         return (

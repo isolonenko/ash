@@ -31,9 +31,17 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     localStream,
     audioEnabled,
     videoEnabled,
+    getPreviewStream,
     toggleAudio,
     toggleVideo,
   } = useMediaControls();
+
+  // Acquire camera/mic on mount
+  useEffect(() => {
+    getPreviewStream().catch(() => {
+      // Camera unavailable — participant tile shows initial placeholder
+    });
+  }, [getPreviewStream]);
 
   // ── Ref for receiving DC messages (solves circular dep) ─
   const receiveDcMessageRef = useRef<

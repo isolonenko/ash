@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { ChatMessage, DataChannelMessage, ChatPayload } from "@/types";
 
 export interface UseMessagesResult {
@@ -27,21 +27,20 @@ export function useMessages(
   localDisplayName: string,
   sendToAll?: (msg: string) => void,
 ): UseMessagesResult {
-  const [messages, setMessages] = useState<readonly ChatMessage[]>([]);
-  const prevRoomIdRef = useRef<string | null>(null);
+  const [messages, setMessages] = useState<readonly ChatMessage[]>(() =>
+    roomId ? loadMessages(roomId) : [],
+  );
 
-  // Auto-clear messages when room changes
-  useEffect(() => {
-    if (prevRoomIdRef.current !== roomId) {
-      if (roomId) {
-        const loaded = loadMessages(roomId);
-        setMessages(loaded);
-      } else {
-        setMessages([]);
-      }
-      prevRoomIdRef.current = roomId;
+  // Auto-load/clear messages when room changes
+  const [prevRoomId, setPrevRoomId] = useState<string | null>(roomId);
+  if (prevRoomId !== roomId) {
+    setPrevRoomId(roomId);
+    if (roomId) {
+      setMessages(loadMessages(roomId));
+    } else {
+      setMessages([]);
     }
-  }, [roomId]);
+  }
 
   const sendMessage = useCallback(
     (text: string): void => {

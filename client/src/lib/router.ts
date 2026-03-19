@@ -16,13 +16,13 @@ export const parseHash = (hash: string): Route => {
   }
 
   // Match: #/room/{id}/preview
-  const previewMatch = hash.match(/^#\/room\/([a-z\-]+)\/preview$/);
+  const previewMatch = hash.match(/^#\/room\/([a-z-]+)\/preview$/);
   if (previewMatch) {
     return { page: "preview", roomId: previewMatch[1] };
   }
 
   // Match: #/room/{id}
-  const roomMatch = hash.match(/^#\/room\/([a-z\-]+)$/);
+  const roomMatch = hash.match(/^#\/room\/([a-z-]+)$/);
   if (roomMatch) {
     return { page: "room", roomId: roomMatch[1] };
   }

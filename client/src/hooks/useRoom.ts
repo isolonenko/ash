@@ -2,15 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import type { RoomInfo } from "@/types";
 import type { RoomState, RoomStatus } from "@/context/room-context";
 import { navigateTo } from "@/lib/router";
-
-// ── Config ──────────────────────────────────────────────
-
-const API_URL =
-  import.meta.env.VITE_SIGNALING_URL?.replace(/^ws/, "http") ||
-  "http://localhost:8000";
-
-const SIGNALING_URL =
-  import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8000";
+import { API_URL, SIGNALING_URL } from "@/lib/config";
 
 // ── Initial State ───────────────────────────────────────
 
@@ -60,9 +52,7 @@ export const useRoom = () => {
 
       navigateTo({ page: "preview", roomId: data.id });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create room",
-      );
+      setError(err instanceof Error ? err.message : "Failed to create room");
     }
   }, [setError]);
 
@@ -110,9 +100,7 @@ export const useRoom = () => {
           error: null,
         }));
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to check room",
-        );
+        setError(err instanceof Error ? err.message : "Failed to check room");
       }
     },
     [setStatus, setError],
@@ -172,9 +160,7 @@ export const useRoom = () => {
 
         wsRef.current = ws;
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to join room",
-        );
+        setError(err instanceof Error ? err.message : "Failed to join room");
       }
     },
     [setError],

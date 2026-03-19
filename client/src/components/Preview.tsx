@@ -64,7 +64,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
 
     try {
       await joinRoom(roomId, displayName.trim());
-    } catch (err) {
+    } catch {
       setError("Failed to join room");
     }
   };

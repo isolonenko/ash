@@ -103,16 +103,19 @@ export const useSpeakingIndicator = (
   // ── Cleanup on unmount ─────────────────────────────────
 
   useEffect(() => {
+    const currentAnalysers = analysersRef.current;
+    const currentAudioCtx = audioCtxRef.current;
+
     return () => {
       // Disconnect all analyser sources
-      for (const [, entry] of analysersRef.current) {
+      for (const [, entry] of currentAnalysers) {
         entry.source.disconnect();
       }
-      analysersRef.current.clear();
+      currentAnalysers.clear();
 
       // Close AudioContext
-      if (audioCtxRef.current) {
-        void audioCtxRef.current.close();
+      if (currentAudioCtx) {
+        void currentAudioCtx.close();
         audioCtxRef.current = null;
       }
     };
