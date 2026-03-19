@@ -21,6 +21,7 @@ const app = new Hono();
 
 app.use("/turn-credentials", cors());
 app.use("/rooms/*", cors());
+app.use("/rooms", cors());
 
 // Health check
 app.get(
