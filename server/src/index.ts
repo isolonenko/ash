@@ -1,9 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { RoomManager } from "./lib/room-manager.ts";
-import { PresenceStore } from "./lib/presence-store.ts";
 import { createSignalingRoutes } from "./routes/signaling.ts";
-import { createPresenceRoutes } from "./routes/presence.ts";
+import { createRoomsRoutes } from "./routes/rooms.ts";
 import { createTurnRoutes } from "./routes/turn.ts";
 
 // ── Config ──────────────────────────────────────────────
@@ -15,15 +14,13 @@ const TURN_SECRET = Deno.env.get("TURN_SECRET") ?? "";
 // ── Shared State ────────────────────────────────────────
 
 const roomManager = new RoomManager();
-const presenceStore = new PresenceStore();
 
 // ── App ─────────────────────────────────────────────────
 
 const app = new Hono();
 
-// CORS for HTTP routes (WebSocket upgrade doesn't need CORS)
-app.use("/presence/*", cors());
 app.use("/turn-credentials", cors());
+app.use("/rooms/*", cors());
 
 // Health check
 app.get(
@@ -38,8 +35,8 @@ app.get(
 
 // Routes
 app.route("/signal", createSignalingRoutes(roomManager));
-app.route("/presence", createPresenceRoutes(presenceStore));
 app.route("/turn-credentials", createTurnRoutes(TURN_DOMAIN, TURN_SECRET));
+app.route("/rooms", createRoomsRoutes(roomManager));
 
 // ── Start ───────────────────────────────────────────────
 

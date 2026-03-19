@@ -5,7 +5,8 @@ import {
   buildPeerJoinedMessage,
   buildPeerLeftMessage,
   buildSocketTags,
-  extractPublicKeyFromTags,
+  extractDisplayNameFromTags,
+  extractPeerIdFromTags,
   extractRoomIdFromTags,
   isAllowedSignalType,
   parseSignalingMessage,
@@ -22,13 +23,14 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
     }
 
     const roomId = c.req.param("roomId");
-    const publicKey = c.req.query("publicKey") ?? undefined;
+    const peerId = c.req.query("peerId") ?? undefined;
+    const displayName = c.req.query("displayName") ?? undefined;
 
     // Use Deno's native WebSocket upgrade
     const { socket, response } = Deno.upgradeWebSocket(c.req.raw);
 
     socket.onopen = () => {
-      const tags = buildSocketTags(roomId, publicKey);
+      const tags = buildSocketTags(roomId, peerId, displayName);
 
       try {
         const existingSockets = roomManager.getSockets(roomId);
@@ -37,14 +39,15 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
         broadcastToOthers(
           [...existingSockets.keys()],
           socket as unknown as WebSocket,
-          buildPeerJoinedMessage(roomId, publicKey),
+          buildPeerJoinedMessage(roomId, peerId, displayName),
         );
 
         // Notify joiner about existing peers
         for (const [_peer, peerTags] of existingSockets) {
-          const peerKey = extractPublicKeyFromTags(peerTags);
+          const peerPeerId = extractPeerIdFromTags(peerTags);
+          const peerDisplayName = extractDisplayNameFromTags(peerTags);
           try {
-            socket.send(buildPeerJoinedMessage(roomId, peerKey));
+            socket.send(buildPeerJoinedMessage(roomId, peerPeerId, peerDisplayName));
           } catch {
             // peer may be closing
           }
@@ -67,23 +70,39 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
       if (!msg || !isAllowedSignalType(msg.type)) return;
 
       const sockets = roomManager.getSockets(roomId);
-      broadcastToOthers(
-        [...sockets.keys()],
-        socket as unknown as WebSocket,
-        data,
-      );
+
+      // Targeted routing: if message specifies a targetPeerId, send only to that peer
+      if (msg.targetPeerId) {
+        for (const [peerSocket, peerTags] of sockets) {
+          if (extractPeerIdFromTags(peerTags) === msg.targetPeerId) {
+            try {
+              peerSocket.send(data);
+            } catch {
+              // peer may be closing
+            }
+            break;
+          }
+        }
+      } else {
+        // No target — broadcast to all others
+        broadcastToOthers(
+          [...sockets.keys()],
+          socket as unknown as WebSocket,
+          data,
+        );
+      }
     };
 
     socket.onclose = () => {
       const tags = roomManager.getTags(socket as unknown as WebSocket);
       const rid = extractRoomIdFromTags(tags);
-      const pk = extractPublicKeyFromTags(tags);
+      const pid = extractPeerIdFromTags(tags);
 
       const sockets = roomManager.getSockets(rid);
       broadcastToOthers(
         [...sockets.keys()],
         socket as unknown as WebSocket,
-        buildPeerLeftMessage(rid, pk),
+        buildPeerLeftMessage(rid, pid),
       );
 
       roomManager.leave(rid, socket as unknown as WebSocket);

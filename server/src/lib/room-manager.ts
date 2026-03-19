@@ -1,4 +1,4 @@
-import { extractPublicKeyFromTags, MAX_ROOM_SIZE } from "./signaling-logic.ts";
+import { extractPeerIdFromTags, MAX_ROOM_SIZE } from "./signaling-logic.ts";
 
 interface Room {
   sockets: Map<WebSocket, string[]>;
@@ -24,13 +24,13 @@ export class RoomManager {
     }
 
     if (room.sockets.size >= MAX_ROOM_SIZE) {
-      // Before rejecting, check for stale socket with same publicKey.
+      // Before rejecting, check for stale socket with same peerId.
       // This happens when a client reconnects before the old socket's
       // onclose has fired (e.g., brief network interruption).
-      const joinerKey = extractPublicKeyFromTags(tags);
-      if (joinerKey) {
+      const joinerPeerId = extractPeerIdFromTags(tags);
+      if (joinerPeerId) {
         for (const [existingWs, existingTags] of room.sockets) {
-          if (extractPublicKeyFromTags(existingTags) === joinerKey) {
+          if (extractPeerIdFromTags(existingTags) === joinerPeerId) {
             try {
               existingWs.close(1000, "Superseded by new connection");
             } catch { /* already closing */ }
@@ -71,5 +71,22 @@ export class RoomManager {
       if (tags) return tags;
     }
     return [];
+  }
+
+  createRoom(roomId: string): boolean {
+    if (this.rooms.has(roomId)) {
+      return false; // Room already exists
+    }
+    this.rooms.set(roomId, { sockets: new Map() });
+    return true;
+  }
+
+  getRoomInfo(roomId: string): { exists: boolean; participantCount: number; maxSize: number } {
+    const room = this.rooms.get(roomId);
+    return {
+      exists: !!room,
+      participantCount: room?.sockets.size ?? 0,
+      maxSize: MAX_ROOM_SIZE,
+    };
   }
 }

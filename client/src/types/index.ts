@@ -1,39 +1,34 @@
-// ── Identity ──────────────────────────────────────────────
+// ── Room ──────────────────────────────────────────────────
 
-export interface UserIdentity {
-  publicKey: string; // base64-encoded Ed25519 public key
-  privateKey: string; // base64-encoded Ed25519 private key
-  createdAt: number;
-
+export interface RoomInfo {
+  id: string;
+  participantCount: number;
+  maxSize: number;
 }
 
+// ── Participant (local and remote) ────────────────────────
 
-// ── Contacts ─────────────────────────────────────────────
-
-export interface Contact {
-  publicKey: string; // base64-encoded Ed25519 public key (unique ID)
-  name: string; // user-set display name
-  addedAt: number;
-  lastSeen?: number;
+export interface Participant {
+  peerId: string;
+  displayName: string;
+  audioEnabled: boolean;
+  videoEnabled: boolean;
+  stream: MediaStream | null;
+  isSpeaking: boolean;
 }
 
-// ── Messages ─────────────────────────────────────────────
-
-export type MessageType = "text" | "file";
+// ── Messages (ephemeral chat) ────────────────────────────
 
 export interface ChatMessage {
   id: string;
-  contactPublicKey: string;
-  type: MessageType;
+  senderId: string;
+  senderName: string;
   text: string;
-  fileName?: string;
-  fileSize?: number;
   timestamp: number;
   fromMe: boolean;
-  read: boolean;
 }
 
-// ── Signaling ────────────────────────────────────────────
+// ── Signaling ─────────────────────────────────────────────
 
 export type SignalingMessageType =
   | "join"
@@ -48,8 +43,10 @@ export type SignalingMessageType =
 export interface SignalingMessage {
   type: SignalingMessageType;
   roomId: string;
+  peerId?: string;
+  targetPeerId?: string;
+  displayName?: string;
   payload?: unknown;
-  senderPublicKey?: string;
 }
 
 export interface SdpPayload {
@@ -60,22 +57,28 @@ export interface IceCandidatePayload {
   candidate: RTCIceCandidateInit;
 }
 
-// ── Presence ─────────────────────────────────────────────
+// ── DataChannel (chat-only, no file transfer) ────────────
 
-export interface PresenceEntry {
-  publicKey: string;
-  roomId: string;
+export type DataChannelMessageType = "chat" | "media-state";
+
+export interface DataChannelMessage {
+  type: DataChannelMessageType;
+  payload: unknown;
+}
+
+export interface ChatPayload {
+  id: string;
+  senderName: string;
+  text: string;
   timestamp: number;
 }
 
-// ── Connection QR / Link ─────────────────────────────────
-
-export interface ConnectionInvite {
-  publicKey: string; // inviter's public key
-  signalingUrl: string; // signaling server URL
+export interface MediaStatePayload {
+  audioEnabled: boolean;
+  videoEnabled: boolean;
 }
 
-// ── WebRTC ───────────────────────────────────────────────
+// ── Connection ────────────────────────────────────────────
 
 export type PeerConnectionState =
   | "new"
@@ -85,91 +88,14 @@ export type PeerConnectionState =
   | "failed"
   | "closed";
 
-export interface DataChannelMessage {
-  type:
-    | "chat"
-    | "typing"
-    | "read-receipt"
-    | "file-meta"
-    | "file-chunk"
-    | "call-offer"
-    | "call-accept"
-    | "call-reject"
-    | "call-end"
-    | "call-media-state"
-    | "sdp-renegotiate-offer"
-    | "sdp-renegotiate-answer"
-    | "ice-renegotiate";
-  payload: unknown;
-}
+// ── Room state (for useRoom hook) ─────────────────────────
 
-export interface ChatPayload {
-  id: string;
-  text: string;
-  timestamp: number;
-}
+export type RoomPhase = "landing" | "preview" | "joined" | "error";
 
-export interface TypingPayload {
-  isTyping: boolean;
-}
+// ── Mesh (multi-peer WebRTC) ─────────────────────────────
 
-export interface ReadReceiptPayload {
-  messageId: string;
-}
-
-export interface FileMetaPayload {
-  id: string;
-  name: string;
-  size: number;
-  totalChunks: number;
-}
-
-export interface FileChunkPayload {
-  fileId: string;
-  chunkIndex: number;
-  data: string; // base64-encoded chunk
-}
-
-// ── Call ────────────────────────────────────────────────
-
-export type CallType = "audio" | "video";
-
-export type CallState =
-  | "idle"
-  | "outgoing-ringing"
-  | "incoming-ringing"
-  | "active"
-  | "ended"
-  | "error";
-
-export type CallErrorReason =
-  | "permission-denied"
-  | "call-failed"
-  | "media-error";
-
-export interface CallOfferPayload {
-  callType: CallType;
-}
-
-export interface CallAcceptPayload {
-  callType: CallType;
-}
-
-export interface CallRejectPayload {
-  reason?: string;
-}
-
-export type CallEndPayload = Record<string, never>;
-
-export interface CallMediaStatePayload {
-  audioEnabled: boolean;
-  videoEnabled: boolean;
-}
-
-export interface SdpRenegotiatePayload {
-  sdp: RTCSessionDescriptionInit;
-}
-
-export interface IceRenegotiatePayload {
-  candidate: RTCIceCandidateInit;
+export interface PeerState {
+  connection: RTCPeerConnection;
+  dataChannel: RTCDataChannel | null;
+  remoteStream: MediaStream | null;
 }
