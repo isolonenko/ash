@@ -6,10 +6,13 @@
     handle /signal/* {
         reverse_proxy server:8000
     }
-    handle /presence/* {
+    handle /turn-credentials {
         reverse_proxy server:8000
     }
-    handle /turn-credentials {
+    handle /rooms/* {
+        reverse_proxy server:8000
+    }
+    handle /rooms {
         reverse_proxy server:8000
     }
     handle /health {
