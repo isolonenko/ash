@@ -45,6 +45,8 @@ export const VideoGrid = ({
             isSpeaking={isSpeaking}
             isLocalUser={isLocal}
             userId={participant.peerId}
+            audioEnabled={participant.audioEnabled}
+            videoEnabled={participant.videoEnabled}
           />
         );
       })}

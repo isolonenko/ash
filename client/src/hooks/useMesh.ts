@@ -18,26 +18,21 @@ import { fetchTurnCredentials } from "@/lib/turn";
 // ── Types ────────────────────────────────────────────────
 
 interface UseMeshOptions {
-  /** Our peer ID (unique per session) */
   peerId: string;
-  /** Display name for signaling */
   displayName: string;
-  /** Room to join */
   roomId: string;
-  /** Called when any peer sends a DataChannel message */
+  streamReady: boolean;
   onMessage?: (peerId: string, msg: DataChannelMessage) => void;
-  /** Called when a remote track is received from a peer */
   onRemoteTrack?: (peerId: string, event: RTCTrackEvent) => void;
-  /** Called when a peer's remote stream is removed */
   onRemoteStreamRemoved?: (peerId: string) => void;
-  /** Called when the peer map changes (for re-renders) */
   onPeersChanged?: (peers: Map<string, PeerState>) => void;
+  getLocalTracks?: () => { tracks: MediaStreamTrack[]; stream: MediaStream } | null;
 }
 
 interface UseMeshResult {
   peers: Map<string, PeerState>;
   sendToAll: (msg: DataChannelMessage) => void;
-  addTrackToAll: (track: MediaStreamTrack, stream: MediaStream) => void;
+  addTrackToAll: (track: MediaStreamTrack, stream: MediaStream) => RTCRtpSender[];
   removeTrackFromAll: (sender: RTCRtpSender) => void;
 }
 
@@ -104,6 +99,7 @@ interface InternalPeerState {
   connection: RTCPeerConnection;
   dataChannel: RTCDataChannel | null;
   remoteStream: MediaStream | null;
+  displayName: string | null;
   messageQueue: Promise<void>;
   iceRestartAttempts: number;
 }
@@ -150,6 +146,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
         connection: internal.connection,
         dataChannel: internal.dataChannel,
         remoteStream: internal.remoteStream,
+        displayName: internal.displayName,
       });
     }
     setPeers(next);
@@ -211,6 +208,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
       pc.onicecandidate = (event) => {
         if (connId !== connectionIdRef.current) return;
         if (event.candidate) {
+          console.debug(`[Mesh] ICE candidate for ${remotePeerId}:`, event.candidate.type, event.candidate.protocol);
           sendSignaling(
             {
               type: "ice-candidate",
@@ -225,6 +223,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
 
       // ── Connection State Change (with ICE restart) ───
       pc.onconnectionstatechange = () => {
+        console.debug(`[Mesh] Peer ${remotePeerId} connectionState:`, pc.connectionState);
         if (connId !== connectionIdRef.current) return;
         const mapped = CONNECTION_STATE_MAP[pc.connectionState] ?? "new";
         const internal = getPeerInternal();
@@ -271,9 +270,22 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
         }
       };
 
+      pc.onicegatheringstatechange = () => {
+        console.debug(`[Mesh] Peer ${remotePeerId} iceGatheringState:`, pc.iceGatheringState);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.debug(`[Mesh] Peer ${remotePeerId} iceConnectionState:`, pc.iceConnectionState);
+      };
+
+      pc.onsignalingstatechange = () => {
+        console.debug(`[Mesh] Peer ${remotePeerId} signalingState:`, pc.signalingState);
+      };
+
       // ── Remote Data Channel ──────────────────────────
       pc.ondatachannel = (event) => {
         if (connId !== connectionIdRef.current) return;
+        console.debug(`[Mesh] Received DataChannel from ${remotePeerId}:`, event.channel.label);
         const internal = getPeerInternal();
         if (internal) {
           setupDataChannel(remotePeerId, event.channel, connId);
@@ -285,6 +297,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
       // ── Remote Track ─────────────────────────────────
       pc.ontrack = (event) => {
         if (connId !== connectionIdRef.current) return;
+        console.debug(`[Mesh] Remote track from ${remotePeerId}:`, event.track.kind, event.track.readyState);
         const internal = getPeerInternal();
         if (internal) {
           if (!internal.remoteStream) {
@@ -312,11 +325,25 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
   // ── Handle peer joined: create connection and offer ───
 
   const handlePeerJoined = useCallback(
-    async (remotePeerId: string, connId: number) => {
+    async (remotePeerId: string, displayName: string | undefined, connId: number) => {
       if (connId !== connectionIdRef.current) return;
       if (peersRef.current.has(remotePeerId)) return; // already connected
 
       const pc = createPeerConnection(remotePeerId, connId);
+
+      // Add existing local tracks before creating offer (must be in SDP)
+      const localMedia = optionsRef.current.getLocalTracks?.();
+      const peerSenders: RTCRtpSender[] = [];
+      if (localMedia) {
+        for (const track of localMedia.tracks) {
+          const sender = pc.addTrack(track, localMedia.stream);
+          if (track.kind === "video") {
+            setVp9Preference(pc, sender);
+          }
+          applyBitrateParams(sender, track.kind);
+          peerSenders.push(sender);
+        }
+      }
 
       // Create data channel (initiator side)
       const channel = pc.createDataChannel(DATA_CHANNEL_LABEL, {
@@ -329,10 +356,11 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
         connection: pc,
         dataChannel: channel,
         remoteStream: null,
+        displayName: displayName ?? null,
         messageQueue: Promise.resolve(),
         iceRestartAttempts: 0,
       });
-      sendersRef.current.set(remotePeerId, []);
+      sendersRef.current.set(remotePeerId, peerSenders);
       syncPeersState();
 
       // Create and send offer
@@ -386,22 +414,48 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
       let internal = peersRef.current.get(remotePeerId);
 
       if (!internal) {
-        // We received an offer from a peer we haven't seen yet — create connection
         const pc = createPeerConnection(remotePeerId, connId);
+
+        const localMedia = optionsRef.current.getLocalTracks?.();
+        const peerSenders: RTCRtpSender[] = [];
+        if (localMedia) {
+          for (const track of localMedia.tracks) {
+            const sender = pc.addTrack(track, localMedia.stream);
+            if (track.kind === "video") {
+              setVp9Preference(pc, sender);
+            }
+            applyBitrateParams(sender, track.kind);
+            peerSenders.push(sender);
+          }
+        }
+
         internal = {
           connection: pc,
           dataChannel: null,
           remoteStream: null,
+          displayName: null,
           messageQueue: Promise.resolve(),
           iceRestartAttempts: 0,
         };
         peersRef.current.set(remotePeerId, internal);
-        sendersRef.current.set(remotePeerId, []);
+        sendersRef.current.set(remotePeerId, peerSenders);
       }
 
       const pc = internal.connection;
+      const localPeerId = optionsRef.current.peerId;
 
       try {
+        // Glare resolution: both peers sent offers simultaneously.
+        // The peer with the smaller ID is "polite" — rolls back its own offer.
+        // The peer with the larger ID is "impolite" — ignores the incoming offer.
+        if (pc.signalingState === "have-local-offer") {
+          const isPolite = localPeerId < remotePeerId;
+          if (!isPolite) {
+            return;
+          }
+          await pc.setLocalDescription({ type: "rollback" });
+        }
+
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
@@ -410,7 +464,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
           {
             type: "sdp-answer",
             roomId: optionsRef.current.roomId,
-            peerId: optionsRef.current.peerId,
+            peerId: localPeerId,
             payload: { sdp: pc.localDescription },
           },
           remotePeerId,
@@ -469,75 +523,87 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
     [],
   );
 
-  // ── Signaling Message Router (sequential queue per peer) ─
+  // ── Signaling Message Router ────────────────────────────
 
-  const handleSignalingMessage = useCallback(
-    (msg: SignalingMessage, connId: number) => {
-      if (connId !== connectionIdRef.current) return;
-      const senderPeerId = msg.peerId;
-      if (!senderPeerId) return;
+  const handleSignalingMessageRef = useRef<
+    (msg: SignalingMessage, connId: number) => void
+  >(() => {});
 
-      // Ignore messages from ourselves
-      if (senderPeerId === optionsRef.current.peerId) return;
+  handleSignalingMessageRef.current = (
+    msg: SignalingMessage,
+    connId: number,
+  ) => {
+    if (connId !== connectionIdRef.current) return;
+    const senderPeerId = msg.peerId;
+    if (!senderPeerId) return;
 
-      switch (msg.type) {
-        case "peer-joined": {
-          handlePeerJoined(senderPeerId, connId);
-          break;
-        }
-        case "peer-left": {
-          handlePeerLeft(senderPeerId);
-          break;
-        }
-        case "sdp-offer": {
-          const internal = peersRef.current.get(senderPeerId);
-          const payload = msg.payload as SdpPayload;
+    if (senderPeerId === optionsRef.current.peerId) return;
 
-          if (internal) {
-            // Sequential message queue to prevent race conditions
-            internal.messageQueue = internal.messageQueue.then(async () => {
-              await handleSdpOffer(senderPeerId, payload.sdp, connId);
-            });
-          } else {
-            // No existing peer — handle directly (will create connection)
-            handleSdpOffer(senderPeerId, payload.sdp, connId);
-          }
-          break;
-        }
-        case "sdp-answer": {
-          const internal = peersRef.current.get(senderPeerId);
-          const payload = msg.payload as SdpPayload;
+    console.debug(`[Mesh] Signaling message:`, msg.type, `from ${senderPeerId}`);
 
-          if (internal) {
-            // Sequential message queue to prevent race conditions
-            internal.messageQueue = internal.messageQueue.then(async () => {
-              await handleSdpAnswer(senderPeerId, payload.sdp);
-            });
-          }
-          break;
-        }
-        case "ice-candidate": {
-          const internal = peersRef.current.get(senderPeerId);
-          const payload = msg.payload as IceCandidatePayload;
-
-          if (internal) {
-            // Sequential message queue — ICE must wait for setRemoteDescription
-            internal.messageQueue = internal.messageQueue.then(async () => {
-              await handleIceCandidate(senderPeerId, payload.candidate);
-            });
-          }
-          break;
-        }
+    switch (msg.type) {
+      case "peer-joined": {
+        handlePeerJoined(senderPeerId, msg.displayName, connId);
+        break;
       }
-    },
-    [handlePeerJoined, handlePeerLeft, handleSdpOffer, handleSdpAnswer, handleIceCandidate],
-  );
+      case "peer-left": {
+        handlePeerLeft(senderPeerId);
+        break;
+      }
+      case "sdp-offer": {
+        const internal = peersRef.current.get(senderPeerId);
+        const payload = msg.payload as SdpPayload;
+
+        if (internal) {
+          // Sequential message queue to prevent race conditions
+          internal.messageQueue = internal.messageQueue.then(async () => {
+            await handleSdpOffer(senderPeerId, payload.sdp, connId);
+          });
+        } else {
+          // No existing peer — handle directly (will create connection)
+          handleSdpOffer(senderPeerId, payload.sdp, connId);
+        }
+        break;
+      }
+      case "sdp-answer": {
+        const internal = peersRef.current.get(senderPeerId);
+        const payload = msg.payload as SdpPayload;
+
+        if (internal) {
+          // Sequential message queue to prevent race conditions
+          internal.messageQueue = internal.messageQueue.then(async () => {
+            await handleSdpAnswer(senderPeerId, payload.sdp);
+          });
+        }
+        break;
+      }
+      case "ice-candidate": {
+        const internal = peersRef.current.get(senderPeerId);
+        const payload = msg.payload as IceCandidatePayload;
+
+        if (internal) {
+          // Sequential message queue — ICE must wait for setRemoteDescription
+          internal.messageQueue = internal.messageQueue.then(async () => {
+            await handleIceCandidate(senderPeerId, payload.candidate);
+          });
+        }
+        break;
+      }
+    }
+  };
 
   // ── Connect to room on mount ──────────────────────────
 
   useEffect(() => {
+    if (!options.streamReady) {
+      console.debug("[Mesh] Waiting for stream readiness...");
+      return;
+    }
+
+    console.debug("[Mesh] Initializing — room:", options.roomId, "peer:", options.peerId);
     let cancelled = false;
     const connId = ++connectionIdRef.current;
+    let localSignaling: ReturnType<typeof createSignalingClient> | null = null;
 
     const init = async () => {
       // Fetch TURN credentials
@@ -547,19 +613,21 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
 
       if (cancelled) return;
 
-      // Create signaling client
       const signaling = createSignalingClient({
         peerId: optionsRef.current.peerId,
         displayName: optionsRef.current.displayName,
         onMessage: (msg: SignalingMessage) => {
-          handleSignalingMessage(msg, connId);
+          handleSignalingMessageRef.current(msg, connId);
         },
-        onConnectionChange: () => {},
+        onConnectionChange: (connected: boolean) => {
+          console.debug(`[Mesh] Signaling ${connected ? "connected" : "disconnected"}`);
+        },
         onReconnected: () => {
           // Re-join room on reconnect
         },
       });
 
+      localSignaling = signaling;
       signalingRef.current = signaling;
       signaling.connect(optionsRef.current.roomId);
     };
@@ -567,29 +635,23 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
     init();
 
     // ── Cleanup on unmount ───────────────────────────
-    const currentPeers = peersRef.current;
-    const currentSenders = sendersRef.current;
-    const currentSignaling = signalingRef.current;
-
     return () => {
       cancelled = true;
       // Invalidate stale callbacks by incrementing connection ID
-      const connIdRef = connectionIdRef;
-      connIdRef.current++;
+      connectionIdRef.current++;
 
       // Close all peer connections
-      for (const [, internal] of currentPeers) {
+      for (const [, internal] of peersRef.current) {
         internal.dataChannel?.close();
         internal.connection.close();
       }
-      currentPeers.clear();
-      currentSenders.clear();
+      peersRef.current.clear();
+      sendersRef.current.clear();
 
-      // Disconnect signaling
-      currentSignaling?.disconnect();
+      localSignaling?.disconnect();
       signalingRef.current = null;
     };
-  }, [options.roomId, options.peerId, options.displayName, handleSignalingMessage]);
+  }, [options.roomId, options.peerId, options.displayName, options.streamReady]);
 
   // ── Public API: sendToAll ─────────────────────────────
 
@@ -604,7 +666,9 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
   // ── Public API: addTrackToAll ─────────────────────────
 
   const addTrackToAll = useCallback(
-    (track: MediaStreamTrack, stream: MediaStream) => {
+    (track: MediaStreamTrack, stream: MediaStream): RTCRtpSender[] => {
+      const senders: RTCRtpSender[] = [];
+
       for (const [peerId, internal] of peersRef.current) {
         const sender = internal.connection.addTrack(track, stream);
 
@@ -620,7 +684,11 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
         const existing = sendersRef.current.get(peerId) ?? [];
         existing.push(sender);
         sendersRef.current.set(peerId, existing);
+
+        senders.push(sender);
       }
+
+      return senders;
     },
     [],
   );

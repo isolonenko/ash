@@ -7,6 +7,8 @@ interface ParticipantTileProps {
   isSpeaking: boolean;
   isLocalUser: boolean;
   userId: string;
+  audioEnabled: boolean;
+  videoEnabled: boolean;
 }
 
 export const ParticipantTile = ({
@@ -15,22 +17,25 @@ export const ParticipantTile = ({
   isSpeaking,
   isLocalUser,
   userId,
+  audioEnabled,
+  videoEnabled,
 }: ParticipantTileProps) => {
   const videoRef = useCallback(
     (node: HTMLVideoElement | null) => {
-      if (node && stream) {
-        node.srcObject = stream;
-        node.autoplay = true;
-        node.playsInline = true;
+      if (node) {
+        if (stream) {
+          node.srcObject = stream;
+          node.autoplay = true;
+          node.playsInline = true;
+        } else {
+          node.srcObject = null;
+        }
       }
     },
     [stream],
   );
 
-  const audioTrack = stream?.getAudioTracks()[0];
-  const hasVideo = stream?.getVideoTracks().length ? stream.getVideoTracks()[0].enabled : false;
-  const isMuted = audioTrack ? !audioTrack.enabled : true;
-
+  const hasVideo = videoEnabled && (stream?.getVideoTracks().length ?? 0) > 0;
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
@@ -51,7 +56,7 @@ export const ParticipantTile = ({
         <div className={styles.label}>{displayName}</div>
       </div>
 
-      {isMuted && (
+      {!audioEnabled && (
         <div className={styles.mutedBadge}>[MIC OFF]</div>
       )}
     </div>
