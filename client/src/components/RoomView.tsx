@@ -8,6 +8,7 @@ import { useSpeakingIndicator } from "@/hooks/useSpeakingIndicator";
 import { VideoGrid } from "./VideoGrid";
 import { ChatPanel } from "./ChatPanel";
 import { RoomControls } from "./RoomControls";
+import { ConnectionStatus } from "./ConnectionStatus";
 import styles from "./App.module.sass";
 
 // ── Props ────────────────────────────────────────────────
@@ -84,7 +85,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     [],
   );
 
-  const { peers, sendToAll } = useMesh({
+  const { peers, signalingConnected, sendToAll } = useMesh({
     peerId: localUserId,
     displayName,
     roomId,
@@ -220,6 +221,11 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         isOpen={chatOpen}
         onClose={handleToggleChat}
         currentUserId={localUserId}
+      />
+      <ConnectionStatus
+        signalingConnected={signalingConnected}
+        peers={peers}
+        localPeerId={localUserId}
       />
       <RoomControls
         onToggleMic={toggleAudio}
