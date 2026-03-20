@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoomContext } from "@/context/room-context";
 import { useMedia } from "@/context/media-context";
+import { usePermissionCheck } from "@/hooks/usePermissionCheck";
 import { navigateTo } from "@/lib/router";
 import styles from "./Preview.module.sass";
 
@@ -20,6 +21,9 @@ export const Preview = ({ roomId }: PreviewProps) => {
     toggleAudio,
     toggleVideo,
   } = useMedia();
+  const permissions = usePermissionCheck();
+  const permissionDenied =
+    permissions.camera === "denied" || permissions.microphone === "denied";
 
   const videoRef = useCallback(
     (node: HTMLVideoElement | null) => {
@@ -56,7 +60,10 @@ export const Preview = ({ roomId }: PreviewProps) => {
     if (!displayName.trim()) return;
 
     try {
-      await joinRoom(roomId, displayName.trim(), { audioEnabled, videoEnabled });
+      await joinRoom(roomId, displayName.trim(), {
+        audioEnabled,
+        videoEnabled,
+      });
     } catch {
       setError("Failed to join room");
     }
@@ -125,6 +132,16 @@ export const Preview = ({ roomId }: PreviewProps) => {
             {videoEnabled ? "[CAM]" : "[CAM OFF]"}
           </button>
         </div>
+
+        {permissionDenied && (
+          <div className={styles.permissionDenied}>
+            <span className={styles.permissionIcon}>[!]</span>
+            <span>
+              Camera or microphone blocked. Check browser permissions in the
+              address bar.
+            </span>
+          </div>
+        )}
 
         <button
           className={styles.joinButton}
