@@ -1,0 +1,121 @@
+@use "../styles/variables" as *
+
+.overlay
+  position: fixed
+  bottom: 80px
+  right: $space-md
+  z-index: 200
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: $space-xs
+  pointer-events: none
+
+  > *
+    pointer-events: auto
+
+.toggle
+  display: flex
+  align-items: center
+  gap: $space-xs
+  background: rgba($bg-secondary, 0.9)
+  border: 1px solid $border-color
+  border-radius: 4px
+  padding: $space-xs $space-sm
+  cursor: pointer
+  font-family: $font-mono
+  font-size: $font-xs
+  color: $text-secondary
+  backdrop-filter: blur(8px)
+  transition: border-color $transition-fast
+
+  &:hover
+    border-color: $neon-cyan
+
+.toggleLabel
+  text-transform: uppercase
+  letter-spacing: 1px
+
+.panel
+  background: rgba($bg-primary, 0.95)
+  border: 1px solid $border-color
+  border-radius: 4px
+  padding: $space-sm
+  min-width: 240px
+  max-width: 320px
+  max-height: 60vh
+  overflow-y: auto
+  backdrop-filter: blur(12px)
+  font-family: $font-mono
+  font-size: $font-xs
+  color: $text-secondary
+
+  &::-webkit-scrollbar
+    width: 4px
+
+  &::-webkit-scrollbar-thumb
+    background: $border-color
+    border-radius: 2px
+
+.section
+  padding: $space-xs 0
+  border-bottom: 1px solid rgba($border-color, 0.5)
+
+  &:last-child
+    border-bottom: none
+
+.sectionHeader
+  display: flex
+  align-items: center
+  gap: $space-xs
+  font-size: $font-xs
+  color: $text-primary
+  text-transform: uppercase
+  letter-spacing: 1px
+  margin-bottom: $space-xs
+
+.row
+  display: flex
+  align-items: center
+  gap: $space-xs
+  padding: 1px 0
+  font-size: $font-xs
+  color: $text-secondary
+
+.label
+  color: $text-muted
+  min-width: 80px
+  flex-shrink: 0
+
+.mono
+  font-family: $font-mono
+  color: $text-secondary
+
+.dot
+  display: inline-block
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  flex-shrink: 0
+
+.green
+  background: $neon-green
+  box-shadow: 0 0 4px rgba($neon-green, 0.6)
+
+.yellow
+  background: $neon-yellow
+  box-shadow: 0 0 4px rgba($neon-yellow, 0.6)
+
+.red
+  background: $neon-red
+  box-shadow: 0 0 4px rgba($neon-red, 0.6)
+
+.muted
+  background: $text-muted
+  opacity: 0.5
+
+.empty
+  color: $text-muted
+  font-style: italic
+  padding: $space-sm 0
+  text-align: center

@@ -31,6 +31,7 @@ interface UseMeshOptions {
 
 interface UseMeshResult {
   peers: Map<string, PeerState>;
+  signalingConnected: boolean;
   sendToAll: (msg: DataChannelMessage) => void;
   addTrackToAll: (track: MediaStreamTrack, stream: MediaStream) => RTCRtpSender[];
   removeTrackFromAll: (sender: RTCRtpSender) => void;
@@ -110,6 +111,8 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
   const [peers, setPeers] = useState<Map<string, PeerState>>(
     () => new Map(),
   );
+
+  const [signalingConnected, setSignalingConnected] = useState(false);
 
   // Stable ref to track internal peer state (mutable, not triggering renders)
   const peersRef = useRef<Map<string, InternalPeerState>>(new Map());
@@ -621,6 +624,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
         },
         onConnectionChange: (connected: boolean) => {
           console.debug(`[Mesh] Signaling ${connected ? "connected" : "disconnected"}`);
+          setSignalingConnected(connected);
         },
         onReconnected: () => {
           // Re-join room on reconnect
@@ -650,6 +654,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
 
       localSignaling?.disconnect();
       signalingRef.current = null;
+      setSignalingConnected(false);
     };
   }, [options.roomId, options.peerId, options.displayName, options.streamReady]);
 
@@ -717,6 +722,7 @@ export function useMesh(options: UseMeshOptions): UseMeshResult {
 
   return {
     peers,
+    signalingConnected,
     sendToAll,
     addTrackToAll,
     removeTrackFromAll,
