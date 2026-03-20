@@ -19,11 +19,21 @@
     box-shadow: 0 0 10px rgba($neon-green, 0.6), 0 0 20px rgba($neon-green, 0.3)
     animation: speaking-pulse 1.2s ease-in-out infinite
 
+  &[data-video-off="true"]
+    max-width: 160px
+    max-height: 160px
+    aspect-ratio: 1
+    justify-self: center
+    align-self: center
+
 .video
   width: 100%
   height: 100%
   object-fit: cover
   background: $bg-secondary
+
+.tile[data-local="true"] .video
+  transform: scaleX(-1)
 
 .placeholder
   width: 100%
