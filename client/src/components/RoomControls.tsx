@@ -8,12 +8,15 @@ interface RoomControlsProps {
   onLeaveRoom: () => void;
   onCopyLink: () => void;
   onTogglePip: () => void;
+  onToggleNoiseSuppression: () => void;
   micEnabled: boolean;
   camEnabled: boolean;
   chatOpen: boolean;
   pipActive: boolean;
   pipSupported: boolean;
   roomCode: string;
+  noiseSuppressionEnabled: boolean;
+  noiseSuppressionLoading: boolean;
 }
 
 export const RoomControls = ({
@@ -23,12 +26,15 @@ export const RoomControls = ({
   onLeaveRoom,
   onCopyLink,
   onTogglePip,
+  onToggleNoiseSuppression,
   micEnabled,
   camEnabled,
   chatOpen,
   pipActive,
   pipSupported,
   roomCode,
+  noiseSuppressionEnabled,
+  noiseSuppressionLoading,
 }: RoomControlsProps) => {
   const [copied, setCopied] = useState(false);
 
@@ -64,6 +70,18 @@ export const RoomControls = ({
           onClick={onToggleCam}
         >
           {camEnabled ? "[CAM]" : "[CAM OFF]"}
+        </button>
+
+        <button
+          className={
+            noiseSuppressionEnabled
+              ? styles.buttonNsActive
+              : styles.buttonNsInactive
+          }
+          onClick={onToggleNoiseSuppression}
+          disabled={noiseSuppressionLoading}
+        >
+          {noiseSuppressionLoading ? "[NS…]" : noiseSuppressionEnabled ? "[NS]" : "[NS OFF]"}
         </button>
 
         <button

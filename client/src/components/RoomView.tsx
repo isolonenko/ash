@@ -39,6 +39,9 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     videoEnabled,
     toggleAudio,
     toggleVideo,
+    audioProcessing,
+    toggleNoiseSuppression,
+    setReplaceTrackCallback,
   } = useMedia();
   const signaling = useSignaling();
   const pip = usePictureInPicture();
@@ -96,7 +99,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     [],
   );
 
-  const { peers, sendToAll, provideMediaRef } = usePeerConnections({
+  const { peers, sendToAll, provideMediaRef, replaceAudioTrack } = usePeerConnections({
     peerId: localUserId,
     displayName,
     roomId,
@@ -104,6 +107,10 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
   });
 
   useAdaptiveBitrate(peers, mediaReady);
+
+  useEffect(() => {
+    setReplaceTrackCallback(replaceAudioTrack);
+  }, [setReplaceTrackCallback, replaceAudioTrack]);
 
   const broadcastMediaState = useCallback(
     (audio: boolean, video: boolean) => {
@@ -267,12 +274,15 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         onLeaveRoom={handleLeaveRoom}
         onCopyLink={handleCopyLink}
         onTogglePip={pip.toggle}
+        onToggleNoiseSuppression={toggleNoiseSuppression}
         micEnabled={audioEnabled}
         camEnabled={videoEnabled}
         chatOpen={chatOpen}
         pipActive={pip.isActive}
         pipSupported={pip.isSupported}
         roomCode={roomId}
+        noiseSuppressionEnabled={audioProcessing.isEnabled}
+        noiseSuppressionLoading={audioProcessing.isLoading}
       />
     </div>
   );
