@@ -18,15 +18,9 @@ import { useMedia } from "@/context/media-context";
 
 // ── VP9 Codec Preference ────────────────────────────────
 
-function setVp9Preference(
-  pc: RTCPeerConnection,
-  sender: RTCRtpSender,
-): void {
+function setVp9Preference(pc: RTCPeerConnection, sender: RTCRtpSender): void {
   const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
-  if (
-    transceiver &&
-    typeof transceiver.setCodecPreferences === "function"
-  ) {
+  if (transceiver && typeof transceiver.setCodecPreferences === "function") {
     const capabilities = RTCRtpReceiver.getCapabilities("video");
     if (capabilities) {
       const vp9 = capabilities.codecs.filter(
@@ -91,7 +85,10 @@ interface UsePeerConnectionsOptions {
 interface UsePeerConnectionsResult {
   peers: Map<string, PeerState>;
   sendToAll: (msg: DataChannelMessage) => void;
-  addTrackToAll: (track: MediaStreamTrack, stream: MediaStream) => RTCRtpSender[];
+  addTrackToAll: (
+    track: MediaStreamTrack,
+    stream: MediaStream,
+  ) => RTCRtpSender[];
   removeTrackFromAll: (sender: RTCRtpSender) => void;
 }
 
@@ -102,6 +99,16 @@ export function usePeerConnections(
 ): UsePeerConnectionsResult {
   const signaling = useSignaling();
   const media = useMedia();
+
+  // Keep stable refs for signaling/media so callbacks don't depend on context objects
+  const signalingRef = useRef(signaling);
+  useEffect(() => {
+    signalingRef.current = signaling;
+  });
+  const mediaRef = useRef(media);
+  useEffect(() => {
+    mediaRef.current = media;
+  });
 
   const [peers, setPeers] = useState<Map<string, PeerState>>(() => new Map());
 
@@ -167,7 +174,7 @@ export function usePeerConnections(
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          signaling.send(
+          signalingRef.current.send(
             {
               type: "ice-candidate",
               roomId: optionsRef.current.roomId,
@@ -195,7 +202,7 @@ export function usePeerConnections(
           pc.createOffer({ iceRestart: true })
             .then((offer) => pc.setLocalDescription(offer))
             .then(() => {
-              signaling.send(
+              signalingRef.current.send(
                 {
                   type: "sdp-offer",
                   roomId: optionsRef.current.roomId,
@@ -246,14 +253,14 @@ export function usePeerConnections(
 
       return pc;
     },
-    [signaling, setupDataChannel, syncPeers],
+    [setupDataChannel, syncPeers],
   );
 
   // ── Add local tracks to a peer connection ─────────────
 
   const addLocalTracks = useCallback(
     (pc: RTCPeerConnection): RTCRtpSender[] => {
-      const localMedia = media.getLocalTracks();
+      const localMedia = mediaRef.current.getLocalTracks();
       const peerSenders: RTCRtpSender[] = [];
 
       if (localMedia) {
@@ -269,7 +276,7 @@ export function usePeerConnections(
 
       return peerSenders;
     },
-    [media],
+    [],
   );
 
   // ── Handle: peer joined ───────────────────────────────
@@ -281,7 +288,9 @@ export function usePeerConnections(
       const pc = createPeerConnection(remotePeerId);
       const peerSenders = addLocalTracks(pc);
 
-      const channel = pc.createDataChannel(DATA_CHANNEL_LABEL, { ordered: true });
+      const channel = pc.createDataChannel(DATA_CHANNEL_LABEL, {
+        ordered: true,
+      });
       setupDataChannel(remotePeerId, channel);
 
       peersRef.current.set(remotePeerId, {
@@ -300,7 +309,7 @@ export function usePeerConnections(
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        signaling.send(
+        signalingRef.current.send(
           {
             type: "sdp-offer",
             roomId: optionsRef.current.roomId,
@@ -310,10 +319,18 @@ export function usePeerConnections(
           remotePeerId,
         );
       } catch (err) {
-        console.error(`[Mesh] Failed to create offer for ${remotePeerId}:`, err);
+        console.error(
+          `[Mesh] Failed to create offer for ${remotePeerId}:`,
+          err,
+        );
       }
     },
-    [createPeerConnection, addLocalTracks, setupDataChannel, syncPeers, signaling],
+    [
+      createPeerConnection,
+      addLocalTracks,
+      setupDataChannel,
+      syncPeers,
+    ],
   );
 
   // ── Handle: peer left ─────────────────────────────────
@@ -370,9 +387,11 @@ export function usePeerConnections(
 
         if (internal.iceCandidateQueue.length > 0) {
           for (const candidate of internal.iceCandidateQueue) {
-            await pc.addIceCandidate(candidate).catch((e) =>
-              console.error("[Mesh] Error adding queued ICE candidate:", e),
-            );
+            await pc
+              .addIceCandidate(candidate)
+              .catch((e) =>
+                console.error("[Mesh] Error adding queued ICE candidate:", e),
+              );
           }
           internal.iceCandidateQueue = [];
         }
@@ -380,7 +399,7 @@ export function usePeerConnections(
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
-        signaling.send(
+        signalingRef.current.send(
           {
             type: "sdp-answer",
             roomId: optionsRef.current.roomId,
@@ -398,7 +417,7 @@ export function usePeerConnections(
         );
       }
     },
-    [createPeerConnection, addLocalTracks, signaling, syncPeers],
+    [createPeerConnection, addLocalTracks, syncPeers],
   );
 
   // ── Handle: SDP answer ────────────────────────────────
@@ -415,9 +434,11 @@ export function usePeerConnections(
 
         if (internal.iceCandidateQueue.length > 0) {
           for (const candidate of internal.iceCandidateQueue) {
-            await internal.connection.addIceCandidate(candidate).catch((e) =>
-              console.error("[Mesh] Error adding queued ICE candidate:", e),
-            );
+            await internal.connection
+              .addIceCandidate(candidate)
+              .catch((e) =>
+                console.error("[Mesh] Error adding queued ICE candidate:", e),
+              );
           }
           internal.iceCandidateQueue = [];
         }
@@ -444,7 +465,9 @@ export function usePeerConnections(
       if (pc.remoteDescription) {
         pc.addIceCandidate(iceCandidate).catch((e) => {
           if (e.name === "InvalidStateError") {
-            console.warn(`[Mesh] Skipping ICE candidate (invalid state) for ${remotePeerId}`);
+            console.warn(
+              `[Mesh] Skipping ICE candidate (invalid state) for ${remotePeerId}`,
+            );
           } else {
             console.error("[Mesh] Error adding ICE candidate:", e);
           }
@@ -469,10 +492,10 @@ export function usePeerConnections(
       }
       if (cancelled) return;
 
-      signaling.connect(options.roomId, options.peerId, options.displayName);
+      signalingRef.current.connect(options.roomId, options.peerId, options.displayName);
     };
 
-    const unsubscribe = signaling.onMessage((msg: SignalingMessage) => {
+    const unsubscribe = signalingRef.current.onMessage((msg: SignalingMessage) => {
       if (cancelled) return;
       const senderPeerId = msg.peerId;
       if (!senderPeerId || senderPeerId === options.peerId) return;
@@ -538,14 +561,13 @@ export function usePeerConnections(
       currentSenders.clear();
       setPeers(new Map());
 
-      signaling.disconnect();
+      signalingRef.current.disconnect();
     };
   }, [
     options.roomId,
     options.peerId,
     options.displayName,
     media.ready,
-    signaling,
     handlePeerJoined,
     handlePeerLeft,
     handleSdpOffer,
