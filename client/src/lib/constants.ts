@@ -9,6 +9,18 @@ export const ICE_RESTART_MAX_ATTEMPTS = 2;
 export const VIDEO_MAX_BITRATE = 2_500_000; // 2.5 Mbps — good for 720p
 export const AUDIO_MAX_BITRATE = 48_000; // 48 kbps — richer voice quality over default ~32 kbps
 
+// ── Audio processing pipeline ────────────────────────────
+export const AUDIO_HIGHPASS_FREQUENCY = 85; // Hz — cuts rumble, HVAC, foot thumps
+export const AUDIO_HIGHPASS_Q = 0.7071; // Butterworth (maximally flat passband)
+export const AUDIO_COMPRESSOR_THRESHOLD = -28; // dBFS
+export const AUDIO_COMPRESSOR_KNEE = 18; // dB — gentle transition
+export const AUDIO_COMPRESSOR_RATIO = 3; // 3:1 — moderate compression
+export const AUDIO_COMPRESSOR_ATTACK = 0.01; // seconds — fast onset capture
+export const AUDIO_COMPRESSOR_RELEASE = 0.2; // seconds — natural tail
+export const NOISE_GATE_THRESHOLD = 0.01; // RMS threshold (0-1)
+export const NOISE_GATE_HYSTERESIS = 0.005; // RMS below threshold - hysteresis to prevent chattering
+export const NOISE_GATE_HOLD_FRAMES = 10; // Number of frames to hold gate open after signal drops
+
 // ── Room ──────────────────────────────────────────────────
 export const MAX_ROOM_SIZE = 6;
 export const SPEAKING_THRESHOLD = 0.01;

@@ -118,6 +118,17 @@ export interface SignalingContextValue {
   onError: (handler: (error: "room-full" | "unknown") => void) => () => void;
 }
 
+// ── Audio Processing ─────────────────────────────────────
+
+export interface AudioProcessingState {
+  /** Whether the audio processing pipeline is active */
+  isEnabled: boolean;
+  /** Whether the pipeline is currently loading (WASM, worklets) */
+  isLoading: boolean;
+  /** Error message if pipeline failed to initialize */
+  error: string | null;
+}
+
 // ── Media Context ────────────────────────────────────────
 
 export interface MediaContextValue {
@@ -142,6 +153,12 @@ export interface MediaContextValue {
   } | null;
   /** Stop all tracks and release media */
   release: () => void;
+  /** Current state of the audio processing pipeline */
+  audioProcessing: AudioProcessingState;
+  /** Toggle noise suppression on/off — swaps audio track in all peer connections */
+  toggleNoiseSuppression: () => void;
+  /** Register a callback for replacing audio tracks in peer connections */
+  setReplaceTrackCallback: (cb: (track: MediaStreamTrack) => void) => void;
 }
 
 // ── Network quality ──────────────────────────────────────

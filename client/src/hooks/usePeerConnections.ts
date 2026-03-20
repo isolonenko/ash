@@ -74,6 +74,7 @@ interface UsePeerConnectionsResult {
     stream: MediaStream,
   ) => RTCRtpSender[];
   removeTrackFromAll: (sender: RTCRtpSender) => void;
+  replaceAudioTrack: (newTrack: MediaStreamTrack) => void;
   provideMediaRef: (id: string, node: HTMLVideoElement | null) => void;
 }
 
@@ -652,11 +653,27 @@ export function usePeerConnections(
     }
   }, []);
 
+  const replaceAudioTrack = useCallback((newTrack: MediaStreamTrack) => {
+    for (const [peerId, senders] of sendersRef.current) {
+      for (const sender of senders) {
+        if (sender.track?.kind === "audio") {
+          sender.replaceTrack(newTrack).catch((err) => {
+            console.warn(
+              `[Mesh] Failed to replace audio track for ${peerId}:`,
+              err,
+            );
+          });
+        }
+      }
+    }
+  }, []);
+
   return {
     peers,
     sendToAll,
     addTrackToAll,
     removeTrackFromAll,
+    replaceAudioTrack,
     provideMediaRef,
   };
 }

@@ -10,6 +10,7 @@ import type { MediaContextValue } from "@/types";
 import { MediaContext } from "@/context/media-context";
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
 import { BITRATE_TIERS } from "@/lib/constants";
+import { useAudioProcessing } from "@/hooks/useAudioProcessing";
 
 interface MediaProviderProps {
   children: ReactNode;
@@ -22,8 +23,14 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
   const [ready, setReady] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
+  const rawAudioTrackRef = useRef<MediaStreamTrack | null>(null);
   const connectionIdRef = useRef(0);
   const networkTier = useNetworkQuality();
+  const replaceTrackCallbackRef = useRef<
+    ((track: MediaStreamTrack) => void) | null
+  >(null);
+
+  const audioProcessing = useAudioProcessing();
 
   useEffect(() => {
     return () => {
@@ -62,7 +69,7 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
         },
         audio: {
           echoCancellation: true,
-          noiseSuppression: true,
+          noiseSuppression: false, // Disabled — our pipeline handles this
           autoGainControl: true,
         },
       });
@@ -70,6 +77,21 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
       if (connectionIdRef.current !== capturedId) {
         stream.getTracks().forEach((t) => t.stop());
         throw new Error("Stale acquire call");
+      }
+
+      // Store the raw audio track for toggle
+      const rawAudioTrack = stream.getAudioTracks()[0] ?? null;
+      rawAudioTrackRef.current = rawAudioTrack;
+
+      // Start audio processing pipeline
+      if (rawAudioTrack) {
+        const processedTrack =
+          await audioProcessing.startProcessing(rawAudioTrack);
+        if (processedTrack) {
+          // Replace the raw audio track with the processed one in the stream
+          stream.removeTrack(rawAudioTrack);
+          stream.addTrack(processedTrack);
+        }
       }
 
       streamRef.current = stream;
@@ -94,7 +116,7 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
       }
       throw err;
     }
-  }, [networkTier]);
+  }, [networkTier, audioProcessing]);
 
   const toggleAudio = useCallback(() => {
     const stream = streamRef.current;
@@ -120,6 +142,31 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
     setVideoEnabled(newEnabled);
   }, []);
 
+  const toggleNoiseSuppression = useCallback(async () => {
+    const stream = streamRef.current;
+    const rawTrack = rawAudioTrackRef.current;
+    if (!stream || !rawTrack) return;
+
+    const newTrack = await audioProcessing.toggle(rawTrack);
+    if (!newTrack) return;
+
+    // Swap the audio track in the local stream
+    const currentAudioTrack = stream.getAudioTracks()[0];
+    if (currentAudioTrack) {
+      // Preserve the enabled state
+      newTrack.enabled = currentAudioTrack.enabled;
+      stream.removeTrack(currentAudioTrack);
+    }
+    stream.addTrack(newTrack);
+
+    // Notify peer connections to replace the track
+    replaceTrackCallbackRef.current?.(newTrack);
+
+    // Force React re-render with new stream reference
+    setLocalStream(new MediaStream(stream.getTracks()));
+    streamRef.current = stream;
+  }, [audioProcessing]);
+
   const getLocalTracks = useCallback((): {
     tracks: MediaStreamTrack[];
     stream: MediaStream;
@@ -130,13 +177,22 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
   }, []);
 
   const release = useCallback(() => {
+    audioProcessing.stopProcessing();
+    rawAudioTrackRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setLocalStream(null);
     setAudioEnabled(true);
     setVideoEnabled(true);
     setReady(false);
-  }, []);
+  }, [audioProcessing]);
+
+  const setReplaceTrackCallback = useCallback(
+    (cb: (track: MediaStreamTrack) => void) => {
+      replaceTrackCallbackRef.current = cb;
+    },
+    [],
+  );
 
   const value = useMemo<MediaContextValue>(
     () => ({
@@ -149,6 +205,9 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
       toggleVideo,
       getLocalTracks,
       release,
+      audioProcessing: audioProcessing.state,
+      toggleNoiseSuppression,
+      setReplaceTrackCallback,
     }),
     [
       localStream,
@@ -160,6 +219,9 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
       toggleVideo,
       getLocalTracks,
       release,
+      audioProcessing.state,
+      toggleNoiseSuppression,
+      setReplaceTrackCallback,
     ],
   );
 
