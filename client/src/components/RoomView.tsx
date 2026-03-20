@@ -1,9 +1,10 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import type { Participant, DataChannelMessage, ChatMessage, MediaStatePayload } from "@/types";
 import { useRoomContext } from "@/context/room-context";
-import { useMesh } from "@/hooks/useMesh";
+import { useMedia } from "@/context/media-context";
+import { useSignaling } from "@/context/signaling-context";
+import { usePeerConnections } from "@/hooks/usePeerConnections";
 import { useMessages } from "@/hooks/useMessages";
-import { useMediaControls } from "@/hooks/useMediaControls";
 import { useSpeakingIndicator } from "@/hooks/useSpeakingIndicator";
 import { VideoGrid } from "./VideoGrid";
 import { ChatPanel } from "./ChatPanel";
@@ -11,60 +12,51 @@ import { RoomControls } from "./RoomControls";
 import { ConnectionStatus } from "./ConnectionStatus";
 import styles from "./App.module.sass";
 
-// ── Props ────────────────────────────────────────────────
-
 interface RoomViewProps {
   roomId: string;
 }
 
-// ── Component ────────────────────────────────────────────
-
 export const RoomView = ({ roomId }: RoomViewProps) => {
   const [chatOpen, setChatOpen] = useState(false);
 
-  // ── useRoom ──────────────────────────────────────────
   const { state: roomState, leaveRoom } = useRoomContext();
   const localUserId = roomState.peerId ?? "";
   const displayName = roomState.displayName ?? "Anonymous";
-
-  // ── useMediaControls ─────────────────────────────────
   const {
+    ready: mediaReady,
+    acquire: mediaAcquire,
+    release: mediaRelease,
     localStream,
     audioEnabled,
     videoEnabled,
-    getPreviewStream,
-    getLocalTracks,
     toggleAudio,
     toggleVideo,
-    setBroadcastSend,
-  } = useMediaControls();
-
-  // ── Acquire camera/mic on mount ──────────────────────
-  const [mediaReady, setMediaReady] = useState(false);
+  } = useMedia();
+  const signaling = useSignaling();
 
   useEffect(() => {
-    getPreviewStream()
-      .then(() => {
-        if (!roomState.initialAudioEnabled) toggleAudio();
-        if (!roomState.initialVideoEnabled) toggleVideo();
-      })
-      .catch(() => {})
-      .finally(() => {
-        setMediaReady(true);
-      });
-  }, [getPreviewStream, toggleAudio, toggleVideo, roomState.initialAudioEnabled, roomState.initialVideoEnabled]);
+    if (!mediaReady) {
+      mediaAcquire().catch(() => {});
+    }
+  }, [mediaReady, mediaAcquire]);
 
-  // ── Remote media state tracking ─────────────────────
+  const appliedInitialRef = useRef(false);
+  useEffect(() => {
+    if (mediaReady && !appliedInitialRef.current) {
+      appliedInitialRef.current = true;
+      if (!roomState.initialAudioEnabled && audioEnabled) toggleAudio();
+      if (!roomState.initialVideoEnabled && videoEnabled) toggleVideo();
+    }
+  }, [mediaReady, audioEnabled, videoEnabled, toggleAudio, toggleVideo, roomState.initialAudioEnabled, roomState.initialVideoEnabled]);
+
   const [remoteMediaState, setRemoteMediaState] = useState<
     Map<string, { audioEnabled: boolean; videoEnabled: boolean }>
   >(() => new Map());
 
-  // ── Ref for receiving DC messages (solves circular dep) ─
   const receiveDcMessageRef = useRef<
     ((data: string, senderPeerId: string) => void) | null
   >(null);
 
-  // ── useMesh ──────────────────────────────────────────
   const handleDataChannelMessage = useCallback(
     (peerId: string, msg: DataChannelMessage) => {
       if (msg.type === "media-state") {
@@ -85,34 +77,47 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     [],
   );
 
-  const { peers, signalingConnected, sendToAll } = useMesh({
+  const { peers, sendToAll } = usePeerConnections({
     peerId: localUserId,
     displayName,
     roomId,
-    streamReady: mediaReady,
     onMessage: handleDataChannelMessage,
-    getLocalTracks,
   });
 
-  // Wire broadcast channel for media state messages
+  const broadcastMediaState = useCallback(
+    (audio: boolean, video: boolean) => {
+      sendToAll({
+        type: "media-state",
+        payload: { audioEnabled: audio, videoEnabled: video },
+      });
+    },
+    [sendToAll],
+  );
+
+  const handleToggleAudio = useCallback(() => {
+    const newAudio = !audioEnabled;
+    toggleAudio();
+    broadcastMediaState(newAudio, videoEnabled);
+  }, [audioEnabled, videoEnabled, toggleAudio, broadcastMediaState]);
+
+  const handleToggleVideo = useCallback(() => {
+    const newVideo = !videoEnabled;
+    toggleVideo();
+    broadcastMediaState(audioEnabled, newVideo);
+  }, [audioEnabled, videoEnabled, toggleVideo, broadcastMediaState]);
+
   const sendToAllString = useCallback(
     (msg: string) => {
       try {
         const parsed = JSON.parse(msg) as DataChannelMessage;
         sendToAll(parsed);
       } catch {
-        // Shouldn't happen with well-formed messages
+        return;
       }
     },
     [sendToAll],
   );
 
-  useEffect(() => {
-    setBroadcastSend(sendToAllString);
-    return () => setBroadcastSend(null);
-  }, [sendToAllString, setBroadcastSend]);
-
-  // ── useMessages ──────────────────────────────────────
   const { messages, sendMessage, receiveDataChannelMessage } = useMessages(
     roomId,
     localUserId || null,
@@ -120,12 +125,10 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     sendToAllString,
   );
 
-  // Wire up the ref after useMessages is initialized
   useEffect(() => {
     receiveDcMessageRef.current = receiveDataChannelMessage;
   }, [receiveDataChannelMessage]);
 
-  // ── useSpeakingIndicator ─────────────────────────────
   const remoteStreams = useMemo(() => {
     const map = new Map<string, MediaStream>();
     for (const [peerId, peer] of peers) {
@@ -138,11 +141,9 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
 
   const speakingMap = useSpeakingIndicator(localStream, remoteStreams);
 
-  // ── Build participants list for VideoGrid ────────────
   const participants: Participant[] = useMemo(() => {
     const result: Participant[] = [];
 
-    // Local participant
     if (localUserId) {
       result.push({
         peerId: localUserId,
@@ -154,7 +155,6 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
       });
     }
 
-    // Remote participants from mesh peers
     for (const [peerId, peer] of peers) {
       const mediaState = remoteMediaState.get(peerId);
       result.push({
@@ -170,23 +170,19 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     return result;
   }, [localUserId, displayName, audioEnabled, videoEnabled, localStream, peers, speakingMap, remoteMediaState]);
 
-  // ── Build display names map ──────────────────────────
   const displayNames = useMemo(() => {
     const map = new Map<string, string>();
-    if (localUserId) {
-      map.set(localUserId, displayName);
-    }
+    if (localUserId) map.set(localUserId, displayName);
     for (const [peerId, peer] of peers) {
       map.set(peerId, peer.displayName ?? peerId);
     }
     return map;
   }, [localUserId, displayName, peers]);
 
-  // ── Event handlers ───────────────────────────────────
-
   const handleLeaveRoom = useCallback(() => {
+    mediaRelease();
     leaveRoom();
-  }, [leaveRoom]);
+  }, [mediaRelease, leaveRoom]);
 
   const handleToggleChat = useCallback(() => {
     setChatOpen((prev) => !prev);
@@ -198,13 +194,9 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
   }, [roomId]);
 
   const handleSendMessage = useCallback(
-    (text: string) => {
-      sendMessage(text);
-    },
+    (text: string) => sendMessage(text),
     [sendMessage],
   );
-
-  // ── Render ───────────────────────────────────────────
 
   return (
     <div className={styles.roomView}>
@@ -223,13 +215,13 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         currentUserId={localUserId}
       />
       <ConnectionStatus
-        signalingConnected={signalingConnected}
+        signalingConnected={signaling.connected}
         peers={peers}
         localPeerId={localUserId}
       />
       <RoomControls
-        onToggleMic={toggleAudio}
-        onToggleCam={toggleVideo}
+        onToggleMic={handleToggleAudio}
+        onToggleCam={handleToggleVideo}
         onToggleChat={handleToggleChat}
         onLeaveRoom={handleLeaveRoom}
         onCopyLink={handleCopyLink}
