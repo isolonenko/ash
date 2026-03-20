@@ -37,8 +37,13 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
+          frameRate: { ideal: 30 },
         },
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
 
       if (connectionIdRef.current !== capturedId) {
