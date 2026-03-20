@@ -90,6 +90,7 @@ interface UsePeerConnectionsResult {
     stream: MediaStream,
   ) => RTCRtpSender[];
   removeTrackFromAll: (sender: RTCRtpSender) => void;
+  provideMediaRef: (id: string, node: HTMLVideoElement | null) => void;
 }
 
 // ── Hook ────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export function usePeerConnections(
 
   const peersRef = useRef<Map<string, InternalPeer>>(new Map());
   const sendersRef = useRef<Map<string, RTCRtpSender[]>>(new Map());
+  const peerMediaElements = useRef<Record<string, HTMLVideoElement | null>>({});
   const iceConfigRef = useRef<{
     iceServers: RTCIceServer[];
     iceTransportPolicy: RTCIceTransportPolicy;
@@ -139,6 +141,23 @@ export function usePeerConnections(
     setPeers(next);
     optionsRef.current.onPeersChanged?.(next);
   }, []);
+
+  const provideMediaRef = useCallback(
+    (id: string, node: HTMLVideoElement | null) => {
+      peerMediaElements.current[id] = node;
+      // Immediately attach stream if the element just appeared and a stream exists
+      if (node) {
+        const internal = peersRef.current.get(id);
+        if (internal?.remoteStream) {
+          if (node.srcObject !== internal.remoteStream) {
+            node.srcObject = internal.remoteStream;
+          }
+          node.play().catch(() => {});
+        }
+      }
+    },
+    [],
+  );
 
   // ── Setup DataChannel handlers ────────────────────────
 
@@ -239,17 +258,32 @@ export function usePeerConnections(
             internal.remoteStream = new MediaStream();
           }
           internal.remoteStream.addTrack(event.track);
+
+          const el = peerMediaElements.current[remotePeerId];
+          if (el && internal.remoteStream) {
+            if (el.srcObject !== internal.remoteStream) {
+              el.srcObject = internal.remoteStream;
+            }
+            el.play().catch(() => {});
+          }
+
           syncPeers();
           optionsRef.current.onRemoteTrack?.(remotePeerId, event);
 
-          event.track.onmute = () => syncPeers();
-          event.track.onunmute = () => syncPeers();
+          event.track.onmute = () => {
+            syncPeers();
+          };
+          event.track.onunmute = () => {
+            syncPeers();
+          };
           event.track.onended = () => {
             if (internal.remoteStream) {
               internal.remoteStream.removeTrack(event.track);
               syncPeers();
             }
           };
+        } else {
+          console.warn(`[Mesh] No internal peer found for ${remotePeerId}`);
         }
       };
 
@@ -327,12 +361,7 @@ export function usePeerConnections(
         );
       }
     },
-    [
-      createPeerConnection,
-      addLocalTracks,
-      setupDataChannel,
-      syncPeers,
-    ],
+    [createPeerConnection, addLocalTracks, setupDataChannel, syncPeers],
   );
 
   // ── Handle: peer left ─────────────────────────────────
@@ -345,6 +374,7 @@ export function usePeerConnections(
         internal.connection.close();
         peersRef.current.delete(remotePeerId);
         sendersRef.current.delete(remotePeerId);
+        delete peerMediaElements.current[remotePeerId];
         syncPeers();
         optionsRef.current.onRemoteStreamRemoved?.(remotePeerId);
       }
@@ -357,7 +387,6 @@ export function usePeerConnections(
   const handleSdpOffer = useCallback(
     async (remotePeerId: string, sdp: RTCSessionDescriptionInit) => {
       let internal = peersRef.current.get(remotePeerId);
-
       if (!internal) {
         const pc = createPeerConnection(remotePeerId);
         const peerSenders = addLocalTracks(pc);
@@ -494,57 +523,63 @@ export function usePeerConnections(
       }
       if (cancelled) return;
 
-      signalingRef.current.connect(options.roomId, options.peerId, options.displayName);
+      signalingRef.current.connect(
+        options.roomId,
+        options.peerId,
+        options.displayName,
+      );
     };
 
-    const unsubscribe = signalingRef.current.onMessage((msg: SignalingMessage) => {
-      if (cancelled) return;
-      const senderPeerId = msg.peerId;
-      if (!senderPeerId || senderPeerId === options.peerId) return;
+    const unsubscribe = signalingRef.current.onMessage(
+      (msg: SignalingMessage) => {
+        if (cancelled) return;
+        const senderPeerId = msg.peerId;
+        if (!senderPeerId || senderPeerId === options.peerId) return;
 
-      switch (msg.type) {
-        case "peer-joined": {
-          handlePeerJoined(senderPeerId, msg.displayName);
-          break;
-        }
-        case "peer-left": {
-          handlePeerLeft(senderPeerId);
-          break;
-        }
-        case "sdp-offer": {
-          const internal = peersRef.current.get(senderPeerId);
-          const payload = msg.payload as SdpPayload;
-          if (internal) {
-            internal.messageQueue = internal.messageQueue.then(() =>
-              handleSdpOffer(senderPeerId, payload.sdp),
-            );
-          } else {
-            handleSdpOffer(senderPeerId, payload.sdp);
+        switch (msg.type) {
+          case "peer-joined": {
+            handlePeerJoined(senderPeerId, msg.displayName);
+            break;
           }
-          break;
-        }
-        case "sdp-answer": {
-          const internal = peersRef.current.get(senderPeerId);
-          const payload = msg.payload as SdpPayload;
-          if (internal) {
-            internal.messageQueue = internal.messageQueue.then(() =>
-              handleSdpAnswer(senderPeerId, payload.sdp),
-            );
+          case "peer-left": {
+            handlePeerLeft(senderPeerId);
+            break;
           }
-          break;
-        }
-        case "ice-candidate": {
-          const internal = peersRef.current.get(senderPeerId);
-          const payload = msg.payload as IceCandidatePayload;
-          if (internal) {
-            internal.messageQueue = internal.messageQueue.then(() => {
-              handleIceCandidate(senderPeerId, payload.candidate);
-            });
+          case "sdp-offer": {
+            const internal = peersRef.current.get(senderPeerId);
+            const payload = msg.payload as SdpPayload;
+            if (internal) {
+              internal.messageQueue = internal.messageQueue.then(() =>
+                handleSdpOffer(senderPeerId, payload.sdp),
+              );
+            } else {
+              handleSdpOffer(senderPeerId, payload.sdp);
+            }
+            break;
           }
-          break;
+          case "sdp-answer": {
+            const internal = peersRef.current.get(senderPeerId);
+            const payload = msg.payload as SdpPayload;
+            if (internal) {
+              internal.messageQueue = internal.messageQueue.then(() =>
+                handleSdpAnswer(senderPeerId, payload.sdp),
+              );
+            }
+            break;
+          }
+          case "ice-candidate": {
+            const internal = peersRef.current.get(senderPeerId);
+            const payload = msg.payload as IceCandidatePayload;
+            if (internal) {
+              internal.messageQueue = internal.messageQueue.then(() => {
+                handleIceCandidate(senderPeerId, payload.candidate);
+              });
+            }
+            break;
+          }
         }
-      }
-    });
+      },
+    );
 
     init();
 
@@ -561,6 +596,7 @@ export function usePeerConnections(
       }
       currentPeers.clear();
       currentSenders.clear();
+      peerMediaElements.current = {};
       setPeers(new Map());
 
       signalingRef.current.disconnect();
@@ -624,5 +660,11 @@ export function usePeerConnections(
     }
   }, []);
 
-  return { peers, sendToAll, addTrackToAll, removeTrackFromAll };
+  return {
+    peers,
+    sendToAll,
+    addTrackToAll,
+    removeTrackFromAll,
+    provideMediaRef,
+  };
 }

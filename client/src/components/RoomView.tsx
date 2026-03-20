@@ -1,5 +1,10 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import type { Participant, DataChannelMessage, ChatMessage, MediaStatePayload } from "@/types";
+import type {
+  Participant,
+  DataChannelMessage,
+  ChatMessage,
+  MediaStatePayload,
+} from "@/types";
 import { useRoomContext } from "@/context/room-context";
 import { useMedia } from "@/context/media-context";
 import { useSignaling } from "@/context/signaling-context";
@@ -47,7 +52,15 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
       if (!roomState.initialAudioEnabled && audioEnabled) toggleAudio();
       if (!roomState.initialVideoEnabled && videoEnabled) toggleVideo();
     }
-  }, [mediaReady, audioEnabled, videoEnabled, toggleAudio, toggleVideo, roomState.initialAudioEnabled, roomState.initialVideoEnabled]);
+  }, [
+    mediaReady,
+    audioEnabled,
+    videoEnabled,
+    toggleAudio,
+    toggleVideo,
+    roomState.initialAudioEnabled,
+    roomState.initialVideoEnabled,
+  ]);
 
   const [remoteMediaState, setRemoteMediaState] = useState<
     Map<string, { audioEnabled: boolean; videoEnabled: boolean }>
@@ -77,7 +90,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     [],
   );
 
-  const { peers, sendToAll } = usePeerConnections({
+  const { peers, sendToAll, provideMediaRef } = usePeerConnections({
     peerId: localUserId,
     displayName,
     roomId,
@@ -168,7 +181,16 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     }
 
     return result;
-  }, [localUserId, displayName, audioEnabled, videoEnabled, localStream, peers, speakingMap, remoteMediaState]);
+  }, [
+    localUserId,
+    displayName,
+    audioEnabled,
+    videoEnabled,
+    localStream,
+    peers,
+    speakingMap,
+    remoteMediaState,
+  ]);
 
   const displayNames = useMemo(() => {
     const map = new Map<string, string>();
@@ -206,6 +228,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         speakingMap={speakingMap}
         localUserId={localUserId}
         displayNames={displayNames}
+        provideMediaRef={provideMediaRef}
       />
       <ChatPanel
         messages={messages as ChatMessage[]}
