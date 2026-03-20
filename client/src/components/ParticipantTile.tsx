@@ -53,6 +53,7 @@ export const ParticipantTile = ({
       className={`${styles.tile} ${isSpeaking ? styles.speaking : ""}`}
       data-local={isLocalUser}
       data-userid={userId}
+      data-video-off={!videoEnabled}
     >
       <video
         ref={(node) => {

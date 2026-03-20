@@ -5,40 +5,44 @@
   gap: $space-md
   padding: $space-lg
   width: 100%
-  height: 100%
-  align-items: center
-  justify-items: center
+  height: calc(100vh - 70px)
+  align-items: stretch
+  justify-items: stretch
 
-  // 1 participant: single full-width tile
   &[data-count="1"]
     grid-template-columns: 1fr
-    grid-auto-rows: minmax(300px, 1fr)
-    max-width: 800px
-    margin: 0 auto
+    grid-template-rows: 1fr
 
-  // 2 participants: side-by-side
   &[data-count="2"]
     grid-template-columns: repeat(2, 1fr)
-    grid-auto-rows: minmax(300px, 1fr)
+    grid-template-rows: 1fr
 
-  // 3-4 participants: 2x2 grid
-  &[data-count="3"],
+  &[data-count="3"]
+    grid-template-columns: repeat(2, 1fr)
+    grid-template-rows: repeat(2, 1fr)
+
+    > :nth-child(3)
+      grid-column: 1 / -1
+
   &[data-count="4"]
     grid-template-columns: repeat(2, 1fr)
-    grid-auto-rows: minmax(250px, 1fr)
+    grid-template-rows: repeat(2, 1fr)
 
-  // 5-6 participants: 2x3 grid
   &[data-count="5"],
   &[data-count="6"]
     grid-template-columns: repeat(3, 1fr)
-    grid-auto-rows: minmax(200px, 1fr)
+    grid-template-rows: repeat(2, 1fr)
 
-  // Responsive mobile: stacked single column
+  &[data-count="7"],
+  &[data-count="8"],
+  &[data-count="9"]
+    grid-template-columns: repeat(3, 1fr)
+    grid-template-rows: repeat(3, 1fr)
+
   @media (max-width: 768px)
     grid-template-columns: 1fr !important
     grid-auto-rows: minmax(250px, auto)
     padding: $space-md
     gap: $space-sm
-
-    &[data-count="1"]
-      grid-auto-rows: minmax(300px, 1fr)
+    height: auto
+    min-height: calc(100vh - 70px)
