@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./ParticipantTile.module.sass";
 
 interface ParticipantTileProps {
@@ -20,22 +20,43 @@ export const ParticipantTile = ({
   audioEnabled,
   videoEnabled,
 }: ParticipantTileProps) => {
-  const videoRef = useCallback(
-    (node: HTMLVideoElement | null) => {
-      if (node) {
-        if (stream) {
-          node.srcObject = stream;
-          node.autoplay = true;
-          node.playsInline = true;
-        } else {
-          node.srcObject = null;
-        }
-      }
-    },
-    [stream],
-  );
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [trackRevision, setTrackRevision] = useState(0);
 
-  const hasVideo = videoEnabled && (stream?.getVideoTracks().length ?? 0) > 0;
+  useEffect(() => {
+    if (!stream) return;
+
+    const bump = () => setTrackRevision((r) => r + 1);
+    stream.addEventListener("addtrack", bump);
+    stream.addEventListener("removetrack", bump);
+
+    return () => {
+      stream.removeEventListener("addtrack", bump);
+      stream.removeEventListener("removetrack", bump);
+    };
+  }, [stream]);
+
+  useEffect(() => {
+    const node = videoRef.current;
+    if (!node) return;
+
+    if (stream) {
+      if (node.srcObject !== stream) {
+        node.srcObject = stream;
+      }
+      // autoplay policy — some browsers require explicit play() call
+      node.play().catch(() => {});
+    } else {
+      node.srcObject = null;
+    }
+  }, [stream, trackRevision]);
+
+  const hasLiveVideoTrack =
+    stream
+      ?.getVideoTracks()
+      .some((t) => t.readyState === "live" && t.enabled) ?? false;
+  const showVideo = videoEnabled && hasLiveVideoTrack;
+
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
@@ -44,9 +65,18 @@ export const ParticipantTile = ({
       data-local={isLocalUser}
       data-userid={userId}
     >
-      {hasVideo && stream ? (
-        <video ref={videoRef} className={styles.video} muted={isLocalUser} />
-      ) : (
+      {stream && (
+        <video
+          ref={videoRef}
+          className={styles.video}
+          style={showVideo ? undefined : { display: "none" }}
+          autoPlay
+          playsInline
+          muted={isLocalUser}
+        />
+      )}
+
+      {!showVideo && (
         <div className={styles.placeholder}>
           <div className={styles.initial}>{initial}</div>
         </div>
@@ -56,9 +86,7 @@ export const ParticipantTile = ({
         <div className={styles.label}>{displayName}</div>
       </div>
 
-      {!audioEnabled && (
-        <div className={styles.mutedBadge}>[MIC OFF]</div>
-      )}
+      {!audioEnabled && <div className={styles.mutedBadge}>[MIC OFF]</div>}
     </div>
   );
 };

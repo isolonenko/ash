@@ -242,6 +242,8 @@ export function usePeerConnections(
           syncPeers();
           optionsRef.current.onRemoteTrack?.(remotePeerId, event);
 
+          event.track.onmute = () => syncPeers();
+          event.track.onunmute = () => syncPeers();
           event.track.onended = () => {
             if (internal.remoteStream) {
               internal.remoteStream.removeTrack(event.track);
