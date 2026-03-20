@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoomContext } from "@/context/room-context";
-import { useMediaControls } from "@/hooks/useMediaControls";
+import { useMedia } from "@/context/media-context";
 import { navigateTo } from "@/lib/router";
 import styles from "./Preview.module.sass";
 
@@ -16,12 +16,10 @@ export const Preview = ({ roomId }: PreviewProps) => {
     localStream,
     audioEnabled,
     videoEnabled,
-    getPreviewStream,
+    acquire,
     toggleAudio,
     toggleVideo,
-  } = useMediaControls();
-
-  // ── Video ref callback (EXACT pattern from CallOverlay.tsx:31-38) ─
+  } = useMedia();
 
   const videoRef = useCallback(
     (node: HTMLVideoElement | null) => {
@@ -35,10 +33,8 @@ export const Preview = ({ roomId }: PreviewProps) => {
     [localStream],
   );
 
-  // ── Room validation on mount ─────────────────────────────────────
-
   useEffect(() => {
-    const validateRoom = async () => {
+    const init = async () => {
       try {
         await checkRoom(roomId);
       } catch {
@@ -46,18 +42,15 @@ export const Preview = ({ roomId }: PreviewProps) => {
         return;
       }
 
-      // Camera failure should NOT block preview — just show placeholder
       try {
-        await getPreviewStream();
+        await acquire();
       } catch {
         // Silently fail — user sees "CAMERA OFF" placeholder
       }
     };
 
-    validateRoom();
-  }, [roomId, checkRoom, getPreviewStream]);
-
-  // ── Join handler ─────────────────────────────────────────────────
+    init();
+  }, [roomId, checkRoom, acquire]);
 
   const handleJoin = async () => {
     if (!displayName.trim()) return;
@@ -68,8 +61,6 @@ export const Preview = ({ roomId }: PreviewProps) => {
       setError("Failed to join room");
     }
   };
-
-  // ── Error state ──────────────────────────────────────────────────
 
   if (error) {
     return (
@@ -86,8 +77,6 @@ export const Preview = ({ roomId }: PreviewProps) => {
       </div>
     );
   }
-
-  // ── Preview UI ───────────────────────────────────────────────────
 
   return (
     <div className={styles.container}>
