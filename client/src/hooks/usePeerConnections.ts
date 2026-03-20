@@ -15,26 +15,10 @@ import {
 import { fetchTurnCredentials } from "@/lib/turn";
 import { useSignaling } from "@/context/signaling-context";
 import { useMedia } from "@/context/media-context";
-
-// ── VP9 Codec Preference ────────────────────────────────
-
-function setVp9Preference(pc: RTCPeerConnection, sender: RTCRtpSender): void {
-  const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
-  if (transceiver && typeof transceiver.setCodecPreferences === "function") {
-    const capabilities = RTCRtpReceiver.getCapabilities("video");
-    if (capabilities) {
-      const vp9 = capabilities.codecs.filter(
-        (c) => c.mimeType.toLowerCase() === "video/vp9",
-      );
-      const rest = capabilities.codecs.filter(
-        (c) => c.mimeType.toLowerCase() !== "video/vp9",
-      );
-      if (vp9.length > 0) {
-        transceiver.setCodecPreferences([...vp9, ...rest]);
-      }
-    }
-  }
-}
+import {
+  selectOptimalCodec,
+  applyCodecPreference,
+} from "@/lib/codec-selection";
 
 // ── Bitrate Management ──────────────────────────────────
 
@@ -125,6 +109,14 @@ export function usePeerConnections(
   useEffect(() => {
     optionsRef.current = options;
   });
+
+  const codecRef = useRef<string>("video/VP9");
+
+  useEffect(() => {
+    selectOptimalCodec().then((result) => {
+      codecRef.current = result.mimeType;
+    });
+  }, []);
 
   // ── Sync peers to React state ─────────────────────────
 
@@ -303,7 +295,7 @@ export function usePeerConnections(
         for (const track of localMedia.tracks) {
           const sender = pc.addTrack(track, localMedia.stream);
           if (track.kind === "video") {
-            setVp9Preference(pc, sender);
+            applyCodecPreference(pc, sender, codecRef.current);
           }
           applyBitrateParams(sender, track.kind);
           peerSenders.push(sender);
@@ -629,7 +621,7 @@ export function usePeerConnections(
       for (const [peerId, internal] of peersRef.current) {
         const sender = internal.connection.addTrack(track, stream);
         if (track.kind === "video") {
-          setVp9Preference(internal.connection, sender);
+          applyCodecPreference(internal.connection, sender, codecRef.current);
         }
         applyBitrateParams(sender, track.kind);
 
