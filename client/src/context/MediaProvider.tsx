@@ -8,6 +8,8 @@ import {
 } from "react";
 import type { MediaContextValue } from "@/types";
 import { MediaContext } from "@/context/media-context";
+import { useNetworkQuality } from "@/hooks/useNetworkQuality";
+import { BITRATE_TIERS } from "@/lib/constants";
 
 interface MediaProviderProps {
   children: ReactNode;
@@ -21,6 +23,7 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
 
   const streamRef = useRef<MediaStream | null>(null);
   const connectionIdRef = useRef(0);
+  const networkTier = useNetworkQuality();
 
   useEffect(() => {
     return () => {
@@ -29,15 +32,33 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
     };
   }, []);
 
+  useEffect(() => {
+    const stream = streamRef.current;
+    if (!stream) return;
+
+    const videoTrack = stream.getVideoTracks()[0];
+    if (!videoTrack || videoTrack.readyState !== "live") return;
+
+    const tier = BITRATE_TIERS[networkTier];
+    videoTrack
+      .applyConstraints({
+        width: { ideal: tier.width },
+        height: { ideal: tier.height },
+        frameRate: { ideal: tier.fps },
+      })
+      .catch(() => {});
+  }, [networkTier]);
+
   const acquire = useCallback(async (): Promise<MediaStream> => {
     const capturedId = ++connectionIdRef.current;
+    const tier = BITRATE_TIERS[networkTier];
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
+          width: { ideal: tier.width },
+          height: { ideal: tier.height },
+          frameRate: { ideal: tier.fps },
         },
         audio: {
           echoCancellation: true,
@@ -73,7 +94,7 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
       }
       throw err;
     }
-  }, []);
+  }, [networkTier]);
 
   const toggleAudio = useCallback(() => {
     const stream = streamRef.current;
@@ -99,14 +120,14 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
     setVideoEnabled(newEnabled);
   }, []);
 
-  const getLocalTracks = useCallback(
-    (): { tracks: MediaStreamTrack[]; stream: MediaStream } | null => {
-      const stream = streamRef.current;
-      if (!stream) return null;
-      return { tracks: stream.getTracks(), stream };
-    },
-    [],
-  );
+  const getLocalTracks = useCallback((): {
+    tracks: MediaStreamTrack[];
+    stream: MediaStream;
+  } | null => {
+    const stream = streamRef.current;
+    if (!stream) return null;
+    return { tracks: stream.getTracks(), stream };
+  }, []);
 
   const release = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -129,12 +150,20 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
       getLocalTracks,
       release,
     }),
-    [localStream, audioEnabled, videoEnabled, ready, acquire, toggleAudio, toggleVideo, getLocalTracks, release],
+    [
+      localStream,
+      audioEnabled,
+      videoEnabled,
+      ready,
+      acquire,
+      toggleAudio,
+      toggleVideo,
+      getLocalTracks,
+      release,
+    ],
   );
 
   return (
-    <MediaContext.Provider value={value}>
-      {children}
-    </MediaContext.Provider>
+    <MediaContext.Provider value={value}>{children}</MediaContext.Provider>
   );
 };

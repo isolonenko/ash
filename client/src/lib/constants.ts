@@ -14,3 +14,18 @@ export const MAX_ROOM_SIZE = 6;
 export const SPEAKING_THRESHOLD = 0.01;
 export const SPEAKING_CHECK_INTERVAL = 100; // ms
 export const ROOM_CODE_LENGTH = 9;
+
+// ── Adaptive bitrate ─────────────────────────────────────
+export const STATS_POLL_INTERVAL = 2_000; // ms — poll getStats() every 2s
+export const BITRATE_RAMP_DOWN = 0.75; // Multiply bitrate by 0.75 on congestion
+export const BITRATE_RAMP_UP = 1.1; // Multiply bitrate by 1.1 when recovering
+export const PACKET_LOSS_THRESHOLD = 0.05; // 5% packet loss triggers ramp-down
+export const JITTER_THRESHOLD = 0.03; // 30ms jitter triggers ramp-down
+export const RTT_THRESHOLD = 0.3; // 300ms RTT triggers ramp-down
+
+// ── Network-aware quality tiers ──────────────────────────
+export const BITRATE_TIERS = {
+  high: { video: 2_500_000, width: 1280, height: 720, fps: 30 },
+  medium: { video: 1_000_000, width: 640, height: 480, fps: 24 },
+  low: { video: 400_000, width: 320, height: 240, fps: 15 },
+} as const;

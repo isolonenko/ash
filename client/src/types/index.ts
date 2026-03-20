@@ -136,7 +136,13 @@ export interface MediaContextValue {
   /** Toggle video track on/off */
   toggleVideo: () => void;
   /** Get current local tracks + stream for adding to peer connections */
-  getLocalTracks: () => { tracks: MediaStreamTrack[]; stream: MediaStream } | null;
+  getLocalTracks: () => {
+    tracks: MediaStreamTrack[];
+    stream: MediaStream;
+  } | null;
   /** Stop all tracks and release media */
   release: () => void;
 }
+
+// ── Network quality ──────────────────────────────────────
+export type NetworkTier = "high" | "medium" | "low";

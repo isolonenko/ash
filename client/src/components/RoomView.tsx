@@ -11,6 +11,9 @@ import { useSignaling } from "@/context/signaling-context";
 import { usePeerConnections } from "@/hooks/usePeerConnections";
 import { useMessages } from "@/hooks/useMessages";
 import { useSpeakingIndicator } from "@/hooks/useSpeakingIndicator";
+import { useWakeLock } from "@/hooks/useWakeLock";
+import { useAdaptiveBitrate } from "@/hooks/useAdaptiveBitrate";
+import { usePictureInPicture } from "@/hooks/usePictureInPicture";
 import { VideoGrid } from "./VideoGrid";
 import { ChatPanel } from "./ChatPanel";
 import { RoomControls } from "./RoomControls";
@@ -38,6 +41,9 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     toggleVideo,
   } = useMedia();
   const signaling = useSignaling();
+  const pip = usePictureInPicture();
+
+  useWakeLock(true);
 
   useEffect(() => {
     if (!mediaReady) {
@@ -96,6 +102,8 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     roomId,
     onMessage: handleDataChannelMessage,
   });
+
+  useAdaptiveBitrate(peers, mediaReady);
 
   const broadcastMediaState = useCallback(
     (audio: boolean, video: boolean) => {
@@ -210,6 +218,16 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     setChatOpen((prev) => !prev);
   }, []);
 
+  const pipVideoRef = useCallback(
+    (id: string, node: HTMLVideoElement | null) => {
+      provideMediaRef(id, node);
+      if (node && id !== localUserId) {
+        pip.setVideoElement(node);
+      }
+    },
+    [provideMediaRef, localUserId, pip],
+  );
+
   const handleCopyLink = useCallback(() => {
     const link = `${window.location.origin}/#/room/${roomId}/preview`;
     void navigator.clipboard.writeText(link);
@@ -228,7 +246,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         speakingMap={speakingMap}
         localUserId={localUserId}
         displayNames={displayNames}
-        provideMediaRef={provideMediaRef}
+        provideMediaRef={pipVideoRef}
       />
       <ChatPanel
         messages={messages as ChatMessage[]}
@@ -248,9 +266,12 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         onToggleChat={handleToggleChat}
         onLeaveRoom={handleLeaveRoom}
         onCopyLink={handleCopyLink}
+        onTogglePip={pip.toggle}
         micEnabled={audioEnabled}
         camEnabled={videoEnabled}
         chatOpen={chatOpen}
+        pipActive={pip.isActive}
+        pipSupported={pip.isSupported}
         roomCode={roomId}
       />
     </div>

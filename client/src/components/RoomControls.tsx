@@ -7,9 +7,12 @@ interface RoomControlsProps {
   onToggleChat: () => void;
   onLeaveRoom: () => void;
   onCopyLink: () => void;
+  onTogglePip: () => void;
   micEnabled: boolean;
   camEnabled: boolean;
   chatOpen: boolean;
+  pipActive: boolean;
+  pipSupported: boolean;
   roomCode: string;
 }
 
@@ -19,9 +22,12 @@ export const RoomControls = ({
   onToggleChat,
   onLeaveRoom,
   onCopyLink,
+  onTogglePip,
   micEnabled,
   camEnabled,
   chatOpen,
+  pipActive,
+  pipSupported,
   roomCode,
 }: RoomControlsProps) => {
   const [copied, setCopied] = useState(false);
@@ -66,6 +72,15 @@ export const RoomControls = ({
         >
           [CHAT]
         </button>
+
+        {pipSupported && (
+          <button
+            className={pipActive ? styles.buttonActive : styles.buttonInactive}
+            onClick={onTogglePip}
+          >
+            {pipActive ? "[PIP ON]" : "[PIP]"}
+          </button>
+        )}
 
         <button className={styles.buttonLeave} onClick={onLeaveRoom}>
           [LEAVE]
