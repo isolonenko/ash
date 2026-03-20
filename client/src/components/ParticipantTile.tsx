@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./ParticipantTile.module.sass";
 
 interface ParticipantTileProps {
@@ -9,6 +9,7 @@ interface ParticipantTileProps {
   userId: string;
   audioEnabled: boolean;
   videoEnabled: boolean;
+  provideMediaRef?: (peerId: string, node: HTMLVideoElement | null) => void;
 }
 
 export const ParticipantTile = ({
@@ -19,24 +20,12 @@ export const ParticipantTile = ({
   userId,
   audioEnabled,
   videoEnabled,
+  provideMediaRef,
 }: ParticipantTileProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [trackRevision, setTrackRevision] = useState(0);
 
   useEffect(() => {
-    if (!stream) return;
-
-    const bump = () => setTrackRevision((r) => r + 1);
-    stream.addEventListener("addtrack", bump);
-    stream.addEventListener("removetrack", bump);
-
-    return () => {
-      stream.removeEventListener("addtrack", bump);
-      stream.removeEventListener("removetrack", bump);
-    };
-  }, [stream]);
-
-  useEffect(() => {
+    if (!isLocalUser) return;
     const node = videoRef.current;
     if (!node) return;
 
@@ -49,7 +38,7 @@ export const ParticipantTile = ({
     } else {
       node.srcObject = null;
     }
-  }, [stream, trackRevision]);
+  }, [stream, isLocalUser]);
 
   const hasLiveVideoTrack =
     stream
@@ -65,16 +54,19 @@ export const ParticipantTile = ({
       data-local={isLocalUser}
       data-userid={userId}
     >
-      {stream && (
-        <video
-          ref={videoRef}
-          className={styles.video}
-          style={showVideo ? undefined : { display: "none" }}
-          autoPlay
-          playsInline
-          muted={isLocalUser}
-        />
-      )}
+      <video
+        ref={(node) => {
+          videoRef.current = node;
+          if (!isLocalUser && provideMediaRef) {
+            provideMediaRef(userId, node);
+          }
+        }}
+        className={styles.video}
+        style={showVideo ? undefined : { display: "none" }}
+        autoPlay
+        playsInline
+        muted={isLocalUser}
+      />
 
       {!showVideo && (
         <div className={styles.placeholder}>

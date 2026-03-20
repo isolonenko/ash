@@ -8,6 +8,7 @@ interface VideoGridProps {
   speakingMap: Map<string, boolean>;
   localUserId: string;
   displayNames: Map<string, string>;
+  provideMediaRef?: (peerId: string, node: HTMLVideoElement | null) => void;
 }
 
 export const VideoGrid = ({
@@ -16,10 +17,13 @@ export const VideoGrid = ({
   speakingMap,
   localUserId,
   displayNames,
+  provideMediaRef,
 }: VideoGridProps) => {
   // Separate local and remote participants
   const localParticipant = participants.find((p) => p.peerId === localUserId);
-  const remoteParticipants = participants.filter((p) => p.peerId !== localUserId);
+  const remoteParticipants = participants.filter(
+    (p) => p.peerId !== localUserId,
+  );
 
   // Build ordered list: remotes first, local last
   const orderedParticipants = [...remoteParticipants];
@@ -34,8 +38,11 @@ export const VideoGrid = ({
       {orderedParticipants.map((participant) => {
         const isLocal = participant.peerId === localUserId;
         const stream = isLocal ? localStream : participant.stream;
-        const isSpeaking = isLocal ? (speakingMap.get("local") ?? false) : (speakingMap.get(participant.peerId) ?? false);
-        const displayName = displayNames.get(participant.peerId) ?? participant.displayName;
+        const isSpeaking = isLocal
+          ? (speakingMap.get("local") ?? false)
+          : (speakingMap.get(participant.peerId) ?? false);
+        const displayName =
+          displayNames.get(participant.peerId) ?? participant.displayName;
 
         return (
           <ParticipantTile
@@ -47,6 +54,7 @@ export const VideoGrid = ({
             userId={participant.peerId}
             audioEnabled={participant.audioEnabled}
             videoEnabled={participant.videoEnabled}
+            provideMediaRef={provideMediaRef}
           />
         );
       })}
