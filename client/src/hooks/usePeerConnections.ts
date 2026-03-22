@@ -210,8 +210,7 @@ export function usePeerConnections(
             `[Mesh] Peer ${remotePeerId} failed — ICE restart (${internal.iceRestartAttempts}/${ICE_RESTART_MAX_ATTEMPTS})`,
           );
           pc.restartIce();
-          pc.createOffer({ iceRestart: true })
-            .then((offer) => pc.setLocalDescription(offer))
+          pc.setLocalDescription()
             .then(() => {
               signalingRef.current.send(
                 {
@@ -339,15 +338,14 @@ export function usePeerConnections(
       syncPeers();
 
       try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
+        await pc.setLocalDescription();
 
         signalingRef.current.send(
           {
             type: "sdp-offer",
             roomId: optionsRef.current.roomId,
             peerId: optionsRef.current.peerId,
-            payload: { sdp: pc.localDescription },
+            payload: { sdp: pc.localDescription! },
           },
           remotePeerId,
         );
@@ -424,8 +422,7 @@ export function usePeerConnections(
           internal.iceCandidateQueue = [];
         }
 
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
+        await pc.setLocalDescription();
 
         signalingRef.current.send(
           {
