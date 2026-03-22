@@ -367,6 +367,14 @@ export function usePeerConnections(
       if (internal) {
         internal.dataChannel?.close();
         internal.connection.close();
+
+        // Stop remote stream tracks and detach from video element
+        internal.remoteStream?.getTracks().forEach((t) => t.stop());
+        const el = peerMediaElements.current[remotePeerId];
+        if (el) {
+          el.srcObject = null;
+        }
+
         peersRef.current.delete(remotePeerId);
         sendersRef.current.delete(remotePeerId);
         delete peerMediaElements.current[remotePeerId];
@@ -582,9 +590,14 @@ export function usePeerConnections(
       cancelled = true;
       unsubscribe();
 
-      for (const [, internal] of currentPeers) {
+      for (const [peerId, internal] of currentPeers) {
         internal.dataChannel?.close();
         internal.connection.close();
+        internal.remoteStream?.getTracks().forEach((t) => t.stop());
+        const el = peerMediaElements.current[peerId];
+        if (el) {
+          el.srcObject = null;
+        }
       }
       currentPeers.clear();
       currentSenders.clear();
