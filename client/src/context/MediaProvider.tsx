@@ -32,7 +32,6 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
     };
   }, []);
 
-  // Stop camera/mic on tab close (beforeunload)
   useEffect(() => {
     const handleBeforeUnload = () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());

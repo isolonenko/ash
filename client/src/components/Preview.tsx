@@ -57,7 +57,6 @@ export const Preview = ({ roomId }: PreviewProps) => {
     init();
   }, [roomId, checkRoom, acquire]);
 
-  // Release media when Preview unmounts (user navigated away without joining)
   useEffect(() => {
     return () => {
       release();

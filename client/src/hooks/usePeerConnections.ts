@@ -368,7 +368,6 @@ export function usePeerConnections(
         internal.dataChannel?.close();
         internal.connection.close();
 
-        // Stop remote stream tracks and detach from video element
         internal.remoteStream?.getTracks().forEach((t) => t.stop());
         const el = peerMediaElements.current[remotePeerId];
         if (el) {
@@ -461,7 +460,7 @@ export function usePeerConnections(
       if (!internal) return;
 
       try {
-         await internal.connection.setRemoteDescription(sdp);
+        await internal.connection.setRemoteDescription(sdp);
 
         if (internal.iceCandidateQueue.length > 0) {
           for (const candidate of internal.iceCandidateQueue) {
