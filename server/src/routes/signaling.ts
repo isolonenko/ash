@@ -35,24 +35,26 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
       try {
         // Join the room FIRST (may throw if full) — socket must be
         // registered before peers can send targeted messages to it.
-        roomManager.join(roomId, socket as unknown as WebSocket, tags);
+        roomManager.join(roomId, socket, tags);
 
         const existingSockets = roomManager.getSockets(roomId);
 
         // Notify existing peers about the joiner
         broadcastToOthers(
           [...existingSockets.keys()],
-          socket as unknown as WebSocket,
+          socket,
           buildPeerJoinedMessage(roomId, peerId, displayName),
         );
 
         // Notify joiner about existing peers
         for (const [peer, peerTags] of existingSockets) {
-          if (peer === (socket as unknown as WebSocket)) continue;
+          if (peer === socket) continue;
           const peerPeerId = extractPeerIdFromTags(peerTags);
           const peerDisplayName = extractDisplayNameFromTags(peerTags);
           try {
-            socket.send(buildPeerJoinedMessage(roomId, peerPeerId, peerDisplayName));
+            socket.send(
+              buildPeerJoinedMessage(roomId, peerPeerId, peerDisplayName),
+            );
           } catch {
             // peer may be closing
           }
@@ -64,9 +66,10 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
     };
 
     socket.onmessage = (event: MessageEvent) => {
-      const data = typeof event.data === "string"
-        ? event.data
-        : new TextDecoder().decode(event.data as ArrayBuffer);
+      const data =
+        typeof event.data === "string"
+          ? event.data
+          : new TextDecoder().decode(event.data as ArrayBuffer);
 
       const msg = parseSignalingMessage(data);
       if (!msg || !isAllowedSignalType(msg.type)) return;
@@ -87,27 +90,23 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
         }
       } else {
         // No target — broadcast to all others
-        broadcastToOthers(
-          [...sockets.keys()],
-          socket as unknown as WebSocket,
-          data,
-        );
+        broadcastToOthers([...sockets.keys()], socket, data);
       }
     };
 
     socket.onclose = () => {
-      const tags = roomManager.getTags(socket as unknown as WebSocket);
+      const tags = roomManager.getTags(socket);
       const rid = extractRoomIdFromTags(tags);
       const pid = extractPeerIdFromTags(tags);
 
       const sockets = roomManager.getSockets(rid);
       broadcastToOthers(
         [...sockets.keys()],
-        socket as unknown as WebSocket,
+        socket,
         buildPeerLeftMessage(rid, pid),
       );
 
-      roomManager.leave(rid, socket as unknown as WebSocket);
+      roomManager.leave(rid, socket);
     };
 
     socket.onerror = () => {
