@@ -411,7 +411,7 @@ export function usePeerConnections(
           await pc.setLocalDescription({ type: "rollback" });
         }
 
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        await pc.setRemoteDescription(sdp);
 
         if (internal.iceCandidateQueue.length > 0) {
           for (const candidate of internal.iceCandidateQueue) {
@@ -456,9 +456,7 @@ export function usePeerConnections(
       if (!internal) return;
 
       try {
-        await internal.connection.setRemoteDescription(
-          new RTCSessionDescription(sdp),
-        );
+         await internal.connection.setRemoteDescription(sdp);
 
         if (internal.iceCandidateQueue.length > 0) {
           for (const candidate of internal.iceCandidateQueue) {
