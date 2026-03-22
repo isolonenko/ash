@@ -33,6 +33,10 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
       const tags = buildSocketTags(roomId, peerId, displayName);
 
       try {
+        // Join the room FIRST (may throw if full) — socket must be
+        // registered before peers can send targeted messages to it.
+        roomManager.join(roomId, socket as unknown as WebSocket, tags);
+
         const existingSockets = roomManager.getSockets(roomId);
 
         // Notify existing peers about the joiner
@@ -43,7 +47,8 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
         );
 
         // Notify joiner about existing peers
-        for (const [_peer, peerTags] of existingSockets) {
+        for (const [peer, peerTags] of existingSockets) {
+          if (peer === (socket as unknown as WebSocket)) continue;
           const peerPeerId = extractPeerIdFromTags(peerTags);
           const peerDisplayName = extractDisplayNameFromTags(peerTags);
           try {
@@ -52,9 +57,6 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
             // peer may be closing
           }
         }
-
-        // Join the room (may throw if full)
-        roomManager.join(roomId, socket as unknown as WebSocket, tags);
       } catch {
         // Room is full — close with 4409
         socket.close(4409, "Room is full");
