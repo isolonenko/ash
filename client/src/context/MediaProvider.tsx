@@ -130,7 +130,10 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
   }, []);
 
   const release = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    const stream = streamRef.current;
+    if (!stream) return;
+
+    stream.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setLocalStream(null);
     setAudioEnabled(true);
