@@ -68,6 +68,13 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     roomState.initialVideoEnabled,
   ]);
 
+  // Ensure media is released when RoomView unmounts (any navigation path)
+  useEffect(() => {
+    return () => {
+      mediaRelease();
+    };
+  }, [mediaRelease]);
+
   const [remoteMediaState, setRemoteMediaState] = useState<
     Map<string, { audioEnabled: boolean; videoEnabled: boolean }>
   >(() => new Map());
