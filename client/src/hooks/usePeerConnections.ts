@@ -245,38 +245,43 @@ export function usePeerConnections(
 
       pc.ontrack = (event) => {
         const internal = peersRef.current.get(remotePeerId);
-        if (internal) {
+        if (!internal) {
+          console.warn(`[Mesh] No internal peer found for ${remotePeerId}`);
+          return;
+        }
+
+        // Use event.streams[0] if available (required for Safari compatibility).
+        // Safari doesn't properly handle manually-constructed MediaStreams.
+        // Fallback to creating a new MediaStream only if event.streams is empty
+        // (which can happen with some SRTP/DTLS configurations).
+        if (event.streams.length > 0) {
+          internal.remoteStream = event.streams[0];
+        } else {
           if (!internal.remoteStream) {
             internal.remoteStream = new MediaStream();
           }
           internal.remoteStream.addTrack(event.track);
-
-          const el = peerMediaElements.current[remotePeerId];
-          if (el && internal.remoteStream) {
-            if (el.srcObject !== internal.remoteStream) {
-              el.srcObject = internal.remoteStream;
-            }
-            el.play().catch(() => {});
-          }
-
-          syncPeers();
-          optionsRef.current.onRemoteTrack?.(remotePeerId, event);
-
-          event.track.onmute = () => {
-            syncPeers();
-          };
-          event.track.onunmute = () => {
-            syncPeers();
-          };
-          event.track.onended = () => {
-            if (internal.remoteStream) {
-              internal.remoteStream.removeTrack(event.track);
-              syncPeers();
-            }
-          };
-        } else {
-          console.warn(`[Mesh] No internal peer found for ${remotePeerId}`);
         }
+
+        const el = peerMediaElements.current[remotePeerId];
+        if (el && internal.remoteStream) {
+          if (el.srcObject !== internal.remoteStream) {
+            el.srcObject = internal.remoteStream;
+          }
+          el.play().catch(() => {});
+        }
+
+        syncPeers();
+        optionsRef.current.onRemoteTrack?.(remotePeerId, event);
+
+        event.track.onmute = () => syncPeers();
+        event.track.onunmute = () => syncPeers();
+        event.track.onended = () => {
+          if (internal.remoteStream) {
+            internal.remoteStream.removeTrack(event.track);
+            syncPeers();
+          }
+        };
       };
 
       return pc;
