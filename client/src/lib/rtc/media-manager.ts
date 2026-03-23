@@ -8,6 +8,7 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
   private _isMicEnabled = true;
   private _isCamEnabled = true;
   private _isScreenSharing = false;
+  private _camWasEnabledBeforeShare = true;
   private _devices: { audio: MediaDeviceInfo[], video: MediaDeviceInfo[] } = { audio: [], video: [] };
   private _selectedAudioId: string | null = null;
   private _selectedVideoId: string | null = null;
@@ -44,6 +45,10 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
 
   get hasPermission(): boolean {
     return this._hasPermission;
+  }
+
+  get isScreenSharing(): boolean {
+    return this._isScreenSharing;
   }
 
   set onTrackReplaced(cb: ((kind: string, track: MediaStreamTrack) => void) | null) {
@@ -257,12 +262,101 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
   toggleCam(): void {
     if (!this._stream) return;
 
+    if (this._isScreenSharing) {
+      void this.stopScreenShare();
+      return;
+    }
+
     const videoTrack = this._stream.getVideoTracks()[0];
     if (!videoTrack) return;
 
     const newEnabled = !videoTrack.enabled;
     videoTrack.enabled = newEnabled;
     this._isCamEnabled = newEnabled;
+    this.emit('changed', {
+      isMicEnabled: this._isMicEnabled,
+      isCamEnabled: this._isCamEnabled,
+      isScreenSharing: this._isScreenSharing,
+    });
+  }
+
+  async startScreenShare(): Promise<void> {
+    if (!this._stream || this._isScreenSharing) return;
+
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      if (!screenTrack) return;
+
+      this._camWasEnabledBeforeShare = this._isCamEnabled;
+      const currentVideoTrack = this._stream.getVideoTracks()[0];
+
+      if (currentVideoTrack) {
+        currentVideoTrack.stop();
+        this._stream.removeTrack(currentVideoTrack);
+      }
+
+      this._stream.addTrack(screenTrack);
+      this._isScreenSharing = true;
+
+      this._onTrackReplaced?.('video', screenTrack);
+
+      screenTrack.onended = () => {
+        void this.stopScreenShare();
+      };
+
+      this.emit('screenshare-started');
+      this.emit('changed', {
+        isMicEnabled: this._isMicEnabled,
+        isCamEnabled: this._isCamEnabled,
+        isScreenSharing: this._isScreenSharing,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        return;
+      }
+      throw err;
+    }
+  }
+
+  async stopScreenShare(): Promise<void> {
+    if (!this._stream || !this._isScreenSharing) return;
+
+    const screenTrack = this._stream.getVideoTracks()[0];
+    if (screenTrack) {
+      screenTrack.onended = null;
+      screenTrack.stop();
+      this._stream.removeTrack(screenTrack);
+    }
+
+    this._isScreenSharing = false;
+
+    if (this._camWasEnabledBeforeShare) {
+      try {
+        const tier = BITRATE_TIERS[getNetworkTier()];
+        const constraints: MediaStreamConstraints = {
+          video: {
+            ...(this._selectedVideoId ? { deviceId: { exact: this._selectedVideoId } } : {}),
+            width: { ideal: tier.width },
+            height: { ideal: tier.height },
+            frameRate: { ideal: tier.fps },
+          },
+        };
+        const camStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const camTrack = camStream.getVideoTracks()[0];
+        if (camTrack) {
+          this._stream.addTrack(camTrack);
+          this._isCamEnabled = true;
+          this._onTrackReplaced?.('video', camTrack);
+        }
+      } catch {
+        this._isCamEnabled = false;
+      }
+    } else {
+      this._isCamEnabled = false;
+    }
+
+    this.emit('screenshare-stopped');
     this.emit('changed', {
       isMicEnabled: this._isMicEnabled,
       isCamEnabled: this._isCamEnabled,
@@ -282,6 +376,8 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
     this._stream = null;
     this._isMicEnabled = true;
     this._isCamEnabled = true;
+    this._isScreenSharing = false;
+    this._camWasEnabledBeforeShare = true;
     this.emit('released');
   }
 
