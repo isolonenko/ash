@@ -1,54 +1,135 @@
 @use "../styles/variables" as *
 
-.overlay
-  position: fixed
-  bottom: 80px
-  right: $space-md
-  z-index: 200
+// ── Strip (full-width bar for connecting/failed/reconnecting) ──
+
+.strip
+  display: flex
+  align-items: center
+  gap: $space-sm
+  width: 100%
+  padding: $space-sm $space-md
+  background: rgba($bg-secondary, 0.9)
+  border-bottom: 1px solid $border-color
+  backdrop-filter: blur(8px)
+  font-family: $font-mono
+  font-size: $font-xs
+  color: $text-secondary
+
+.failedStrip
+  border-bottom-color: rgba($neon-red, 0.3)
+
+.reconnectingStrip
+  border-bottom-color: rgba($neon-yellow, 0.3)
+
+.statusText
+  flex: 1
+
+.retryBtn
+  background: transparent
+  border: 1px solid $neon-cyan
+  border-radius: 4px
+  padding: 2px $space-sm
+  color: $neon-cyan
+  font-family: $font-mono
+  font-size: $font-xs
+  cursor: pointer
+  transition: background $transition-fast
+
+  &:hover
+    background: rgba($neon-cyan, 0.1)
+
+// ── Progress Bar ─────────────────────────────────────────
+
+.progressBar
+  display: flex
+  flex-direction: column
+  gap: 4px
+  flex: 1
+
+.segments
+  display: flex
+  gap: 3px
+  flex: 1
+  max-width: 200px
+
+.segment
+  height: 4px
+  flex: 1
+  border-radius: 2px
+  transition: background $transition-base
+
+.completed
+  background: $neon-green
+
+.active
+  background: $neon-yellow
+  animation: segmentPulse 1.5s ease-in-out infinite
+
+.pending
+  background: $border-color
+
+.stepLabel
+  color: $text-secondary
+  font-size: $font-xs
+  white-space: nowrap
+
+@keyframes segmentPulse
+  0%, 100%
+    opacity: 1
+  50%
+    opacity: 0.4
+
+// ── Connected Wrapper ────────────────────────────────────
+
+.connectedWrapper
   display: flex
   flex-direction: column
   align-items: flex-end
-  gap: $space-xs
-  pointer-events: none
+  width: 100%
 
-  > *
-    pointer-events: auto
+// ── Pill (connected state) ───────────────────────────────
 
-.toggle
+.pill
   display: flex
   align-items: center
   gap: $space-xs
+  align-self: flex-end
   background: rgba($bg-secondary, 0.9)
   border: 1px solid $border-color
-  border-radius: 4px
-  padding: $space-xs $space-sm
+  border-radius: 12px
+  padding: 2px $space-sm
   cursor: pointer
   font-family: $font-mono
   font-size: $font-xs
   color: $text-secondary
   backdrop-filter: blur(8px)
   transition: border-color $transition-fast
+  margin: $space-xs $space-md
 
   &:hover
     border-color: $neon-cyan
 
-.toggleLabel
-  text-transform: uppercase
-  letter-spacing: 1px
+.peerCount
+  color: $text-muted
 
-.panel
+// ── Debug Panel ──────────────────────────────────────────
+
+.debugPanel
   background: rgba($bg-primary, 0.95)
   border: 1px solid $border-color
   border-radius: 4px
   padding: $space-sm
+  margin: 0 $space-md $space-xs
   min-width: 240px
   max-width: 320px
-  max-height: 60vh
+  max-height: 50vh
   overflow-y: auto
   backdrop-filter: blur(12px)
   font-family: $font-mono
   font-size: $font-xs
   color: $text-secondary
+  align-self: flex-end
+  animation: slideDown 300ms ease
 
   &::-webkit-scrollbar
     width: 4px
@@ -56,6 +137,8 @@
   &::-webkit-scrollbar-thumb
     background: $border-color
     border-radius: 2px
+
+// ── Shared styles ────────────────────────────────────────
 
 .section
   padding: $space-xs 0
@@ -114,8 +197,25 @@
   background: $text-muted
   opacity: 0.5
 
+.pulse
+  animation: dotPulse 1.5s ease-in-out infinite
+
+@keyframes dotPulse
+  0%, 100%
+    opacity: 1
+  50%
+    opacity: 0.3
+
 .empty
   color: $text-muted
   font-style: italic
   padding: $space-sm 0
   text-align: center
+
+@keyframes slideDown
+  0%
+    opacity: 0
+    transform: translateY(-8px)
+  100%
+    opacity: 1
+    transform: translateY(0)
