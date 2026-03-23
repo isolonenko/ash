@@ -182,6 +182,61 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
     }
   }
 
+  async switchDevice(kind: 'audio' | 'video', deviceId: string): Promise<void> {
+    if (!this._stream) return;
+
+    const tier = BITRATE_TIERS[getNetworkTier()];
+
+    const constraints: MediaStreamConstraints = kind === 'audio'
+      ? {
+          audio: {
+            deviceId: { exact: deviceId },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        }
+      : {
+          video: {
+            deviceId: { exact: deviceId },
+            width: { ideal: tier.width },
+            height: { ideal: tier.height },
+            frameRate: { ideal: tier.fps },
+          },
+        };
+
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const newTrack = newStream.getTracks()[0];
+
+      const oldTrack = kind === 'audio'
+        ? this._stream.getAudioTracks()[0]
+        : this._stream.getVideoTracks()[0];
+
+      if (oldTrack) {
+        oldTrack.stop();
+        this._stream.removeTrack(oldTrack);
+      }
+
+      this._stream.addTrack(newTrack);
+
+      if (kind === 'audio') {
+        this._selectedAudioId = deviceId;
+      } else {
+        this._selectedVideoId = deviceId;
+      }
+
+      this._onTrackReplaced?.(kind, newTrack);
+
+      this.emit('device-switched', kind, deviceId);
+    } catch (err) {
+      this.emit('error', {
+        type: 'unknown',
+        message: `Failed to switch ${kind} device: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      });
+    }
+  }
+
   toggleMic(): void {
     if (!this._stream) return;
 
