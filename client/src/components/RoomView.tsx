@@ -25,10 +25,10 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
 
   // Zustand selectors
   const connectionState = useConnectionState()
-  const { stream: localStream, isMicEnabled, isCamEnabled } = useLocalMedia()
+  const { stream: localStream, isMicEnabled, isCamEnabled, isScreenSharing } = useLocalMedia()
   const peers = usePeers()
   const messages = useMessages()
-  const { connect, disconnect, toggleMic, toggleCam, sendMessage } = useRTCActions()
+  const { connect, disconnect, toggleMic, toggleCam, startScreenShare, stopScreenShare, sendMessage } = useRTCActions()
   const pip = usePictureInPicture()
   const callDuration = useCallDuration()
 
@@ -125,6 +125,16 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     void navigator.clipboard.writeText(link)
   }, [roomId])
 
+  const screenShareSupported = typeof navigator.mediaDevices?.getDisplayMedia === 'function'
+
+  const handleToggleScreenShare = useCallback(() => {
+    if (isScreenSharing) {
+      void stopScreenShare()
+    } else {
+      void startScreenShare()
+    }
+  }, [isScreenSharing, startScreenShare, stopScreenShare])
+
   const handleSendMessage = useCallback((text: string) => sendMessage(text), [sendMessage])
 
   return (
@@ -151,11 +161,14 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         onLeaveRoom={handleLeaveRoom}
         onCopyLink={handleCopyLink}
         onTogglePip={pip.toggle}
+        onToggleScreenShare={handleToggleScreenShare}
         micEnabled={isMicEnabled}
         camEnabled={isCamEnabled}
         chatOpen={chatOpen}
         pipActive={pip.isActive}
         pipSupported={pip.isSupported}
+        screenSharing={isScreenSharing}
+        screenShareSupported={screenShareSupported}
         roomCode={roomId}
         callDuration={callDuration}
       />
