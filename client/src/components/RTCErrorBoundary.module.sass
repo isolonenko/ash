@@ -1,0 +1,32 @@
+@use '../styles/variables' as *
+@use '../styles/buttons' as *
+
+.errorContainer
+  position: relative
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  width: 100vw
+  height: 100vh
+  background: $bg-primary
+  gap: $space-xl
+  text-align: center
+
+.errorMessage
+  color: $text-primary
+  font-size: $font-base
+  max-width: 500px
+  line-height: 1.6
+
+.errorActions
+  display: flex
+  gap: $space-md
+  justify-content: center
+  flex-wrap: wrap
+
+.errorButton
+  +button-cyan
+  padding: $space-sm $space-md
+  font-size: $font-sm
+  font-weight: bold

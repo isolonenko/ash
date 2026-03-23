@@ -4,7 +4,7 @@ import { Component, useEffect, useRef } from 'react'
 import type { ReactNode, ErrorInfo } from 'react'
 import { useLastError, rtcStore } from '@/hooks/useRTC'
 import type { RTCClientError } from '@/lib/rtc'
-import styles from './App.module.sass'
+import styles from './RTCErrorBoundary.module.sass'
 
 // ── Error UI Helper ─────────────────────────────────────────────
 /**
@@ -71,50 +71,14 @@ function ErrorDisplay({
   const ui = getErrorUI(error)
 
   return (
-    <div
-      className={styles.roomView}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '2rem',
-        textAlign: 'center',
-      }}
-    >
-      <div
-        style={{
-          color: 'var(--text-primary, #e0e0e0)',
-          fontSize: '1rem',
-          maxWidth: '500px',
-          lineHeight: 1.6,
-        }}
-      >
-        {ui.message}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          gap: '1rem',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-        }}
-      >
+    <div className={styles.errorContainer}>
+      <div className={styles.errorMessage}>{ui.message}</div>
+      <div className={styles.errorActions}>
         {ui.actions.map(action => (
           <button
             key={action.label}
             onClick={action.action === 'retry' ? onRetry : onLeave}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: 'var(--accent, #00ffff)',
-              color: 'var(--bg-primary, #0a0a0f)',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 'bold',
-              fontFamily: 'monospace',
-            }}
+            className={styles.errorButton}
           >
             [{action.label.toUpperCase()}]
           </button>
