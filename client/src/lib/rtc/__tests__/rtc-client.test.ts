@@ -55,6 +55,8 @@ const mockMediaAcquire = vi.fn().mockResolvedValue(new MediaStream())
 const mockMediaToggleMic = vi.fn()
 const mockMediaToggleCam = vi.fn()
 const mockMediaRelease = vi.fn()
+const mockMediaStartScreenShare = vi.fn().mockResolvedValue(undefined)
+const mockMediaStopScreenShare = vi.fn().mockResolvedValue(undefined)
 const mockMediaDestroy = vi.fn()
 const mockMediaRemoveAllListeners = vi.fn()
 const mockMediaGetLocalTracks = vi.fn(() => null)
@@ -65,6 +67,8 @@ const mockMediaManager = {
   acquire: mockMediaAcquire,
   toggleMic: mockMediaToggleMic,
   toggleCam: mockMediaToggleCam,
+  startScreenShare: mockMediaStartScreenShare,
+  stopScreenShare: mockMediaStopScreenShare,
   release: mockMediaRelease,
   destroy: mockMediaDestroy,
   removeAllListeners: mockMediaRemoveAllListeners,
@@ -357,6 +361,35 @@ describe('RTCClient', () => {
 
       expect(mockMediaToggleCam).toHaveBeenCalled()
       expect(mockPeerManagerSendToAll).toHaveBeenCalledWith(expect.objectContaining({ type: 'media-state' }))
+    })
+  })
+
+  describe('startScreenShare', () => {
+    it('delegates to MediaManager and broadcasts media-state', async () => {
+      await client.connect()
+      await client.startScreenShare()
+
+      expect(mockMediaStartScreenShare).toHaveBeenCalled()
+      expect(mockPeerManagerSendToAll).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'media-state' }),
+      )
+    })
+
+    it('does nothing before connect', async () => {
+      await client.startScreenShare()
+      expect(mockMediaStartScreenShare).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('stopScreenShare', () => {
+    it('delegates to MediaManager and broadcasts media-state', async () => {
+      await client.connect()
+      await client.stopScreenShare()
+
+      expect(mockMediaStopScreenShare).toHaveBeenCalled()
+      expect(mockPeerManagerSendToAll).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'media-state' }),
+      )
     })
   })
 
