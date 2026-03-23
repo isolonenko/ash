@@ -52,6 +52,12 @@ export const useMessages = () => useStore(rtcStore, s => s.messages)
 export const useLastError = () => useStore(rtcStore, s => s.lastError)
 
 /**
+ * Hook: Get timestamp when call connected (null if not connected)
+ * @returns number | null
+ */
+export const useConnectedAt = () => useStore(rtcStore, s => s.connectedAt)
+
+/**
  * Hook: Get all action methods
  * @returns Object with connect, disconnect, toggleMic, toggleCam, sendMessage
  */
