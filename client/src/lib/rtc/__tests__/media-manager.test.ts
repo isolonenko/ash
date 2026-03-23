@@ -49,6 +49,7 @@ function createMockDevice(kind: 'audioinput' | 'videoinput', id: string, label: 
 describe('MediaManager', () => {
   let manager: MediaManager
   let mockGetUserMedia: ReturnType<typeof vi.fn>
+  let mockGetDisplayMedia: ReturnType<typeof vi.fn>
   let mockEnumerateDevices: ReturnType<typeof vi.fn>
   let deviceChangeListeners: Array<() => void>
   let addEventListenerSpy: ReturnType<typeof vi.spyOn>
@@ -61,12 +62,14 @@ describe('MediaManager', () => {
   beforeEach(() => {
     deviceChangeListeners = []
     mockGetUserMedia = vi.fn()
+    mockGetDisplayMedia = vi.fn()
     mockEnumerateDevices = vi.fn()
 
     Object.defineProperty(globalThis, 'navigator', {
       value: {
         mediaDevices: {
           getUserMedia: mockGetUserMedia,
+          getDisplayMedia: mockGetDisplayMedia,
           enumerateDevices: mockEnumerateDevices,
           addEventListener: vi.fn((event: string, handler: () => void) => {
             if (event === 'devicechange') deviceChangeListeners.push(handler)
@@ -422,7 +425,7 @@ describe('MediaManager', () => {
       manager.on('changed', handler)
 
       manager.toggleMic()
-      expect(handler).toHaveBeenCalledWith({ isMicEnabled: false, isCamEnabled: true })
+      expect(handler).toHaveBeenCalledWith({ isMicEnabled: false, isCamEnabled: true, isScreenSharing: false })
     })
 
     it('does nothing if no stream', () => {
@@ -444,6 +447,213 @@ describe('MediaManager', () => {
 
       manager.toggleCam()
       expect(videoTrack.enabled).toBe(false)
+      expect(manager.isCamEnabled).toBe(false)
+    })
+
+    it('stops screenshare when toggleCam is called while sharing', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValueOnce(stream)
+      await manager.acquire()
+
+      const screenTrack = createMockTrack('video', 'screen-1')
+      mockGetDisplayMedia.mockResolvedValue(createMockStream([screenTrack]))
+      await manager.startScreenShare()
+      expect(manager.isScreenSharing).toBe(true)
+
+      const restoredCameraTrack = createMockTrack('video', 'video-1')
+      mockGetUserMedia.mockResolvedValueOnce(createMockStream([restoredCameraTrack]))
+
+      await manager.toggleCam()
+      expect(manager.isScreenSharing).toBe(false)
+    })
+  })
+
+  describe('startScreenShare', () => {
+    it('replaces video track with screen track and emits events', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValue(stream)
+      await manager.acquire()
+
+      const screenTrack = createMockTrack('video', 'screen-1')
+      const screenStream = createMockStream([screenTrack])
+      mockGetDisplayMedia.mockResolvedValue(screenStream)
+
+      const onTrackReplaced = vi.fn()
+      manager.onTrackReplaced = onTrackReplaced
+
+      const startedHandler = vi.fn()
+      const changedHandler = vi.fn()
+      manager.on('screenshare-started', startedHandler)
+      manager.on('changed', changedHandler)
+
+      await manager.startScreenShare()
+
+      expect(manager.isScreenSharing).toBe(true)
+      expect(onTrackReplaced).toHaveBeenCalledWith('video', screenTrack)
+      expect(startedHandler).toHaveBeenCalled()
+      expect(changedHandler).toHaveBeenCalledWith({
+        isMicEnabled: true,
+        isCamEnabled: true,
+        isScreenSharing: true,
+      })
+      expect(cameraTrack.stop).toHaveBeenCalled()
+    })
+
+    it('returns early if already screen sharing', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValue(stream)
+      await manager.acquire()
+
+      const screenTrack = createMockTrack('video', 'screen-1')
+      mockGetDisplayMedia.mockResolvedValue(createMockStream([screenTrack]))
+      await manager.startScreenShare()
+
+      await manager.startScreenShare()
+      expect(mockGetDisplayMedia).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns early if no stream acquired', async () => {
+      await manager.startScreenShare()
+      expect(mockGetDisplayMedia).not.toHaveBeenCalled()
+    })
+
+    it('catches NotAllowedError silently (user cancelled picker)', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValue(stream)
+      await manager.acquire()
+
+      mockGetDisplayMedia.mockRejectedValue(new DOMException('Denied', 'NotAllowedError'))
+
+      await manager.startScreenShare()
+
+      expect(manager.isScreenSharing).toBe(false)
+    })
+
+    it('tracks camWasEnabled state (camera was off before share)', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValue(stream)
+      await manager.acquire()
+
+      manager.toggleCam()
+      expect(manager.isCamEnabled).toBe(false)
+
+      const screenTrack = createMockTrack('video', 'screen-1')
+      mockGetDisplayMedia.mockResolvedValue(createMockStream([screenTrack]))
+      await manager.startScreenShare()
+
+      expect(manager.isScreenSharing).toBe(true)
+    })
+  })
+
+  describe('stopScreenShare', () => {
+    it('restores camera track and emits events', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValueOnce(stream)
+      await manager.acquire()
+
+      const screenTrack = createMockTrack('video', 'screen-1')
+      mockGetDisplayMedia.mockResolvedValue(createMockStream([screenTrack]))
+      await manager.startScreenShare()
+
+      const restoredCameraTrack = createMockTrack('video', 'video-1')
+      const restoredStream = createMockStream([restoredCameraTrack])
+      mockGetUserMedia.mockResolvedValueOnce(restoredStream)
+
+      const onTrackReplaced = vi.fn()
+      manager.onTrackReplaced = onTrackReplaced
+
+      const stoppedHandler = vi.fn()
+      manager.on('screenshare-stopped', stoppedHandler)
+
+      await manager.stopScreenShare()
+
+      expect(manager.isScreenSharing).toBe(false)
+      expect(screenTrack.stop).toHaveBeenCalled()
+      expect(onTrackReplaced).toHaveBeenCalledWith('video', restoredCameraTrack)
+      expect(stoppedHandler).toHaveBeenCalled()
+    })
+
+    it('restores camera to disabled state if it was off before sharing', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValueOnce(stream)
+      await manager.acquire()
+
+      manager.toggleCam()
+      expect(manager.isCamEnabled).toBe(false)
+
+      const screenTrack = createMockTrack('video', 'screen-1')
+      mockGetDisplayMedia.mockResolvedValue(createMockStream([screenTrack]))
+      await manager.startScreenShare()
+
+      await manager.stopScreenShare()
+
+      expect(manager.isScreenSharing).toBe(false)
+      expect(manager.isCamEnabled).toBe(false)
+    })
+
+    it('returns early if not screen sharing', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValueOnce(stream)
+      await manager.acquire()
+
+      const stoppedHandler = vi.fn()
+      manager.on('screenshare-stopped', stoppedHandler)
+
+      await manager.stopScreenShare()
+
+      expect(stoppedHandler).not.toHaveBeenCalled()
+    })
+
+    it('handles camera re-acquisition failure gracefully', async () => {
+      const audioTrack = createMockTrack('audio', 'audio-1')
+      const cameraTrack = createMockTrack('video', 'video-1')
+      const stream = createMockStream([audioTrack, cameraTrack])
+
+      mockEnumerateDevices.mockResolvedValue([defaultAudioDevice, defaultVideoDevice])
+      mockGetUserMedia.mockResolvedValueOnce(stream)
+      await manager.acquire()
+
+      const screenTrack = createMockTrack('video', 'screen-1')
+      mockGetDisplayMedia.mockResolvedValue(createMockStream([screenTrack]))
+      await manager.startScreenShare()
+
+      mockGetUserMedia.mockRejectedValueOnce(new Error('Permission revoked'))
+
+      await manager.stopScreenShare()
+
+      expect(manager.isScreenSharing).toBe(false)
       expect(manager.isCamEnabled).toBe(false)
     })
   })

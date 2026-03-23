@@ -76,6 +76,7 @@ export interface ChatPayload {
 export interface MediaStatePayload {
   audioEnabled: boolean;
   videoEnabled: boolean;
+  screenSharing: boolean;
 }
 
 // ── Connection ────────────────────────────────────────────

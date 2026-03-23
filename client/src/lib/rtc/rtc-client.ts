@@ -99,6 +99,18 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
     this.broadcastMediaState()
   }
 
+  async startScreenShare(): Promise<void> {
+    if (!this.media || !this.peerManager) return
+    await this.media.startScreenShare()
+    this.broadcastMediaState()
+  }
+
+  async stopScreenShare(): Promise<void> {
+    if (!this.media || !this.peerManager) return
+    await this.media.stopScreenShare()
+    this.broadcastMediaState()
+  }
+
   sendMessage(text: string): void {
     if (!this.peerManager) return
 
@@ -297,6 +309,7 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
       payload: {
         audioEnabled: this.media.isMicEnabled,
         videoEnabled: this.media.isCamEnabled,
+        screenSharing: this.media.isScreenSharing,
       },
     })
   }

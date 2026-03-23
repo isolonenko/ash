@@ -12,6 +12,7 @@ export type RTCClientState = 'idle' | 'connecting' | 'connected' | 'reconnecting
 export interface MediaToggleState {
   isMicEnabled: boolean
   isCamEnabled: boolean
+  isScreenSharing: boolean
 }
 
 // ── Error types ─────────────────────────────────────────
@@ -69,6 +70,8 @@ export interface MediaManagerEvents {
   error: (error: RTCClientError) => void
   'devices-changed': (devices: { audio: MediaDeviceInfo[], video: MediaDeviceInfo[] }) => void
   'device-switched': (kind: 'audio' | 'video', deviceId: string) => void
+  'screenshare-started': () => void
+  'screenshare-stopped': () => void
 }
 
 export interface SignalingManagerEvents {

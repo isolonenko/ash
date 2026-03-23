@@ -445,7 +445,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
         const msg: DataChannelMessage = JSON.parse(event.data as string)
 
         if (msg.type === 'media-state') {
-          const payload = msg.payload as { audioEnabled: boolean; videoEnabled: boolean }
+          const payload = msg.payload as { audioEnabled: boolean; videoEnabled: boolean; screenSharing?: boolean }
           const internal = this.peers.get(peerId)
           if (internal) {
             internal.audioEnabled = payload.audioEnabled
@@ -454,6 +454,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
           this.emit('peer-media-state', peerId, {
             isMicEnabled: payload.audioEnabled,
             isCamEnabled: payload.videoEnabled,
+            isScreenSharing: payload.screenSharing ?? false,
           })
           return
         }

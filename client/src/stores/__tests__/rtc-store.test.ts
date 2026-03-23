@@ -8,6 +8,8 @@ const mockConnect = vi.fn().mockResolvedValue(undefined)
 const mockDestroy = vi.fn()
 const mockToggleMic = vi.fn()
 const mockToggleCam = vi.fn()
+const mockStartScreenShare = vi.fn().mockResolvedValue(undefined)
+const mockStopScreenShare = vi.fn().mockResolvedValue(undefined)
 const mockSendMessage = vi.fn()
 const mockOn = vi.fn<(event: string, handler: (...args: unknown[]) => void) => void>()
 
@@ -17,6 +19,8 @@ vi.mock('@/lib/rtc', () => ({
     destroy: mockDestroy,
     toggleMic: mockToggleMic,
     toggleCam: mockToggleCam,
+    startScreenShare: mockStartScreenShare,
+    stopScreenShare: mockStopScreenShare,
     sendMessage: mockSendMessage,
     on: mockOn,
   })),
@@ -81,6 +85,7 @@ describe('rtc-store', () => {
       expect(s.localStream).toBeNull()
       expect(s.isMicEnabled).toBe(true)
       expect(s.isCamEnabled).toBe(true)
+      expect(s.isScreenSharing).toBe(false)
       expect(s.peers).toEqual(new Map())
       expect(s.messages).toEqual([])
       expect(s.lastError).toBeNull()
@@ -184,6 +189,12 @@ describe('rtc-store', () => {
       handler({ isMicEnabled: false, isCamEnabled: false })
       expect(store.getState().isMicEnabled).toBe(false)
       expect(store.getState().isCamEnabled).toBe(false)
+    })
+
+    it('media-changed event updates isScreenSharing', () => {
+      const handler = getEventHandler('media-changed')
+      handler({ isMicEnabled: true, isCamEnabled: true, isScreenSharing: true })
+      expect(store.getState().isScreenSharing).toBe(true)
     })
 
     it('media-released event clears localStream', () => {
@@ -316,6 +327,16 @@ describe('rtc-store', () => {
       expect(mockToggleCam).toHaveBeenCalledOnce()
     })
 
+    it('startScreenShare delegates to RTCClient', async () => {
+      await store.getState().startScreenShare()
+      expect(mockStartScreenShare).toHaveBeenCalledOnce()
+    })
+
+    it('stopScreenShare delegates to RTCClient', async () => {
+      await store.getState().stopScreenShare()
+      expect(mockStopScreenShare).toHaveBeenCalledOnce()
+    })
+
     it('sendMessage delegates to RTCClient', () => {
       store.getState().sendMessage('hello')
       expect(mockSendMessage).toHaveBeenCalledWith('hello')
@@ -332,12 +353,17 @@ describe('rtc-store', () => {
       const addHandler = getEventHandler('peer-added')
       addHandler('peer-2', 'Bob')
 
+      const mediaHandler = getEventHandler('media-changed')
+      mediaHandler({ isMicEnabled: true, isCamEnabled: true, isScreenSharing: true })
+      expect(store.getState().isScreenSharing).toBe(true)
+
       store.getState().disconnect()
 
       expect(mockDestroy).toHaveBeenCalledOnce()
       const s = store.getState()
       expect(s.connectionState).toBe('idle')
       expect(s.localStream).toBeNull()
+      expect(s.isScreenSharing).toBe(false)
       expect(s.peers).toEqual(new Map())
       expect(s.messages).toEqual([])
       expect(s.lastError).toBeNull()
@@ -369,6 +395,14 @@ describe('rtc-store', () => {
 
     it('toggleCam is safe before connect', () => {
       expect(() => store.getState().toggleCam()).not.toThrow()
+    })
+
+    it('startScreenShare is safe before connect', async () => {
+      await expect(store.getState().startScreenShare()).resolves.not.toThrow()
+    })
+
+    it('stopScreenShare is safe before connect', async () => {
+      await expect(store.getState().stopScreenShare()).resolves.not.toThrow()
     })
 
     it('sendMessage is safe before connect', () => {
