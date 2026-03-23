@@ -211,29 +211,31 @@ describe('RTCClient', () => {
     it('emits connect-timeout error when connect takes too long', async () => {
       vi.useFakeTimers()
 
-      const { fetchTurnCredentials } = await import('@/lib/turn')
-      vi.mocked(fetchTurnCredentials).mockImplementationOnce(
-        () => new Promise(() => {}),
-      )
+      try {
+        const { fetchTurnCredentials } = await import('@/lib/turn')
+        vi.mocked(fetchTurnCredentials).mockImplementationOnce(
+          () => new Promise(() => {}),
+        )
 
-      const errors: Array<{ type: string }> = []
-      client.on('error', err => errors.push(err))
+        const errors: Array<{ type: string }> = []
+        client.on('error', err => errors.push(err))
 
-      const states: RTCClientState[] = []
-      client.on('connection-state', state => states.push(state))
+        const states: RTCClientState[] = []
+        client.on('connection-state', state => states.push(state))
 
-      const connectPromise = client.connect()
+        const connectPromise = client.connect()
 
-      await vi.advanceTimersByTimeAsync(16_000)
+        await vi.advanceTimersByTimeAsync(16_000)
 
-      await connectPromise
+        await connectPromise
 
-      expect(states).toContain('failed')
-      expect(errors).toContainEqual(
-        expect.objectContaining({ type: 'connect-timeout' }),
-      )
-
-      vi.useRealTimers()
+        expect(states).toContain('failed')
+        expect(errors).toContainEqual(
+          expect.objectContaining({ type: 'connect-timeout' }),
+        )
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('emits turn-failed error when TURN fetch fails', async () => {
@@ -286,39 +288,54 @@ describe('RTCClient', () => {
         callOrder.push('signaling.waitForOpen')
       })
 
+      const states: RTCClientState[] = []
+      client.on('connection-state', state => {
+        states.push(state)
+        if (state === 'connected') {
+          callOrder.push('emit.connected')
+        }
+      })
+
       await client.connect()
 
       const connectIdx = callOrder.indexOf('signaling.connect')
       const waitIdx = callOrder.indexOf('signaling.waitForOpen')
+      const connectedIdx = callOrder.indexOf('emit.connected')
       expect(connectIdx).toBeLessThan(waitIdx)
+      expect(waitIdx).toBeLessThan(connectedIdx)
       expect(mockSignalingWaitForOpen).toHaveBeenCalled()
     })
 
     it('cleans up resources on timeout without setting destroyed flag', async () => {
       vi.useFakeTimers()
 
-      const { fetchTurnCredentials } = await import('@/lib/turn')
-      vi.mocked(fetchTurnCredentials).mockImplementationOnce(
-        () => new Promise(() => {}),
-      )
+      try {
+        const { fetchTurnCredentials } = await import('@/lib/turn')
+        vi.mocked(fetchTurnCredentials).mockImplementationOnce(
+          () => new Promise(() => {}),
+        )
 
-      const connectPromise = client.connect()
-      await vi.advanceTimersByTimeAsync(16_000)
-      await connectPromise
+        const connectPromise = client.connect()
+        await vi.advanceTimersByTimeAsync(16_000)
+        await connectPromise
 
-      vi.mocked(fetchTurnCredentials).mockResolvedValueOnce({
-        iceServers: [{ urls: 'stun:stun.test:19302' }],
-        iceTransportPolicy: 'all' as RTCIceTransportPolicy,
-      })
+        // Verify destroyed flag was NOT set: a second connect() should work
+        // (connect() early-returns if destroyed === true)
+        vi.mocked(fetchTurnCredentials).mockResolvedValueOnce({
+          iceServers: [{ urls: 'stun:stun.test:19302' }],
+          iceTransportPolicy: 'all' as RTCIceTransportPolicy,
+        })
 
-      const states: RTCClientState[] = []
-      client.on('connection-state', state => states.push(state))
+        const states: RTCClientState[] = []
+        client.on('connection-state', state => states.push(state))
 
-      await client.connect()
+        await client.connect()
 
-      expect(states).toContain('connecting')
-
-      vi.useRealTimers()
+        expect(states).toContain('connecting')
+        expect(states).toContain('connected')
+      } finally {
+        vi.useRealTimers()
+      }
     })
   })
 

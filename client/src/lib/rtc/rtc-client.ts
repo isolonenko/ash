@@ -53,8 +53,9 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
         try {
           await this.media.acquire()
         } catch {
-          this.emit('connection-state', 'failed')
+          this.cleanupPartial()
           this.emitSubStep(null)
+          this.emit('connection-state', 'failed')
           return
         }
       } else {
