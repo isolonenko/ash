@@ -1,6 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 import type { StoreApi } from 'zustand';
 import { RTCClient } from '@/lib/rtc';
+import { mediaManager } from '@/lib/rtc/media-manager-instance';
 import type { RTCClientState, RTCClientError, PeerSnapshot, ChatMessage, MediaToggleState } from '@/lib/rtc';
 
 function storageKey(roomId: string): string {
@@ -76,7 +77,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
     connect: async (roomId, peerId, displayName, initialAudioEnabled, initialVideoEnabled) => {
       if (client) return;
 
-      client = new RTCClient({ roomId, peerId, displayName });
+      client = new RTCClient({ roomId, peerId, displayName, mediaManager });
       currentRoomId = roomId;
 
       const persisted = loadMessages(roomId);
