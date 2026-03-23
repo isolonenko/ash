@@ -3,17 +3,19 @@
 
 .controlBar
   position: fixed
-  bottom: 0
-  left: 0
-  right: 0
+  bottom: $space-md
+  left: $space-md
+  right: $space-md
   z-index: 100
   background: rgba($bg-secondary, 0.95)
-  border-top: 1px solid $border-color
+  border: 1px solid $border-color
+  border-radius: 14px
   padding: $space-md $space-lg
   display: flex
   align-items: center
   justify-content: space-between
   backdrop-filter: blur(10px)
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-cyan, 0.05)
 
 .roomInfo
   display: flex
@@ -54,6 +56,27 @@
   align-items: center
   gap: $space-xs
 
+.separator
+  width: 1px
+  height: 24px
+  background: $border-color
+  flex-shrink: 0
+
+.mediaGroup
+  display: flex
+  align-items: center
+  gap: $space-md
+
+.featuresGroup
+  display: flex
+  align-items: center
+  gap: $space-md
+
+.callGroup
+  display: flex
+  align-items: center
+  gap: $space-md
+
 .buttonActive
   +button-cyan
 
@@ -69,12 +92,21 @@
 .buttonLeave
   +button-red
 
+.buttonScreen
+  +button-ghost
+
+.buttonScreenActive
+  +button-purple
+
 // Mobile responsive
 @media (max-width: 768px)
   .controlBar
     flex-direction: column
     gap: $space-md
     padding: $space-md
+    bottom: $space-sm
+    left: $space-sm
+    right: $space-sm
 
   .roomInfo
     width: 100%
@@ -86,6 +118,9 @@
   .copyButton
     font-size: $font-xs
     padding: $space-xs $space-sm
+
+  .separator
+    display: none
 
   .controls
     width: 100%
