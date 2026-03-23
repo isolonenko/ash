@@ -1,7 +1,28 @@
+// ── Imports ─────────────────────────────────────────────
+import type { ChatMessage, DataChannelMessage, SignalingMessage } from '@/types';
+
 // ── RTCClient state machine ─────────────────────────────
 export type RTCClientState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
 
+// ── Media state toggle ───────────────────────────────────
+/**
+ * Represents the enabled/disabled state of media devices.
+ * Used across multiple event handlers for consistency.
+ */
+export interface MediaToggleState {
+  isMicEnabled: boolean;
+  isCamEnabled: boolean;
+}
+
 // ── Error types ─────────────────────────────────────────
+/**
+ * Error types emitted by RTCClient when operations fail.
+ * - room-full: Room has reached maximum capacity
+ * - media-denied: User denied camera/microphone permissions
+ * - media-not-found: No camera/microphone devices found
+ * - signaling-failed: WebSocket connection to signaling server failed
+ * - unknown: Unexpected error occurred
+ */
 export interface RTCClientError {
   type: 'room-full' | 'media-denied' | 'media-not-found' | 'signaling-failed' | 'unknown';
   message: string;
@@ -9,11 +30,11 @@ export interface RTCClientError {
 
 // ── Peer snapshot (read-only view for store/UI) ─────────
 export interface PeerSnapshot {
-  displayName: string;
-  stream: MediaStream | null;
-  connectionState: RTCPeerConnectionState;
-  audioEnabled: boolean;
-  videoEnabled: boolean;
+  readonly displayName: string;
+  readonly stream: MediaStream | null;
+  readonly connectionState: RTCPeerConnectionState;
+  readonly audioEnabled: boolean;
+  readonly videoEnabled: boolean;
 }
 
 // ── RTCClient options ───────────────────────────────────
@@ -27,14 +48,14 @@ export interface RTCClientOptions {
 export interface RTCClientEvents {
   'connection-state': (state: RTCClientState) => void;
   'media-acquired': (stream: MediaStream) => void;
-  'media-changed': (info: { isMicEnabled: boolean; isCamEnabled: boolean }) => void;
+  'media-changed': (info: MediaToggleState) => void;
   'media-released': () => void;
   'peer-added': (peerId: string, displayName: string) => void;
   'peer-removed': (peerId: string) => void;
   'peer-stream': (peerId: string, stream: MediaStream) => void;
   'peer-stream-removed': (peerId: string) => void;
   'peer-connection-state': (peerId: string, state: RTCPeerConnectionState) => void;
-  'peer-media-state': (peerId: string, state: { audioEnabled: boolean; videoEnabled: boolean }) => void;
+  'peer-media-state': (peerId: string, state: MediaToggleState) => void;
   'message': (msg: ChatMessage) => void;
   'error': (error: RTCClientError) => void;
 }
@@ -42,13 +63,13 @@ export interface RTCClientEvents {
 // ── Manager event maps ──────────────────────────────────
 export interface MediaManagerEvents {
   'acquired': (stream: MediaStream) => void;
-  'changed': (info: { isMicEnabled: boolean; isCamEnabled: boolean }) => void;
+  'changed': (info: MediaToggleState) => void;
   'released': () => void;
   'error': (error: RTCClientError) => void;
 }
 
 export interface SignalingManagerEvents {
-  'message': (msg: import('@/types').SignalingMessage) => void;
+  'message': (msg: SignalingMessage) => void;
   'connection-change': (connected: boolean) => void;
   'error': (error: 'room-full' | 'unknown') => void;
   'reconnected': () => void;
@@ -60,16 +81,15 @@ export interface PeerManagerEvents {
   'peer-stream': (peerId: string, stream: MediaStream) => void;
   'peer-stream-removed': (peerId: string) => void;
   'peer-connection-state': (peerId: string, state: RTCPeerConnectionState) => void;
-  'peer-media-state': (peerId: string, state: { audioEnabled: boolean; videoEnabled: boolean }) => void;
+  'peer-media-state': (peerId: string, state: MediaToggleState) => void;
   'message': (peerId: string, msg: DataChannelMessage) => void;
 }
 
-// ── DataChannel message types ───────────────────────────
-// Re-export relevant types from main types file for convenience
-import type { ChatMessage, DataChannelMessage } from '@/types';
-export type { ChatMessage, DataChannelMessage };
-
 // ── Internal peer state (used only inside PeerManager) ──
+/**
+ * Internal peer state managed by PeerManager.
+ * NOT exposed to UI/store — use PeerSnapshot for read-only access.
+ */
 export interface InternalPeer {
   connection: RTCPeerConnection;
   dataChannel: RTCDataChannel | null;
@@ -80,3 +100,6 @@ export interface InternalPeer {
   audioEnabled: boolean;
   videoEnabled: boolean;
 }
+
+// ── Re-export convenience types ──────────────────────────
+export type { ChatMessage, DataChannelMessage };
