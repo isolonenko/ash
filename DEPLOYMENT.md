@@ -139,7 +139,7 @@ coturn uses Caddy's certificates for TURN-over-TLS on port 5349 (standard TURNS 
 
 ```bash
 # Client (terminal 1)
-cd client && npm run dev
+cd client && pnpm dev
 
 # Server (terminal 2)
 cd server && deno task dev
