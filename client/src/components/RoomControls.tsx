@@ -9,11 +9,14 @@ interface RoomControlsProps {
   onLeaveRoom: () => void;
   onCopyLink: () => void;
   onTogglePip: () => void;
+  onToggleScreenShare: () => void;
   micEnabled: boolean;
   camEnabled: boolean;
   chatOpen: boolean;
   pipActive: boolean;
   pipSupported: boolean;
+  screenSharing: boolean;
+  screenShareSupported: boolean;
   roomCode: string;
   callDuration: string | null;
 }
@@ -25,11 +28,14 @@ export const RoomControls = ({
   onLeaveRoom,
   onCopyLink,
   onTogglePip,
+  onToggleScreenShare,
   micEnabled,
   camEnabled,
   chatOpen,
   pipActive,
   pipSupported,
+  screenSharing,
+  screenShareSupported,
   roomCode,
   callDuration,
 }: RoomControlsProps) => {
@@ -56,45 +62,64 @@ export const RoomControls = ({
       </div>
 
       <div className={styles.controls}>
-        <div className={styles.controlGroup}>
-          <button
-            className={micEnabled ? styles.buttonActive : styles.buttonInactive}
-            onClick={onToggleMic}
-          >
-            {micEnabled ? "[MIC]" : "[MIC OFF]"}
-          </button>
-          <DeviceDropdown kind="audio" direction="up" />
+        <div className={styles.mediaGroup}>
+          <div className={styles.controlGroup}>
+            <button
+              className={micEnabled ? styles.buttonActive : styles.buttonInactive}
+              onClick={onToggleMic}
+            >
+              {micEnabled ? "[MIC]" : "[MIC OFF]"}
+            </button>
+            <DeviceDropdown kind="audio" direction="up" />
+          </div>
+
+          <div className={styles.controlGroup}>
+            <button
+              className={camEnabled ? styles.buttonActive : styles.buttonInactive}
+              onClick={onToggleCam}
+            >
+              {camEnabled ? "[CAM]" : "[CAM OFF]"}
+            </button>
+            <DeviceDropdown kind="video" direction="up" />
+          </div>
+
+          {screenShareSupported && (
+            <button
+              className={screenSharing ? styles.buttonScreenActive : styles.buttonScreen}
+              onClick={onToggleScreenShare}
+            >
+              {screenSharing ? "[STOP]" : "[SCREEN]"}
+            </button>
+          )}
         </div>
 
-        <div className={styles.controlGroup}>
+        <div className={styles.separator} />
+
+        <div className={styles.featuresGroup}>
           <button
-            className={camEnabled ? styles.buttonActive : styles.buttonInactive}
-            onClick={onToggleCam}
+            className={chatOpen ? styles.buttonChat : styles.buttonChatInactive}
+            onClick={onToggleChat}
           >
-            {camEnabled ? "[CAM]" : "[CAM OFF]"}
+            [CHAT]
           </button>
-          <DeviceDropdown kind="video" direction="up" />
+
+          {pipSupported && (
+            <button
+              className={pipActive ? styles.buttonActive : styles.buttonInactive}
+              onClick={onTogglePip}
+            >
+              {pipActive ? "[PIP ON]" : "[PIP]"}
+            </button>
+          )}
         </div>
 
-        <button
-          className={chatOpen ? styles.buttonChat : styles.buttonChatInactive}
-          onClick={onToggleChat}
-        >
-          [CHAT]
-        </button>
+        <div className={styles.separator} />
 
-        {pipSupported && (
-          <button
-            className={pipActive ? styles.buttonActive : styles.buttonInactive}
-            onClick={onTogglePip}
-          >
-            {pipActive ? "[PIP ON]" : "[PIP]"}
+        <div className={styles.callGroup}>
+          <button className={styles.buttonLeave} onClick={onLeaveRoom}>
+            [LEAVE]
           </button>
-        )}
-
-        <button className={styles.buttonLeave} onClick={onLeaveRoom}>
-          [LEAVE]
-        </button>
+        </div>
       </div>
     </div>
   );
