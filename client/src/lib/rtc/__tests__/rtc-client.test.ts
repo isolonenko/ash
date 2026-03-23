@@ -59,28 +59,21 @@ const mockMediaDestroy = vi.fn()
 const mockMediaRemoveAllListeners = vi.fn()
 const mockMediaGetLocalTracks = vi.fn(() => null)
 
-vi.mock('../media-manager', () => ({
-  MediaManager: vi.fn().mockImplementation(() => ({
-    on: mockMediaOn,
-    emit: mockMediaEmit,
-    acquire: mockMediaAcquire,
-    toggleMic: mockMediaToggleMic,
-    toggleCam: mockMediaToggleCam,
-    release: mockMediaRelease,
-    destroy: mockMediaDestroy,
-    removeAllListeners: mockMediaRemoveAllListeners,
-    getLocalTracks: mockMediaGetLocalTracks,
-    get stream() {
-      return null
-    },
-    get isMicEnabled() {
-      return true
-    },
-    get isCamEnabled() {
-      return true
-    },
-  })),
-}))
+const mockMediaManager = {
+  on: mockMediaOn,
+  emit: mockMediaEmit,
+  acquire: mockMediaAcquire,
+  toggleMic: mockMediaToggleMic,
+  toggleCam: mockMediaToggleCam,
+  release: mockMediaRelease,
+  destroy: mockMediaDestroy,
+  removeAllListeners: mockMediaRemoveAllListeners,
+  getLocalTracks: mockMediaGetLocalTracks,
+  stream: null as MediaStream | null,
+  isMicEnabled: true,
+  isCamEnabled: true,
+  onTrackReplaced: null as ((kind: string, track: MediaStreamTrack) => void) | null,
+} as unknown as RTCClientOptions['mediaManager']
 
 // Mock PeerManager
 const mockPeerManagerOn = vi.fn<OnFn>(() => () => {})
@@ -119,6 +112,7 @@ describe('RTCClient', () => {
     roomId: 'room-123',
     peerId: 'peer-1',
     displayName: 'Alice',
+    mediaManager: mockMediaManager,
   }
 
   beforeEach(() => {
@@ -437,7 +431,6 @@ describe('RTCClient', () => {
       await client.connect()
       client.destroy()
 
-      expect(mockMediaDestroy).toHaveBeenCalled()
       expect(mockPeerManagerDestroyAll).toHaveBeenCalled()
       expect(mockSignalingDestroy).toHaveBeenCalled()
     })

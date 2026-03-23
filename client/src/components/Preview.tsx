@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoomContext } from "@/context/room-context";
-import { useMedia } from "@/context/media-context";
-import { usePermissionCheck } from "@/hooks/usePermissionCheck";
+import { useLocalStream, useMediaState, useMediaActions, useDevices } from "@/hooks/useMediaManager";
 import { navigateTo } from "@/lib/router";
+import { DeviceDropdown } from "./DeviceDropdown";
 import styles from "./Preview.module.sass";
 
 interface PreviewProps {
@@ -13,18 +13,11 @@ export const Preview = ({ roomId }: PreviewProps) => {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { checkRoom, joinRoom } = useRoomContext();
-  const {
-    localStream,
-    audioEnabled,
-    videoEnabled,
-    acquire,
-    release,
-    toggleAudio,
-    toggleVideo,
-  } = useMedia();
-  const permissions = usePermissionCheck();
-  const permissionDenied =
-    permissions.camera === "denied" || permissions.microphone === "denied";
+  const localStream = useLocalStream();
+  const { isMicEnabled, isCamEnabled } = useMediaState();
+  const { acquire, release, toggleMic, toggleCam } = useMediaActions();
+  const devices = useDevices();
+  const hasVideoDevices = devices.video.length > 0;
 
   const videoRef = useCallback(
     (node: HTMLVideoElement | null) => {
@@ -68,8 +61,8 @@ export const Preview = ({ roomId }: PreviewProps) => {
 
     try {
       await joinRoom(roomId, displayName.trim(), {
-        audioEnabled,
-        videoEnabled,
+        audioEnabled: isMicEnabled,
+        videoEnabled: isCamEnabled,
       });
     } catch {
       setError("Failed to join room");
@@ -100,7 +93,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
 
       <div className={styles.previewSection}>
         <div className={styles.videoContainer}>
-          {videoEnabled && localStream ? (
+          {isCamEnabled && localStream ? (
             <video ref={videoRef} className={styles.video} />
           ) : (
             <div className={styles.videoPlaceholder}>
@@ -121,34 +114,32 @@ export const Preview = ({ roomId }: PreviewProps) => {
         />
 
         <div className={styles.controls}>
-          <button
-            className={
-              audioEnabled ? styles.buttonActive : styles.buttonInactive
-            }
-            onClick={toggleAudio}
-          >
-            {audioEnabled ? "[MIC]" : "[MIC OFF]"}
-          </button>
-
-          <button
-            className={
-              videoEnabled ? styles.buttonActive : styles.buttonInactive
-            }
-            onClick={toggleVideo}
-          >
-            {videoEnabled ? "[CAM]" : "[CAM OFF]"}
-          </button>
-        </div>
-
-        {permissionDenied && (
-          <div className={styles.permissionDenied}>
-            <span className={styles.permissionIcon}>[!]</span>
-            <span>
-              Camera or microphone blocked. Check browser permissions in the
-              address bar.
-            </span>
+          <div className={styles.controlGroup}>
+            <button
+              className={
+                isMicEnabled ? styles.buttonActive : styles.buttonInactive
+              }
+              onClick={toggleMic}
+            >
+              {isMicEnabled ? "[MIC]" : "[MIC OFF]"}
+            </button>
+            <DeviceDropdown kind="audio" direction="down" />
           </div>
-        )}
+
+          {hasVideoDevices && (
+            <div className={styles.controlGroup}>
+              <button
+                className={
+                  isCamEnabled ? styles.buttonActive : styles.buttonInactive
+                }
+                onClick={toggleCam}
+              >
+                {isCamEnabled ? "[CAM]" : "[CAM OFF]"}
+              </button>
+              <DeviceDropdown kind="video" direction="down" />
+            </div>
+          )}
+        </div>
 
         <button
           className={styles.joinButton}

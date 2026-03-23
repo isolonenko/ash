@@ -1,4 +1,6 @@
 export { RTCClient } from './rtc-client';
+export { MediaManager } from './media-manager';
+export { mediaManager } from './media-manager-instance';
 export { TypedEventEmitter } from './event-emitter';
 export { getNetworkTier, onNetworkTierChange } from './network-quality';
 

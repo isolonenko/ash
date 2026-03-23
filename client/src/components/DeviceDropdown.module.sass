@@ -1,0 +1,63 @@
+@use "../styles/variables" as *
+
+.container
+  position: relative
+  display: inline-flex
+
+.trigger
+  background: transparent
+  border: 1px solid $border-color
+  color: $text-secondary
+  font-family: $font-mono
+  font-size: $font-sm
+  padding: $space-xs
+  cursor: pointer
+  transition: all $transition-fast
+  letter-spacing: 1px
+  line-height: 1
+
+  &:hover
+    border-color: $neon-cyan
+    color: $neon-cyan
+
+.dropdown
+  position: absolute
+  left: 0
+  min-width: 220px
+  max-width: 320px
+  background: $bg-secondary
+  border: 1px solid $border-color
+  z-index: 200
+  max-height: 200px
+  overflow-y: auto
+
+.dropdownUp
+  bottom: 100%
+  margin-bottom: $space-xs
+
+.dropdownDown
+  top: 100%
+  margin-top: $space-xs
+
+.option
+  display: block
+  width: 100%
+  background: transparent
+  border: none
+  color: $text-secondary
+  font-family: $font-mono
+  font-size: $font-xs
+  padding: $space-sm $space-md
+  text-align: left
+  cursor: pointer
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+  transition: all $transition-fast
+
+  &:hover
+    background: rgba($neon-cyan, 0.1)
+    color: $text-primary
+
+.optionSelected
+  color: $neon-cyan

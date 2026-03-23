@@ -22,6 +22,14 @@ vi.mock('@/lib/rtc', () => ({
   })),
 }))
 
+const { mockMediaRelease } = vi.hoisted(() => ({
+  mockMediaRelease: vi.fn(),
+}))
+
+vi.mock('@/lib/rtc/media-manager-instance', () => ({
+  mediaManager: { _mock: true, release: mockMediaRelease },
+}))
+
 // ── Mock sessionStorage ─────────────────────────────────
 
 const mockGetItem = vi.fn().mockReturnValue(null)
@@ -90,6 +98,7 @@ describe('rtc-store', () => {
         roomId: 'room-1',
         peerId: 'peer-1',
         displayName: 'Alice',
+        mediaManager: expect.any(Object),
       })
       expect(mockConnect).toHaveBeenCalledOnce()
     })
@@ -338,6 +347,12 @@ describe('rtc-store', () => {
       await store.getState().connect('room-1', 'peer-1', 'Alice', true, true)
       store.getState().disconnect()
       expect(mockRemoveItem).toHaveBeenCalledWith('messages-room-1')
+    })
+
+    it('releases mediaManager on disconnect', async () => {
+      await store.getState().connect('room-1', 'peer-1', 'Alice', true, true)
+      store.getState().disconnect()
+      expect(mockMediaRelease).toHaveBeenCalled()
     })
 
     it('is safe to call without prior connect', () => {

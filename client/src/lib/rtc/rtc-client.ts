@@ -2,7 +2,7 @@ import type { SignalingMessage, SdpPayload, IceCandidatePayload, ChatPayload, Da
 import type { RTCClientOptions, RTCClientEvents } from './types'
 import { TypedEventEmitter } from './event-emitter'
 import { SignalingManager } from './signaling-manager'
-import { MediaManager } from './media-manager'
+import type { MediaManager } from './media-manager'
 import { PeerManager } from './peer-manager'
 import { fetchTurnCredentials } from '@/lib/turn'
 import { selectOptimalCodec } from '@/lib/codec-selection'
@@ -35,17 +35,18 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
       const iceConfig = await fetchTurnCredentials()
       if (this.destroyed) return
 
-      // 2. Acquire media
-      this.media = new MediaManager()
+      this.media = this.options.mediaManager
       this.wireMediaEvents()
 
-      try {
-        await this.media.acquire()
-      } catch {
-        // MediaManager already emits its own error event
-        // which we re-emit — so just emit failed state and return
-        this.emit('connection-state', 'failed')
-        return
+      if (!this.media.stream) {
+        try {
+          await this.media.acquire()
+        } catch {
+          this.emit('connection-state', 'failed')
+          return
+        }
+      } else {
+        this.emit('media-acquired', this.media.stream)
       }
       if (this.destroyed) return
 
@@ -67,6 +68,10 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
         codecResult.mimeType,
       )
       this.wirePeerManagerEvents()
+
+      this.media.onTrackReplaced = (kind: string, newTrack: MediaStreamTrack) => {
+        this.peerManager?.replaceTrackOnAll(kind, newTrack)
+      }
 
       // 6. Connect signaling (triggers peer-joined messages from server)
       this.signaling.connect(this.options.roomId)
@@ -127,9 +132,10 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
     this.peerManager?.removeAllListeners()
     this.peerManager = null
 
-    this.media?.destroy()
-    this.media?.removeAllListeners()
-    this.media = null
+    if (this.media) {
+      this.media.onTrackReplaced = null
+      this.media = null
+    }
 
     this.signaling?.destroy()
     this.signaling = null

@@ -118,31 +118,5 @@ export interface SignalingContextValue {
   onError: (handler: (error: "room-full" | "unknown") => void) => () => void;
 }
 
-// ── Media Context ────────────────────────────────────────
-
-export interface MediaContextValue {
-  /** The local MediaStream (null until acquired) */
-  localStream: MediaStream | null;
-  /** Whether audio track is enabled */
-  audioEnabled: boolean;
-  /** Whether video track is enabled */
-  videoEnabled: boolean;
-  /** Whether media has been acquired (even if getUserMedia failed) */
-  ready: boolean;
-  /** Acquire camera + mic. Resolves with the stream or throws. */
-  acquire: () => Promise<MediaStream>;
-  /** Toggle audio track on/off */
-  toggleAudio: () => void;
-  /** Toggle video track on/off */
-  toggleVideo: () => void;
-  /** Get current local tracks + stream for adding to peer connections */
-  getLocalTracks: () => {
-    tracks: MediaStreamTrack[];
-    stream: MediaStream;
-  } | null;
-  /** Stop all tracks and release media */
-  release: () => void;
-}
-
 // ── Network quality ──────────────────────────────────────
 export type NetworkTier = "high" | "medium" | "low";
