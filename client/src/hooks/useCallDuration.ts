@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import { useConnectedAt } from './useRTC'
 
 function formatElapsed(ms: number): string {
@@ -10,24 +10,53 @@ function formatElapsed(ms: number): string {
   return `${minutes}:${seconds}`
 }
 
+let currentSecond = Math.floor(Date.now() / 1000)
+const listeners = new Set<() => void>()
+
+function getSnapshot(): number {
+  return currentSecond
+}
+
+function subscribe(onStoreChange: () => void): () => void {
+  if (listeners.size === 0) {
+    startTicking()
+  }
+  listeners.add(onStoreChange)
+  return () => {
+    listeners.delete(onStoreChange)
+    if (listeners.size === 0) {
+      stopTicking()
+    }
+  }
+}
+
+let tickInterval: ReturnType<typeof setInterval> | undefined
+
+function startTicking(): void {
+  tickInterval = setInterval(() => {
+    const next = Math.floor(Date.now() / 1000)
+    if (next !== currentSecond) {
+      currentSecond = next
+      for (const listener of listeners) {
+        listener()
+      }
+    }
+  }, 200)
+}
+
+function stopTicking(): void {
+  clearInterval(tickInterval)
+  tickInterval = undefined
+}
+
 export const useCallDuration = (): string | null => {
   const connectedAt = useConnectedAt()
-  const [elapsed, setElapsed] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (connectedAt === null) {
-      setElapsed(null)
-      return
-    }
+  const snap = useCallback(() => getSnapshot(), [])
+  const now = useSyncExternalStore(subscribe, snap)
 
-    setElapsed(formatElapsed(Date.now() - connectedAt))
+  if (connectedAt === null) return null
 
-    const id = setInterval(() => {
-      setElapsed(formatElapsed(Date.now() - connectedAt))
-    }, 1000)
-
-    return () => clearInterval(id)
-  }, [connectedAt])
-
-  return elapsed
+  const elapsedMs = now * 1000 - connectedAt
+  return formatElapsed(Math.max(0, elapsedMs))
 }
