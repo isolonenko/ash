@@ -7,9 +7,15 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
   private _stream: MediaStream | null = null;
   private _isMicEnabled = true;
   private _isCamEnabled = true;
+  private _devices: { audio: MediaDeviceInfo[], video: MediaDeviceInfo[] } = { audio: [], video: [] };
+  private _selectedAudioId: string | null = null;
+  private _selectedVideoId: string | null = null;
+  private _hasPermission = false;
+  private _onTrackReplaced: ((kind: string, track: MediaStreamTrack) => void) | null = null;
   private connectionId = 0;
   private unsubNetworkChange: (() => void) | null = null;
   private beforeUnloadHandler: (() => void) | null = null;
+  private deviceChangeHandler: (() => void) | null = null;
 
   get stream(): MediaStream | null {
     return this._stream;
@@ -21,6 +27,46 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
 
   get isCamEnabled(): boolean {
     return this._isCamEnabled;
+  }
+
+  get devices(): { audio: readonly MediaDeviceInfo[], video: readonly MediaDeviceInfo[] } {
+    return this._devices;
+  }
+
+  get selectedAudioId(): string | null {
+    return this._selectedAudioId;
+  }
+
+  get selectedVideoId(): string | null {
+    return this._selectedVideoId;
+  }
+
+  get hasPermission(): boolean {
+    return this._hasPermission;
+  }
+
+  set onTrackReplaced(cb: ((kind: string, track: MediaStreamTrack) => void) | null) {
+    this._onTrackReplaced = cb;
+  }
+
+  async enumerate(): Promise<void> {
+    const allDevices = await navigator.mediaDevices.enumerateDevices();
+
+    this._devices = {
+      audio: allDevices.filter(d => d.kind === 'audioinput'),
+      video: allDevices.filter(d => d.kind === 'videoinput'),
+    };
+
+    this._hasPermission = allDevices.some(d => d.label !== '');
+
+    this.emit('devices-changed', this._devices);
+
+    if (!this.deviceChangeHandler) {
+      this.deviceChangeHandler = () => {
+        void this.handleDeviceChange();
+      };
+      navigator.mediaDevices.addEventListener('devicechange', this.deviceChangeHandler);
+    }
   }
 
   async acquire(): Promise<MediaStream> {
@@ -131,6 +177,10 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
     this.unsubNetworkChange?.();
     this.unsubNetworkChange = null;
     this.removeBeforeUnload();
+    if (this.deviceChangeHandler) {
+      navigator.mediaDevices.removeEventListener('devicechange', this.deviceChangeHandler);
+      this.deviceChangeHandler = null;
+    }
     this.removeAllListeners();
   }
 
@@ -165,5 +215,51 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
       height: { ideal: config.height },
       frameRate: { ideal: config.fps },
     }).catch(() => {});
+  }
+
+  private async handleDeviceChange(): Promise<void> {
+    const previousAudioIds = new Set(this._devices.audio.map(d => d.deviceId));
+    const previousVideoIds = new Set(this._devices.video.map(d => d.deviceId));
+
+    await this.enumerate();
+
+    if (this._stream) {
+      const currentAudioTrack = this._stream.getAudioTracks()[0];
+      const currentVideoTrack = this._stream.getVideoTracks()[0];
+
+      if (currentAudioTrack) {
+        const audioSettings = currentAudioTrack.getSettings();
+        const currentAudioDeviceId = audioSettings.deviceId;
+        const audioStillExists = this._devices.audio.some(d => d.deviceId === currentAudioDeviceId);
+
+        if (!audioStillExists && previousAudioIds.has(currentAudioDeviceId!)) {
+          const fallback = this._devices.audio[0];
+          if (fallback) {
+            await this.switchDevice('audio', fallback.deviceId);
+          } else {
+            currentAudioTrack.enabled = false;
+            this._isMicEnabled = false;
+            this.emit('changed', { isMicEnabled: this._isMicEnabled, isCamEnabled: this._isCamEnabled });
+          }
+        }
+      }
+
+      if (currentVideoTrack) {
+        const videoSettings = currentVideoTrack.getSettings();
+        const currentVideoDeviceId = videoSettings.deviceId;
+        const videoStillExists = this._devices.video.some(d => d.deviceId === currentVideoDeviceId);
+
+        if (!videoStillExists && previousVideoIds.has(currentVideoDeviceId!)) {
+          const fallback = this._devices.video[0];
+          if (fallback) {
+            await this.switchDevice('video', fallback.deviceId);
+          } else {
+            currentVideoTrack.enabled = false;
+            this._isCamEnabled = false;
+            this.emit('changed', { isMicEnabled: this._isMicEnabled, isCamEnabled: this._isCamEnabled });
+          }
+        }
+      }
+    }
   }
 }
