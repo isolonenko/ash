@@ -23,6 +23,13 @@ export class TypedEventEmitter<Events extends { [K in keyof Events]: (...args: a
     }
   }
 
+  off<K extends keyof Events>(event: K, handler: Events[K]): void {
+    const set = this.listeners.get(event)
+    if (set) {
+      set.delete(handler as Events[keyof Events])
+    }
+  }
+
   removeAllListeners(): void {
     this.listeners.clear()
   }
