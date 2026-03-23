@@ -1,173 +1,155 @@
-import { useState, useEffect, useCallback } from "react";
-import type { PeerState } from "@/types";
-import styles from "./ConnectionStatus.module.sass";
+import { useState, useEffect, useCallback } from 'react'
+import type { PeerState } from '@/types'
+import styles from './ConnectionStatus.module.sass'
 
 // ── Types ────────────────────────────────────────────────
 
 interface ConnectionStatusProps {
-  signalingConnected: boolean;
-  peers: Map<string, PeerState>;
-  localPeerId: string;
+  signalingConnected: boolean
+  peers: Map<string, PeerState>
+  localPeerId: string
 }
 
 interface PeerDebugSnapshot {
-  connectionState: RTCPeerConnectionState;
-  iceConnectionState: RTCIceConnectionState;
-  iceGatheringState: RTCIceGatheringState;
-  signalingState: RTCSignalingState;
-  dataChannelState: RTCDataChannelState | "none";
-  audioTracks: number;
-  videoTracks: number;
-  displayName: string | null;
+  connectionState: RTCPeerConnectionState
+  iceConnectionState: RTCIceConnectionState
+  iceGatheringState: RTCIceGatheringState
+  signalingState: RTCSignalingState
+  dataChannelState: RTCDataChannelState | 'none'
+  audioTracks: number
+  videoTracks: number
+  displayName: string | null
 }
 
 // ── State color mapping ──────────────────────────────────
 
-type StatusColor = "green" | "yellow" | "red" | "muted";
+type StatusColor = 'green' | 'yellow' | 'red' | 'muted'
 
 function connectionColor(state: RTCPeerConnectionState): StatusColor {
   switch (state) {
-    case "connected":
-      return "green";
-    case "connecting":
-    case "new":
-      return "yellow";
-    case "disconnected":
-    case "failed":
-    case "closed":
-      return "red";
+    case 'connected':
+      return 'green'
+    case 'connecting':
+    case 'new':
+      return 'yellow'
+    case 'disconnected':
+    case 'failed':
+    case 'closed':
+      return 'red'
     default:
-      return "muted";
+      return 'muted'
   }
 }
 
 function iceColor(state: RTCIceConnectionState): StatusColor {
   switch (state) {
-    case "connected":
-    case "completed":
-      return "green";
-    case "checking":
-    case "new":
-      return "yellow";
-    case "disconnected":
-    case "failed":
-    case "closed":
-      return "red";
+    case 'connected':
+    case 'completed':
+      return 'green'
+    case 'checking':
+    case 'new':
+      return 'yellow'
+    case 'disconnected':
+    case 'failed':
+    case 'closed':
+      return 'red'
     default:
-      return "muted";
+      return 'muted'
   }
 }
 
 function gatheringColor(state: RTCIceGatheringState): StatusColor {
   switch (state) {
-    case "complete":
-      return "green";
-    case "gathering":
-      return "yellow";
-    case "new":
-      return "muted";
+    case 'complete':
+      return 'green'
+    case 'gathering':
+      return 'yellow'
+    case 'new':
+      return 'muted'
     default:
-      return "muted";
+      return 'muted'
   }
 }
 
-function dataChannelColor(state: RTCDataChannelState | "none"): StatusColor {
+function dataChannelColor(state: RTCDataChannelState | 'none'): StatusColor {
   switch (state) {
-    case "open":
-      return "green";
-    case "connecting":
-      return "yellow";
-    case "closing":
-    case "closed":
-      return "red";
-    case "none":
-      return "muted";
+    case 'open':
+      return 'green'
+    case 'connecting':
+      return 'yellow'
+    case 'closing':
+    case 'closed':
+      return 'red'
+    case 'none':
+      return 'muted'
     default:
-      return "muted";
+      return 'muted'
   }
 }
 
 // ── Dot indicator ────────────────────────────────────────
 
 function Dot({ color }: { color: StatusColor }) {
-  return <span className={`${styles.dot} ${styles[color]}`} />;
+  return <span className={`${styles.dot} ${styles[color]}`} />
 }
 
 // ── Component ────────────────────────────────────────────
 
-export const ConnectionStatus = ({
-  signalingConnected,
-  peers,
-  localPeerId,
-}: ConnectionStatusProps) => {
-  const [collapsed, setCollapsed] = useState(true);
-  const [snapshots, setSnapshots] = useState<Map<string, PeerDebugSnapshot>>(
-    () => new Map(),
-  );
+export const ConnectionStatus = ({ signalingConnected, peers, localPeerId }: ConnectionStatusProps) => {
+  const [collapsed, setCollapsed] = useState(true)
+  const [snapshots, setSnapshots] = useState<Map<string, PeerDebugSnapshot>>(() => new Map())
 
   // Poll peer connection states every 500ms (RTCPeerConnection state
   // changes don't trigger React re-renders, so we poll)
   const captureSnapshots = useCallback(() => {
-    const next = new Map<string, PeerDebugSnapshot>();
+    const next = new Map<string, PeerDebugSnapshot>()
     for (const [peerId, peer] of peers) {
-      const pc = peer.connection;
-      const dc = peer.dataChannel;
-      const rs = peer.remoteStream;
+      const pc = peer.connection
+      const dc = peer.dataChannel
+      const rs = peer.remoteStream
 
       next.set(peerId, {
         connectionState: pc.connectionState,
         iceConnectionState: pc.iceConnectionState,
         iceGatheringState: pc.iceGatheringState,
         signalingState: pc.signalingState,
-        dataChannelState: dc ? dc.readyState : "none",
+        dataChannelState: dc ? dc.readyState : 'none',
         audioTracks: rs?.getAudioTracks().length ?? 0,
         videoTracks: rs?.getVideoTracks().length ?? 0,
         displayName: peer.displayName,
-      });
+      })
     }
-    setSnapshots(next);
-  }, [peers]);
+    setSnapshots(next)
+  }, [peers])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    captureSnapshots();
-    const interval = setInterval(captureSnapshots, 500);
-    return () => clearInterval(interval);
-  }, [captureSnapshots]);
+    const interval = setInterval(captureSnapshots, 500)
+    return () => clearInterval(interval)
+  }, [captureSnapshots])
 
   // ── Overall health indicator ────────────────────────
   const overallColor: StatusColor = (() => {
-    if (!signalingConnected) return "red";
-    if (snapshots.size === 0) return "muted";
+    if (!signalingConnected) return 'red'
+    if (snapshots.size === 0) return 'muted'
 
-    let hasYellow = false;
+    let hasYellow = false
     for (const [, snap] of snapshots) {
-      if (
-        snap.connectionState === "failed" ||
-        snap.iceConnectionState === "failed"
-      )
-        return "red";
-      if (
-        snap.connectionState !== "connected" ||
-        snap.iceConnectionState !== "connected"
-      )
-        hasYellow = true;
+      if (snap.connectionState === 'failed' || snap.iceConnectionState === 'failed') return 'red'
+      if (snap.connectionState !== 'connected' || snap.iceConnectionState !== 'connected') hasYellow = true
     }
-    return hasYellow ? "yellow" : "green";
-  })();
+    return hasYellow ? 'yellow' : 'green'
+  })()
 
   return (
     <div className={styles.overlay}>
       <button
         className={styles.toggle}
-        onClick={() => setCollapsed((prev) => !prev)}
+        onClick={() => setCollapsed(prev => !prev)}
         title="Connection debug info"
         type="button"
       >
         <Dot color={overallColor} />
-        <span className={styles.toggleLabel}>
-          {collapsed ? "DBG" : "Debug"}
-        </span>
+        <span className={styles.toggleLabel}>{collapsed ? 'DBG' : 'Debug'}</span>
       </button>
 
       {!collapsed && (
@@ -175,8 +157,8 @@ export const ConnectionStatus = ({
           <div className={styles.section}>
             <div className={styles.sectionHeader}>Signaling WS</div>
             <div className={styles.row}>
-              <Dot color={signalingConnected ? "green" : "red"} />
-              <span>{signalingConnected ? "Connected" : "Disconnected"}</span>
+              <Dot color={signalingConnected ? 'green' : 'red'} />
+              <span>{signalingConnected ? 'Connected' : 'Disconnected'}</span>
             </div>
           </div>
 
@@ -237,11 +219,9 @@ export const ConnectionStatus = ({
             </div>
           ))}
 
-          {snapshots.size === 0 && (
-            <div className={styles.empty}>No peers connected</div>
-          )}
+          {snapshots.size === 0 && <div className={styles.empty}>No peers connected</div>}
         </div>
       )}
     </div>
-  );
-};
+  )
+}
