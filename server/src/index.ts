@@ -30,11 +30,10 @@ const secHeaders = secureHeaders({
   xContentTypeOptions: "nosniff",
   referrerPolicy: "no-referrer",
   strictTransportSecurity: false,
-  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
 });
 
-app.use("*", async (c, next) => {
+app.use("*", (c, next) => {
   if (c.req.header("upgrade")?.toLowerCase() === "websocket") {
     return next();
   }
@@ -58,7 +57,8 @@ app.get("/health", (c) =>
     status: "ok",
     service: "thechat-signaling",
     timestamp: Date.now(),
-  }));
+  }),
+);
 
 // ── Rate-limited routes ─────────────────────────────────
 
