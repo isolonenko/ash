@@ -1,4 +1,4 @@
-import type { SignalingMessage, DataChannelMessage } from '@/types';
+import type { DataChannelMessage } from '@/types';
 import type {
   PeerManagerEvents,
   PeerSnapshot,

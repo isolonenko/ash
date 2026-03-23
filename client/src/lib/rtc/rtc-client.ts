@@ -1,5 +1,5 @@
-import type { SignalingMessage, SdpPayload, IceCandidatePayload, ChatPayload, DataChannelMessage } from '@/types';
-import type { RTCClientOptions, RTCClientEvents, RTCClientError } from './types';
+import type { SdpPayload, IceCandidatePayload, ChatPayload, DataChannelMessage } from '@/types';
+import type { RTCClientOptions, RTCClientEvents } from './types';
 import { TypedEventEmitter } from './event-emitter';
 import { SignalingManager } from './signaling-manager';
 import { MediaManager } from './media-manager';
@@ -41,7 +41,7 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
 
       try {
         await this.media.acquire();
-      } catch (err) {
+      } catch {
         // MediaManager already emits its own error event
         // which we re-emit — so just emit failed state and return
         this.emit('connection-state', 'failed');

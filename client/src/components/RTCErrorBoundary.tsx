@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Component, useEffect, useRef } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { useLastError, rtcStore } from '@/hooks/useRTC';

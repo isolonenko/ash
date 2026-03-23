@@ -1,7 +1,5 @@
 import { useStore } from 'zustand';
 import { createRTCStore } from '@/stores/rtc-store';
-import type { RTCStore, RTCState, RTCActions } from '@/stores/rtc-store';
-import type { RTCClientState, RTCClientError, PeerSnapshot, ChatMessage } from '@/lib/rtc';
 
 /**
  * Singleton RTCStore instance shared across all components

@@ -129,6 +129,7 @@ export const ConnectionStatus = ({
   }, [peers]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     captureSnapshots();
     const interval = setInterval(captureSnapshots, 500);
     return () => clearInterval(interval);

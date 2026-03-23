@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RTCClient } from '../rtc-client';
-import type { RTCClientOptions, RTCClientState, RTCClientError } from '../types';
+import type { RTCClientOptions, RTCClientState } from '../types';
 
 // ── Mock dependencies ───────────────────────────────────
 
