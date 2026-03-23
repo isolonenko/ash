@@ -33,6 +33,16 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
   }, []);
 
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
+  useEffect(() => {
     const stream = streamRef.current;
     if (!stream) return;
 
@@ -130,7 +140,10 @@ export const MediaProvider = ({ children }: MediaProviderProps) => {
   }, []);
 
   const release = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    const stream = streamRef.current;
+    if (!stream) return;
+
+    stream.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setLocalStream(null);
     setAudioEnabled(true);

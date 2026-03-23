@@ -18,6 +18,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
     audioEnabled,
     videoEnabled,
     acquire,
+    release,
     toggleAudio,
     toggleVideo,
   } = useMedia();
@@ -55,6 +56,12 @@ export const Preview = ({ roomId }: PreviewProps) => {
 
     init();
   }, [roomId, checkRoom, acquire]);
+
+  useEffect(() => {
+    return () => {
+      release();
+    };
+  }, [release]);
 
   const handleJoin = async () => {
     if (!displayName.trim()) return;

@@ -1,15 +1,15 @@
-import { useEffect, useRef } from "react";
-import styles from "./ParticipantTile.module.sass";
+import { useEffect, useRef } from 'react'
+import styles from './ParticipantTile.module.sass'
 
 interface ParticipantTileProps {
-  stream: MediaStream | null;
-  displayName: string;
-  isSpeaking: boolean;
-  isLocalUser: boolean;
-  userId: string;
-  audioEnabled: boolean;
-  videoEnabled: boolean;
-  provideMediaRef?: (peerId: string, node: HTMLVideoElement | null) => void;
+  stream: MediaStream | null
+  displayName: string
+  isSpeaking: boolean
+  isLocalUser: boolean
+  userId: string
+  audioEnabled: boolean
+  videoEnabled: boolean
+  provideMediaRef?: (peerId: string, node: HTMLVideoElement | null) => void
 }
 
 export const ParticipantTile = ({
@@ -22,48 +22,44 @@ export const ParticipantTile = ({
   videoEnabled,
   provideMediaRef,
 }: ParticipantTileProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    if (!isLocalUser) return;
-    const node = videoRef.current;
-    if (!node) return;
+    const node = videoRef.current
+    if (!node) return
 
     if (stream) {
       if (node.srcObject !== stream) {
-        node.srcObject = stream;
+        node.srcObject = stream
       }
       // autoplay policy — some browsers require explicit play() call
-      node.play().catch(() => {});
+      node.play().catch(() => {})
     } else {
-      node.srcObject = null;
+      node.srcObject = null
     }
-  }, [stream, isLocalUser]);
+  }, [stream])
 
-  const hasLiveVideoTrack =
-    stream
-      ?.getVideoTracks()
-      .some((t) => t.readyState === "live" && t.enabled) ?? false;
-  const showVideo = videoEnabled && hasLiveVideoTrack;
+  const hasLiveVideoTrack = stream?.getVideoTracks().some(t => t.readyState === 'live' && t.enabled) ?? false
+  const showVideo = videoEnabled && hasLiveVideoTrack
 
-  const initial = displayName.charAt(0).toUpperCase();
+  const initial = displayName.charAt(0).toUpperCase()
 
   return (
     <div
-      className={`${styles.tile} ${isSpeaking ? styles.speaking : ""}`}
+      className={`${styles.tile} ${isSpeaking ? styles.speaking : ''}`}
       data-local={isLocalUser}
       data-userid={userId}
       data-video-off={!videoEnabled}
     >
       <video
-        ref={(node) => {
-          videoRef.current = node;
+        ref={node => {
+          videoRef.current = node
           if (!isLocalUser && provideMediaRef) {
-            provideMediaRef(userId, node);
+            provideMediaRef(userId, node)
           }
         }}
         className={styles.video}
-        style={showVideo ? undefined : { display: "none" }}
+        style={showVideo ? undefined : { display: 'none' }}
         autoPlay
         playsInline
         muted={isLocalUser}
@@ -81,5 +77,5 @@ export const ParticipantTile = ({
 
       {!audioEnabled && <div className={styles.mutedBadge}>[MIC OFF]</div>}
     </div>
-  );
-};
+  )
+}

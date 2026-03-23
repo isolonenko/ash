@@ -81,7 +81,9 @@ export class RoomManager {
     return true;
   }
 
-  getRoomInfo(roomId: string): { exists: boolean; participantCount: number; maxSize: number } {
+  getRoomInfo(
+    roomId: string,
+  ): { exists: boolean; participantCount: number; maxSize: number } {
     const room = this.rooms.get(roomId);
     return {
       exists: !!room,

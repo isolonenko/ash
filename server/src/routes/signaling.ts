@@ -33,28 +33,32 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
       const tags = buildSocketTags(roomId, peerId, displayName);
 
       try {
+        // Join the room FIRST (may throw if full) — socket must be
+        // registered before peers can send targeted messages to it.
+        roomManager.join(roomId, socket, tags);
+
         const existingSockets = roomManager.getSockets(roomId);
 
         // Notify existing peers about the joiner
         broadcastToOthers(
           [...existingSockets.keys()],
-          socket as unknown as WebSocket,
+          socket,
           buildPeerJoinedMessage(roomId, peerId, displayName),
         );
 
         // Notify joiner about existing peers
-        for (const [_peer, peerTags] of existingSockets) {
+        for (const [peer, peerTags] of existingSockets) {
+          if (peer === socket) continue;
           const peerPeerId = extractPeerIdFromTags(peerTags);
           const peerDisplayName = extractDisplayNameFromTags(peerTags);
           try {
-            socket.send(buildPeerJoinedMessage(roomId, peerPeerId, peerDisplayName));
+            socket.send(
+              buildPeerJoinedMessage(roomId, peerPeerId, peerDisplayName),
+            );
           } catch {
             // peer may be closing
           }
         }
-
-        // Join the room (may throw if full)
-        roomManager.join(roomId, socket as unknown as WebSocket, tags);
       } catch {
         // Room is full — close with 4409
         socket.close(4409, "Room is full");
@@ -85,27 +89,23 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
         }
       } else {
         // No target — broadcast to all others
-        broadcastToOthers(
-          [...sockets.keys()],
-          socket as unknown as WebSocket,
-          data,
-        );
+        broadcastToOthers([...sockets.keys()], socket, data);
       }
     };
 
     socket.onclose = () => {
-      const tags = roomManager.getTags(socket as unknown as WebSocket);
+      const tags = roomManager.getTags(socket);
       const rid = extractRoomIdFromTags(tags);
       const pid = extractPeerIdFromTags(tags);
 
       const sockets = roomManager.getSockets(rid);
       broadcastToOthers(
         [...sockets.keys()],
-        socket as unknown as WebSocket,
+        socket,
         buildPeerLeftMessage(rid, pid),
       );
 
-      roomManager.leave(rid, socket as unknown as WebSocket);
+      roomManager.leave(rid, socket);
     };
 
     socket.onerror = () => {
