@@ -7,6 +7,7 @@ export type {
   RTCClientError,
   RTCClientOptions,
   RTCClientEvents,
+  MediaToggleState,
   PeerSnapshot,
   ChatMessage,
   DataChannelMessage,

@@ -1,7 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 import type { StoreApi } from 'zustand';
 import { RTCClient } from '@/lib/rtc';
-import type { RTCClientState, RTCClientError, PeerSnapshot, ChatMessage } from '@/lib/rtc';
+import type { RTCClientState, RTCClientError, PeerSnapshot, ChatMessage, MediaToggleState } from '@/lib/rtc';
 
 function storageKey(roomId: string): string {
   return `messages-${roomId}`;
@@ -134,12 +134,12 @@ export function createRTCStore(): StoreApi<RTCStore> {
         }));
       });
 
-      client.on('peer-media-state', (peerId: string, state: { audioEnabled: boolean; videoEnabled: boolean }) => {
+      client.on('peer-media-state', (peerId: string, state: MediaToggleState) => {
         set((s) => ({
           peers: updatePeer(s.peers, peerId, (p) => ({
             ...p,
-            audioEnabled: state.audioEnabled,
-            videoEnabled: state.videoEnabled,
+            audioEnabled: state.isMicEnabled,
+            videoEnabled: state.isCamEnabled,
           })),
         }));
       });

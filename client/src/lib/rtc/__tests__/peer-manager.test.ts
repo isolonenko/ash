@@ -390,7 +390,7 @@ describe('PeerManager', () => {
       const mediaStateMsg = { type: 'media-state', payload: { audioEnabled: false, videoEnabled: true } };
       (dc.onmessage as (e: MessageEvent) => void)({ data: JSON.stringify(mediaStateMsg) } as MessageEvent);
 
-      expect(handler).toHaveBeenCalledWith('remote-1', { audioEnabled: false, videoEnabled: true });
+      expect(handler).toHaveBeenCalledWith('remote-1', { isMicEnabled: false, isCamEnabled: true });
     });
   });
 
