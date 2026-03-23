@@ -42,6 +42,7 @@ export interface RTCClientOptions {
   roomId: string
   peerId: string
   displayName: string
+  mediaManager: import('./media-manager').MediaManager
 }
 
 // ── RTCClient event map ─────────────────────────────────
@@ -66,6 +67,8 @@ export interface MediaManagerEvents {
   changed: (info: MediaToggleState) => void
   released: () => void
   error: (error: RTCClientError) => void
+  'devices-changed': (devices: { audio: MediaDeviceInfo[], video: MediaDeviceInfo[] }) => void
+  'device-switched': (kind: 'audio' | 'video', deviceId: string) => void
 }
 
 export interface SignalingManagerEvents {
