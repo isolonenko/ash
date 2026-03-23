@@ -1,39 +1,36 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import type { Participant, ChatMessage } from '@/types';
-import { useRoomContext } from '@/context/room-context';
-import {
-  useLocalMedia,
-  usePeers,
-  useMessages,
-  useRTCActions,
-} from '@/hooks/useRTC';
-import { useSpeakingIndicator } from '@/hooks/useSpeakingIndicator';
-import { useWakeLock } from '@/hooks/useWakeLock';
-import { usePictureInPicture } from '@/hooks/usePictureInPicture';
-import { VideoGrid } from './VideoGrid';
-import { ChatPanel } from './ChatPanel';
-import { RoomControls } from './RoomControls';
-import styles from './App.module.sass';
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import type { Participant, ChatMessage } from '@/types'
+import { useRoomContext } from '@/context/room-context'
+import { useConnectionState, useLocalMedia, usePeers, useMessages, useRTCActions } from '@/hooks/useRTC'
+import { useSpeakingIndicator } from '@/hooks/useSpeakingIndicator'
+import { useWakeLock } from '@/hooks/useWakeLock'
+import { usePictureInPicture } from '@/hooks/usePictureInPicture'
+import { VideoGrid } from './VideoGrid'
+import { ChatPanel } from './ChatPanel'
+import { RoomControls } from './RoomControls'
+import { ConnectionStatus } from './ConnectionStatus'
+import styles from './App.module.sass'
 
 interface RoomViewProps {
-  roomId: string;
+  roomId: string
 }
 
 export const RoomView = ({ roomId }: RoomViewProps) => {
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false)
 
-  const { state: roomState, leaveRoom } = useRoomContext();
-  const localUserId = roomState.peerId ?? '';
-  const displayName = roomState.displayName ?? 'Anonymous';
+  const { state: roomState, leaveRoom } = useRoomContext()
+  const localUserId = roomState.peerId ?? ''
+  const displayName = roomState.displayName ?? 'Anonymous'
 
   // Zustand selectors
-  const { stream: localStream, isMicEnabled, isCamEnabled } = useLocalMedia();
-  const peers = usePeers();
-  const messages = useMessages();
-  const { connect, disconnect, toggleMic, toggleCam, sendMessage } = useRTCActions();
-  const pip = usePictureInPicture();
+  const connectionState = useConnectionState()
+  const { stream: localStream, isMicEnabled, isCamEnabled } = useLocalMedia()
+  const peers = usePeers()
+  const messages = useMessages()
+  const { connect, disconnect, toggleMic, toggleCam, sendMessage } = useRTCActions()
+  const pip = usePictureInPicture()
 
-  useWakeLock(true);
+  useWakeLock(true)
 
   // Connect on mount, disconnect on unmount
   useEffect(() => {
@@ -44,30 +41,30 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         displayName,
         roomState.initialAudioEnabled ?? true,
         roomState.initialVideoEnabled ?? true,
-      );
+      )
     }
 
     return () => {
-      disconnect();
-    };
+      disconnect()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally run once on mount
-  }, []);
+  }, [])
 
   // Derive remote streams for speaking indicator
   const remoteStreams = useMemo(() => {
-    const map = new Map<string, MediaStream>();
+    const map = new Map<string, MediaStream>()
     for (const [peerId, peer] of peers) {
       if (peer.stream) {
-        map.set(peerId, peer.stream);
+        map.set(peerId, peer.stream)
       }
     }
-    return map;
-  }, [peers]);
+    return map
+  }, [peers])
 
-  const speakingMap = useSpeakingIndicator(localStream, remoteStreams);
+  const speakingMap = useSpeakingIndicator(localStream, remoteStreams)
 
   const participants: Participant[] = useMemo(() => {
-    const result: Participant[] = [];
+    const result: Participant[] = []
 
     if (localUserId) {
       result.push({
@@ -77,7 +74,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         videoEnabled: isCamEnabled,
         stream: localStream,
         isSpeaking: speakingMap.get('local') ?? false,
-      });
+      })
     }
 
     for (const [peerId, peer] of peers) {
@@ -88,48 +85,45 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         videoEnabled: peer.videoEnabled,
         stream: peer.stream,
         isSpeaking: speakingMap.get(peerId) ?? false,
-      });
+      })
     }
 
-    return result;
-  }, [localUserId, displayName, isMicEnabled, isCamEnabled, localStream, peers, speakingMap]);
+    return result
+  }, [localUserId, displayName, isMicEnabled, isCamEnabled, localStream, peers, speakingMap])
 
   const displayNames = useMemo(() => {
-    const map = new Map<string, string>();
-    if (localUserId) map.set(localUserId, displayName);
+    const map = new Map<string, string>()
+    if (localUserId) map.set(localUserId, displayName)
     for (const [peerId, peer] of peers) {
-      map.set(peerId, peer.displayName);
+      map.set(peerId, peer.displayName)
     }
-    return map;
-  }, [localUserId, displayName, peers]);
+    return map
+  }, [localUserId, displayName, peers])
 
   const handleLeaveRoom = useCallback(() => {
-    disconnect();
-    leaveRoom();
-  }, [disconnect, leaveRoom]);
+    disconnect()
+    leaveRoom()
+  }, [disconnect, leaveRoom])
 
   const handleToggleChat = useCallback(() => {
-    setChatOpen((prev) => !prev);
-  }, []);
+    setChatOpen(prev => !prev)
+  }, [])
 
   const pipVideoRef = useCallback(
     (id: string, node: HTMLVideoElement | null) => {
       if (node && id !== localUserId) {
-        pip.setVideoElement(node);
+        pip.setVideoElement(node)
       }
     },
     [localUserId, pip],
-  );
+  )
 
   const handleCopyLink = useCallback(() => {
-    const link = `${window.location.origin}/#/room/${roomId}/preview`;
-    void navigator.clipboard.writeText(link);
-  }, [roomId]);
+    const link = `${window.location.origin}/#/room/${roomId}/preview`
+    void navigator.clipboard.writeText(link)
+  }, [roomId])
 
-  const handleSendMessage = useCallback(
-    (text: string) => sendMessage(text),
-    [sendMessage],
-  );
+  const handleSendMessage = useCallback((text: string) => sendMessage(text), [sendMessage])
 
   return (
     <div className={styles.roomView}>
@@ -162,6 +156,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         pipSupported={pip.isSupported}
         roomCode={roomId}
       />
+      <ConnectionStatus signalingConnected={connectionState === 'connected'} peers={peers} localPeerId={localUserId} />
     </div>
-  );
-};
+  )
+}

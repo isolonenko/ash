@@ -1,24 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { PeerState } from '@/types'
+import type { PeerSnapshot } from '@/lib/rtc'
 import styles from './ConnectionStatus.module.sass'
 
 // ── Types ────────────────────────────────────────────────
 
 interface ConnectionStatusProps {
   signalingConnected: boolean
-  peers: Map<string, PeerState>
+  peers: Map<string, PeerSnapshot>
   localPeerId: string
-}
-
-interface PeerDebugSnapshot {
-  connectionState: RTCPeerConnectionState
-  iceConnectionState: RTCIceConnectionState
-  iceGatheringState: RTCIceGatheringState
-  signalingState: RTCSignalingState
-  dataChannelState: RTCDataChannelState | 'none'
-  audioTracks: number
-  videoTracks: number
-  displayName: string | null
 }
 
 // ── State color mapping ──────────────────────────────────
@@ -41,52 +30,6 @@ function connectionColor(state: RTCPeerConnectionState): StatusColor {
   }
 }
 
-function iceColor(state: RTCIceConnectionState): StatusColor {
-  switch (state) {
-    case 'connected':
-    case 'completed':
-      return 'green'
-    case 'checking':
-    case 'new':
-      return 'yellow'
-    case 'disconnected':
-    case 'failed':
-    case 'closed':
-      return 'red'
-    default:
-      return 'muted'
-  }
-}
-
-function gatheringColor(state: RTCIceGatheringState): StatusColor {
-  switch (state) {
-    case 'complete':
-      return 'green'
-    case 'gathering':
-      return 'yellow'
-    case 'new':
-      return 'muted'
-    default:
-      return 'muted'
-  }
-}
-
-function dataChannelColor(state: RTCDataChannelState | 'none'): StatusColor {
-  switch (state) {
-    case 'open':
-      return 'green'
-    case 'connecting':
-      return 'yellow'
-    case 'closing':
-    case 'closed':
-      return 'red'
-    case 'none':
-      return 'muted'
-    default:
-      return 'muted'
-  }
-}
-
 // ── Dot indicator ────────────────────────────────────────
 
 function Dot({ color }: { color: StatusColor }) {
@@ -97,29 +40,11 @@ function Dot({ color }: { color: StatusColor }) {
 
 export const ConnectionStatus = ({ signalingConnected, peers, localPeerId }: ConnectionStatusProps) => {
   const [collapsed, setCollapsed] = useState(true)
-  const [snapshots, setSnapshots] = useState<Map<string, PeerDebugSnapshot>>(() => new Map())
+  const [snapshots, setSnapshots] = useState<Map<string, PeerSnapshot>>(() => new Map())
 
-  // Poll peer connection states every 500ms (RTCPeerConnection state
-  // changes don't trigger React re-renders, so we poll)
+  // Poll peer snapshots every 500ms for consistent rendering
   const captureSnapshots = useCallback(() => {
-    const next = new Map<string, PeerDebugSnapshot>()
-    for (const [peerId, peer] of peers) {
-      const pc = peer.connection
-      const dc = peer.dataChannel
-      const rs = peer.remoteStream
-
-      next.set(peerId, {
-        connectionState: pc.connectionState,
-        iceConnectionState: pc.iceConnectionState,
-        iceGatheringState: pc.iceGatheringState,
-        signalingState: pc.signalingState,
-        dataChannelState: dc ? dc.readyState : 'none',
-        audioTracks: rs?.getAudioTracks().length ?? 0,
-        videoTracks: rs?.getVideoTracks().length ?? 0,
-        displayName: peer.displayName,
-      })
-    }
-    setSnapshots(next)
+    setSnapshots(new Map(peers))
   }, [peers])
 
   useEffect(() => {
@@ -134,8 +59,8 @@ export const ConnectionStatus = ({ signalingConnected, peers, localPeerId }: Con
 
     let hasYellow = false
     for (const [, snap] of snapshots) {
-      if (snap.connectionState === 'failed' || snap.iceConnectionState === 'failed') return 'red'
-      if (snap.connectionState !== 'connected' || snap.iceConnectionState !== 'connected') hasYellow = true
+      if (snap.connectionState === 'failed') return 'red'
+      if (snap.connectionState !== 'connected') hasYellow = true
     }
     return hasYellow ? 'yellow' : 'green'
   })()
@@ -166,7 +91,7 @@ export const ConnectionStatus = ({ signalingConnected, peers, localPeerId }: Con
             <div className={styles.sectionHeader}>Local</div>
             <div className={styles.row}>
               <span className={styles.label}>Peer ID</span>
-              <span className={styles.mono}>{localPeerId.slice(0, 8)}…</span>
+              <span className={styles.mono}>{localPeerId.slice(0, 8)}...</span>
             </div>
             <div className={styles.row}>
               <span className={styles.label}>Peers</span>
@@ -188,32 +113,21 @@ export const ConnectionStatus = ({ signalingConnected, peers, localPeerId }: Con
               </div>
 
               <div className={styles.row}>
-                <span className={styles.label}>ICE</span>
-                <Dot color={iceColor(snap.iceConnectionState)} />
-                <span>{snap.iceConnectionState}</span>
+                <span className={styles.label}>Audio</span>
+                <span>{snap.audioEnabled ? 'On' : 'Off'}</span>
               </div>
 
               <div className={styles.row}>
-                <span className={styles.label}>ICE Gather</span>
-                <Dot color={gatheringColor(snap.iceGatheringState)} />
-                <span>{snap.iceGatheringState}</span>
-              </div>
-
-              <div className={styles.row}>
-                <span className={styles.label}>Signaling</span>
-                <span>{snap.signalingState}</span>
-              </div>
-
-              <div className={styles.row}>
-                <span className={styles.label}>DataChannel</span>
-                <Dot color={dataChannelColor(snap.dataChannelState)} />
-                <span>{snap.dataChannelState}</span>
+                <span className={styles.label}>Video</span>
+                <span>{snap.videoEnabled ? 'On' : 'Off'}</span>
               </div>
 
               <div className={styles.row}>
                 <span className={styles.label}>Tracks</span>
                 <span>
-                  🎤{snap.audioTracks} 📹{snap.videoTracks}
+                  {snap.stream
+                    ? `A:${snap.stream.getAudioTracks().length} V:${snap.stream.getVideoTracks().length}`
+                    : 'No stream'}
                 </span>
               </div>
             </div>
