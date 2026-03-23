@@ -66,10 +66,9 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
     };
 
     socket.onmessage = (event: MessageEvent) => {
-      const data =
-        typeof event.data === "string"
-          ? event.data
-          : new TextDecoder().decode(event.data as ArrayBuffer);
+      const data = typeof event.data === "string"
+        ? event.data
+        : new TextDecoder().decode(event.data as ArrayBuffer);
 
       const msg = parseSignalingMessage(data);
       if (!msg || !isAllowedSignalType(msg.type)) return;
