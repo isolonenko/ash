@@ -25,7 +25,7 @@ function getErrorUI(error: RTCClientError): {
       }
     case 'media-not-found':
       return {
-        message: 'No camera or microphone found. Please check your devices.',
+        message: 'No camera or microphone found. Please connect a device and try again.',
         actions: [
           { label: 'Retry', action: 'retry' },
           { label: 'Leave', action: 'leave' },
