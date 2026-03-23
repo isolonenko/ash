@@ -1,7 +1,6 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@hono/hono@*": "4.11.9",
     "jsr:@hono/hono@4.11.9": "4.11.9",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/assert@^1.0.17": "1.0.19",
@@ -31,7 +30,6 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@hono/hono@*",
       "jsr:@hono/hono@4.11.9",
       "jsr:@std/assert@1",
       "jsr:@std/testing@1"

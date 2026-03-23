@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 
-export const createTurnRoutes = (domain: string, secret: string): Hono => {
+export const createTurnRoutes = (
+  domain: string,
+  secret: string,
+  ttl: number = 3600,
+): Hono => {
   const routes = new Hono();
 
   routes.get("/", async (c) => {
@@ -11,7 +15,7 @@ export const createTurnRoutes = (domain: string, secret: string): Hono => {
       });
     }
 
-    const { username, credential } = await generateTurnCredentials(secret);
+    const { username, credential } = await generateTurnCredentials(secret, ttl);
 
     return c.json({
       iceServers: [
@@ -27,8 +31,8 @@ export const createTurnRoutes = (domain: string, secret: string): Hono => {
 
 async function generateTurnCredentials(
   secret: string,
+  ttl: number,
 ): Promise<{ username: string; credential: string }> {
-  const ttl = 86400; // 24 hours
   const timestamp = Math.floor(Date.now() / 1000) + ttl;
   const username = `${timestamp}:thechat`;
 
