@@ -437,13 +437,12 @@ describe('PeerManager', () => {
       ;(pc as unknown as Record<string, string>).signalingState = 'have-local-offer';
 
       const newTrack = createMockTrack('video');
-
-      const senders = vi.mocked(pc.getSenders).mock.results;
+      const senders = vi.mocked(pc.addTrack).mock.results.map(result => result.value as RTCRtpSender);
 
       peerManager.replaceTrackOnAll('video', newTrack);
 
-      for (const result of senders) {
-        const sender = result.value as RTCRtpSender;
+      // replaceTrack should NOT have been called on any sender (mid-negotiation)
+      for (const sender of senders) {
         if (sender.track?.kind === 'video') {
           expect(sender.replaceTrack).not.toHaveBeenCalled();
         }
@@ -459,9 +458,8 @@ describe('PeerManager', () => {
 
       peerManager.replaceTrackOnAll('video', newTrack);
 
-      const senders = vi.mocked(pc.getSenders).mock.results;
-      for (const result of senders) {
-        const sender = result.value as RTCRtpSender;
+      const senders = vi.mocked(pc.addTrack).mock.results.map(result => result.value as RTCRtpSender);
+      for (const sender of senders) {
         if (sender.track?.kind === 'video') {
           expect(sender.replaceTrack).not.toHaveBeenCalled();
         }
