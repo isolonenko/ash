@@ -364,6 +364,8 @@ describe('MediaManager', () => {
       const videoTrack = createMockTrack('video', 'video-1')
       const stream = createMockStream([audioTrack, videoTrack])
 
+      // acquire() calls enumerate() twice: once before getUserMedia, once after
+      mockEnumerateDevices.mockResolvedValueOnce([defaultAudioDevice, secondAudioDevice, defaultVideoDevice])
       mockEnumerateDevices.mockResolvedValueOnce([defaultAudioDevice, secondAudioDevice, defaultVideoDevice])
       mockGetUserMedia.mockResolvedValueOnce(stream)
 
