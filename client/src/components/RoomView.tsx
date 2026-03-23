@@ -144,6 +144,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         localStream={localStream}
         speakingMap={speakingMap}
         localUserId={localUserId}
+        localScreenSharing={isScreenSharing}
         displayNames={displayNames}
         provideMediaRef={pipVideoRef}
       />

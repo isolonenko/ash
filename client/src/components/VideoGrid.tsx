@@ -7,6 +7,7 @@ interface VideoGridProps {
   localStream: MediaStream | null;
   speakingMap: Map<string, boolean>;
   localUserId: string;
+  localScreenSharing?: boolean;
   displayNames: Map<string, string>;
   provideMediaRef?: (peerId: string, node: HTMLVideoElement | null) => void;
 }
@@ -16,6 +17,7 @@ export const VideoGrid = ({
   localStream,
   speakingMap,
   localUserId,
+  localScreenSharing,
   displayNames,
   provideMediaRef,
 }: VideoGridProps) => {
@@ -51,6 +53,7 @@ export const VideoGrid = ({
             displayName={displayName}
             isSpeaking={isSpeaking}
             isLocalUser={isLocal}
+            isScreenSharing={isLocal ? localScreenSharing : undefined}
             userId={participant.peerId}
             audioEnabled={participant.audioEnabled}
             videoEnabled={participant.videoEnabled}

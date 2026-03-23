@@ -6,6 +6,7 @@ interface ParticipantTileProps {
   displayName: string
   isSpeaking: boolean
   isLocalUser: boolean
+  isScreenSharing?: boolean
   userId: string
   audioEnabled: boolean
   videoEnabled: boolean
@@ -17,6 +18,7 @@ export const ParticipantTile = ({
   displayName,
   isSpeaking,
   isLocalUser,
+  isScreenSharing,
   userId,
   audioEnabled,
   videoEnabled,
@@ -48,6 +50,7 @@ export const ParticipantTile = ({
     <div
       className={`${styles.tile} ${isSpeaking ? styles.speaking : ''}`}
       data-local={isLocalUser}
+      data-screenshare={isScreenSharing}
       data-userid={userId}
       data-video-off={!videoEnabled}
     >
