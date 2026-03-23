@@ -74,6 +74,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         displayName,
         audioEnabled: isMicEnabled,
         videoEnabled: isCamEnabled,
+        screenSharing: isScreenSharing,
         stream: localStream,
         isSpeaking: speakingMap.get('local') ?? false,
       })
@@ -85,6 +86,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         displayName: peer.displayName,
         audioEnabled: peer.audioEnabled,
         videoEnabled: peer.videoEnabled,
+        screenSharing: peer.screenSharing,
         stream: peer.stream,
         isSpeaking: speakingMap.get(peerId) ?? false,
       })
@@ -144,7 +146,6 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         localStream={localStream}
         speakingMap={speakingMap}
         localUserId={localUserId}
-        localScreenSharing={isScreenSharing}
         displayNames={displayNames}
         provideMediaRef={pipVideoRef}
       />

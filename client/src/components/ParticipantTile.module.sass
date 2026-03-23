@@ -26,11 +26,24 @@
     justify-self: center
     align-self: center
 
+  &[data-screenshare="true"]
+    max-width: none
+    max-height: none
+    aspect-ratio: auto
+
+    &[data-video-off="true"]
+      max-width: none
+      max-height: none
+      aspect-ratio: auto
+
 .video
   width: 100%
   height: 100%
   object-fit: cover
   background: $bg-secondary
+
+.tile[data-screenshare="true"] .video
+  object-fit: contain
 
 .tile[data-local="true"]:not([data-screenshare="true"]) .video
   transform: scaleX(-1)

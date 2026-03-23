@@ -298,6 +298,7 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
 
       this._stream.addTrack(screenTrack);
       this._isScreenSharing = true;
+      this._isCamEnabled = true;
 
       this._onTrackReplaced?.('video', screenTrack);
 

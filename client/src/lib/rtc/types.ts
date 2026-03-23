@@ -36,6 +36,7 @@ export interface PeerSnapshot {
   readonly connectionState: RTCPeerConnectionState
   readonly audioEnabled: boolean
   readonly videoEnabled: boolean
+  readonly screenSharing: boolean
 }
 
 // ── RTCClient options ───────────────────────────────────
@@ -105,6 +106,7 @@ export interface InternalPeer {
   iceCandidateQueue: RTCIceCandidate[]
   audioEnabled: boolean
   videoEnabled: boolean
+  screenSharing: boolean
 }
 
 // ── Re-export convenience types ──────────────────────────

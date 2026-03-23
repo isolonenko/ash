@@ -105,6 +105,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
       iceCandidateQueue: [],
       audioEnabled: true,
       videoEnabled: true,
+      screenSharing: false,
     }
 
     this.peers.set(remotePeerId, internal)
@@ -160,6 +161,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
         iceCandidateQueue: [],
         audioEnabled: true,
         videoEnabled: true,
+        screenSharing: false,
       }
       this.peers.set(remotePeerId, internal)
       this.sendersMap.set(remotePeerId, peerSenders)
@@ -305,6 +307,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
         connectionState: internal.connection.connectionState,
         audioEnabled: internal.audioEnabled,
         videoEnabled: internal.videoEnabled,
+        screenSharing: internal.screenSharing,
       })
     }
     return result
@@ -450,6 +453,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
           if (internal) {
             internal.audioEnabled = payload.audioEnabled
             internal.videoEnabled = payload.videoEnabled
+            internal.screenSharing = payload.screenSharing ?? false
           }
           this.emit('peer-media-state', peerId, {
             isMicEnabled: payload.audioEnabled,

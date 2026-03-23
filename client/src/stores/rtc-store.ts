@@ -121,6 +121,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
             connectionState: 'new',
             audioEnabled: true,
             videoEnabled: true,
+            screenSharing: false,
           });
           return { peers: next };
         });
@@ -154,6 +155,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
             ...p,
             audioEnabled: state.isMicEnabled,
             videoEnabled: state.isCamEnabled,
+            screenSharing: state.isScreenSharing,
           })),
         }));
       });

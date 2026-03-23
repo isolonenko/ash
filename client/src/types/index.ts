@@ -13,6 +13,7 @@ export interface Participant {
   displayName: string;
   audioEnabled: boolean;
   videoEnabled: boolean;
+  screenSharing: boolean;
   stream: MediaStream | null;
   isSpeaking: boolean;
 }
