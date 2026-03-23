@@ -30,6 +30,7 @@ export const useLocalMedia = () =>
       stream: s.localStream,
       isMicEnabled: s.isMicEnabled,
       isCamEnabled: s.isCamEnabled,
+      isScreenSharing: s.isScreenSharing,
     })),
   )
 
@@ -59,7 +60,7 @@ export const useConnectedAt = () => useStore(rtcStore, s => s.connectedAt)
 
 /**
  * Hook: Get all action methods
- * @returns Object with connect, disconnect, toggleMic, toggleCam, sendMessage
+ * @returns Object with connect, disconnect, toggleMic, toggleCam, startScreenShare, stopScreenShare, sendMessage
  */
 export const useRTCActions = () =>
   useStore(
@@ -69,6 +70,8 @@ export const useRTCActions = () =>
       disconnect: s.disconnect,
       toggleMic: s.toggleMic,
       toggleCam: s.toggleCam,
+      startScreenShare: s.startScreenShare,
+      stopScreenShare: s.stopScreenShare,
       sendMessage: s.sendMessage,
     })),
   )
