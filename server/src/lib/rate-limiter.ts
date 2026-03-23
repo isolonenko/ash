@@ -1,4 +1,4 @@
-import type { Context, Next, MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler, Next } from "hono";
 
 interface RateLimitEntry {
   timestamps: number[];
@@ -24,8 +24,8 @@ export function rateLimiter(options: RateLimitOptions): MiddlewareHandler {
   Deno.unrefTimer(sweepInterval);
 
   return async (c: Context, next: Next) => {
-    const key =
-      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const key = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
     const now = Date.now();
 
     let entry = clients.get(key);

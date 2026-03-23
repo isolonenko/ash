@@ -8,7 +8,10 @@ const TEST_DOMAIN = "chat.example.com";
 
 const createApp = (ttl: number = 3600) => {
   const app = new Hono();
-  app.route("/turn-credentials", createTurnRoutes(TEST_DOMAIN, TEST_SECRET, ttl));
+  app.route(
+    "/turn-credentials",
+    createTurnRoutes(TEST_DOMAIN, TEST_SECRET, ttl),
+  );
   return app;
 };
 
