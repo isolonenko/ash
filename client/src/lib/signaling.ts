@@ -1,5 +1,9 @@
 import type { SignalingMessage } from "@/types";
-import { RECONNECT_BASE_DELAY, RECONNECT_MAX_DELAY } from "@/lib/constants";
+import {
+  RECONNECT_BASE_DELAY,
+  RECONNECT_MAX_DELAY,
+  SIGNALING_OPEN_TIMEOUT,
+} from "@/lib/constants";
 import { SIGNALING_URL } from "@/lib/config";
 // ── Types ────────────────────────────────────────────────
 
@@ -117,5 +121,72 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
 
   const isConnected = (): boolean => ws?.readyState === WebSocket.OPEN;
 
-  return { connect, send, disconnect, isConnected };
+  const waitForOpen = (timeout?: number): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      if (!ws) {
+        reject(new Error("No WebSocket connection"));
+        return;
+      }
+
+      if (ws.readyState === WebSocket.OPEN) {
+        resolve();
+        return;
+      }
+
+      const timeoutMs = timeout ?? SIGNALING_OPEN_TIMEOUT;
+      let settled = false;
+
+      const originalOnOpen = ws.onopen;
+      const originalOnClose = ws.onclose;
+      const originalOnError = ws.onerror;
+
+      const restoreHandlers = () => {
+        if (ws) {
+          ws.onopen = originalOnOpen;
+          ws.onclose = originalOnClose;
+          ws.onerror = originalOnError;
+        }
+      };
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          restoreHandlers();
+          reject(new Error("Signaling connection timed out"));
+        }
+      }, timeoutMs);
+
+      ws.onopen = (ev: Event) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          restoreHandlers();
+          resolve();
+          originalOnOpen?.call(ws, ev);
+        }
+      };
+
+      ws.onclose = (ev: Event) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          restoreHandlers();
+          reject(new Error("Signaling connection failed"));
+        }
+        originalOnClose?.call(ws, ev);
+      };
+
+      ws.onerror = (ev: Event) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          restoreHandlers();
+          reject(new Error("Signaling connection failed"));
+        }
+        originalOnError?.call(ws, ev);
+      };
+    });
+  };
+
+  return { connect, send, disconnect, isConnected, waitForOpen };
 };

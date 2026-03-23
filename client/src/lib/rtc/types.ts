@@ -4,6 +4,14 @@ import type { ChatMessage, DataChannelMessage, SignalingMessage } from '@/types'
 // ── RTCClient state machine ─────────────────────────────
 export type RTCClientState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'failed'
 
+export type ConnectSubState =
+  | 'fetching-turn'
+  | 'acquiring-media'
+  | 'selecting-codec'
+  | 'opening-signaling'
+  | 'negotiating-peers'
+  | null
+
 // ── Media state toggle ───────────────────────────────────
 /**
  * Represents the enabled/disabled state of media devices.
@@ -25,7 +33,7 @@ export interface MediaToggleState {
  * - unknown: Unexpected error occurred
  */
 export interface RTCClientError {
-  type: 'room-full' | 'media-denied' | 'media-not-found' | 'signaling-failed' | 'unknown'
+  type: 'room-full' | 'media-denied' | 'media-not-found' | 'signaling-failed' | 'turn-failed' | 'codec-failed' | 'connect-timeout' | 'unknown'
   message: string
 }
 
@@ -50,6 +58,7 @@ export interface RTCClientOptions {
 // ── RTCClient event map ─────────────────────────────────
 export interface RTCClientEvents {
   'connection-state': (state: RTCClientState) => void
+  'connect-substep': (substep: ConnectSubState) => void
   'media-acquired': (stream: MediaStream) => void
   'media-changed': (info: MediaToggleState) => void
   'media-released': () => void
@@ -107,6 +116,7 @@ export interface InternalPeer {
   audioEnabled: boolean
   videoEnabled: boolean
   screenSharing: boolean
+  pendingMessages: DataChannelMessage[]
 }
 
 // ── Re-export convenience types ──────────────────────────
