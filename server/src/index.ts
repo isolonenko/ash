@@ -23,18 +23,23 @@ const roomManager = new RoomManager();
 
 const app = new Hono();
 
-// Security headers (all responses)
-app.use(
-  "*",
-  secureHeaders({
-    xFrameOptions: "DENY",
-    xContentTypeOptions: "nosniff",
-    referrerPolicy: "no-referrer",
-    strictTransportSecurity: false,
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  }),
-);
+// Security headers (HTTP responses only — skip WebSocket upgrades whose
+// response headers are immutable in Deno and would crash secureHeaders)
+const secHeaders = secureHeaders({
+  xFrameOptions: "DENY",
+  xContentTypeOptions: "nosniff",
+  referrerPolicy: "no-referrer",
+  strictTransportSecurity: false,
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+});
+
+app.use("*", async (c, next) => {
+  if (c.req.header("upgrade")?.toLowerCase() === "websocket") {
+    return next();
+  }
+  return secHeaders(c, next);
+});
 
 // CORS (HTTP API routes only, not WebSocket)
 const corsMiddleware = cors({
@@ -60,7 +65,8 @@ app.get("/health", (c) =>
 app.use("/turn-credentials", rateLimiter({ windowMs: 60_000, max: 10 }));
 app.use("/rooms/*", rateLimiter({ windowMs: 60_000, max: 30 }));
 app.use("/rooms", rateLimiter({ windowMs: 60_000, max: 5 }));
-app.use("/signal/*", rateLimiter({ windowMs: 60_000, max: 10 }));
+// Note: /signal/* is NOT rate-limited — WebSocket upgrades are long-lived
+// connections and the room system already bounds concurrent peers.
 
 // Routes
 app.route("/signal", createSignalingRoutes(roomManager));
