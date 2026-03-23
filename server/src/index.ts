@@ -57,8 +57,7 @@ app.get("/health", (c) =>
     status: "ok",
     service: "thechat-signaling",
     timestamp: Date.now(),
-  }),
-);
+  }));
 
 // ── Rate-limited routes ─────────────────────────────────
 
