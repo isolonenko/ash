@@ -27,6 +27,7 @@ export interface RTCState {
   localStream: MediaStream | null;
   isMicEnabled: boolean;
   isCamEnabled: boolean;
+  isScreenSharing: boolean;
   peers: Map<string, PeerSnapshot>;
   messages: ChatMessage[];
   lastError: RTCClientError | null;
@@ -43,6 +44,8 @@ export interface RTCActions {
   disconnect: () => void;
   toggleMic: () => void;
   toggleCam: () => void;
+  startScreenShare: () => Promise<void>;
+  stopScreenShare: () => Promise<void>;
   sendMessage: (text: string) => void;
 }
 
@@ -70,6 +73,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
     localStream: null,
     isMicEnabled: true,
     isCamEnabled: true,
+    isScreenSharing: false,
     peers: new Map(),
     messages: [],
     lastError: null,
@@ -96,8 +100,12 @@ export function createRTCStore(): StoreApi<RTCStore> {
         set({ localStream: stream });
       });
 
-      client.on('media-changed', (info: { isMicEnabled: boolean; isCamEnabled: boolean }) => {
-        set({ isMicEnabled: info.isMicEnabled, isCamEnabled: info.isCamEnabled });
+      client.on('media-changed', (info: MediaToggleState) => {
+        set({
+          isMicEnabled: info.isMicEnabled,
+          isCamEnabled: info.isCamEnabled,
+          isScreenSharing: info.isScreenSharing,
+        });
       });
 
       client.on('media-released', () => {
@@ -185,6 +193,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
         localStream: null,
         isMicEnabled: true,
         isCamEnabled: true,
+        isScreenSharing: false,
         peers: new Map(),
         messages: [],
         lastError: null,
@@ -197,6 +206,14 @@ export function createRTCStore(): StoreApi<RTCStore> {
 
     toggleCam: () => {
       client?.toggleCam();
+    },
+
+    startScreenShare: async () => {
+      await client?.startScreenShare();
+    },
+
+    stopScreenShare: async () => {
+      await client?.stopScreenShare();
     },
 
     sendMessage: (text: string) => {
