@@ -2,6 +2,7 @@ import type { SignalingMessage, SdpPayload, IceCandidatePayload, ChatPayload, Da
 import type { RTCClientOptions, RTCClientEvents } from './types'
 import { TypedEventEmitter } from './event-emitter'
 import { SignalingManager } from './signaling-manager'
+import type { MediaManager } from './media-manager'
 import { PeerManager } from './peer-manager'
 import { fetchTurnCredentials } from '@/lib/turn'
 import { selectOptimalCodec } from '@/lib/codec-selection'
@@ -68,7 +69,7 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
       )
       this.wirePeerManagerEvents()
 
-      this.media.onTrackReplaced = (kind, newTrack) => {
+      this.media.onTrackReplaced = (kind: string, newTrack: MediaStreamTrack) => {
         this.peerManager?.replaceTrackOnAll(kind, newTrack)
       }
 

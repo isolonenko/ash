@@ -57,7 +57,6 @@ describe('MediaManager', () => {
   const defaultAudioDevice = createMockDevice('audioinput', 'audio-1', 'Built-in Mic')
   const defaultVideoDevice = createMockDevice('videoinput', 'video-1', 'Built-in Camera')
   const secondAudioDevice = createMockDevice('audioinput', 'audio-2', 'USB Mic')
-  const secondVideoDevice = createMockDevice('videoinput', 'video-2', 'USB Camera')
 
   beforeEach(() => {
     deviceChangeListeners = []

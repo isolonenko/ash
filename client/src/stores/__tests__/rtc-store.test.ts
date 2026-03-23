@@ -22,6 +22,10 @@ vi.mock('@/lib/rtc', () => ({
   })),
 }))
 
+vi.mock('@/lib/rtc/media-manager-instance', () => ({
+  mediaManager: { _mock: true },
+}))
+
 // ── Mock sessionStorage ─────────────────────────────────
 
 const mockGetItem = vi.fn().mockReturnValue(null)
@@ -90,6 +94,7 @@ describe('rtc-store', () => {
         roomId: 'room-1',
         peerId: 'peer-1',
         displayName: 'Alice',
+        mediaManager: expect.any(Object),
       })
       expect(mockConnect).toHaveBeenCalledOnce()
     })

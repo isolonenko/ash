@@ -272,7 +272,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
   }
 
   replaceTrackOnAll(kind: string, newTrack: MediaStreamTrack): void {
-    for (const [peerId, internal] of this.peers) {
+    for (const [peerId] of this.peers) {
       const peerSenders = this.sendersMap.get(peerId) ?? []
       const sender = peerSenders.find(s => s.track?.kind === kind)
       if (sender) {
