@@ -65,6 +65,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
   private statsInterval: ReturnType<typeof setInterval> | null = null
   private previousStats = new Map<string, StatsSnapshot>()
   private lossHistory: number[] = []
+  private pendingTrackReplacements = new Map<string, { kind: string; track: MediaStreamTrack }>()
 
   constructor(
     iceConfig: RTCConfiguration,
@@ -106,6 +107,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
       audioEnabled: true,
       videoEnabled: true,
       screenSharing: false,
+      pendingMessages: [],
     }
 
     this.peers.set(remotePeerId, internal)
@@ -137,6 +139,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
     internal.connection.close()
     internal.remoteStream?.getTracks().forEach(t => t.stop())
 
+    this.pendingTrackReplacements.delete(remotePeerId)
     this.peers.delete(remotePeerId)
     this.sendersMap.delete(remotePeerId)
     this.previousStats.delete(remotePeerId)
@@ -162,6 +165,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
         audioEnabled: true,
         videoEnabled: true,
         screenSharing: false,
+        pendingMessages: [],
       }
       this.peers.set(remotePeerId, internal)
       this.sendersMap.set(remotePeerId, peerSenders)
@@ -277,10 +281,21 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
     for (const [peerId] of this.peers) {
       const peerSenders = this.sendersMap.get(peerId) ?? []
       const sender = peerSenders.find(s => s.track?.kind === kind)
-      if (sender) {
+      if (!sender) continue
+
+      const peer = this.peers.get(peerId)
+      if (!peer) continue
+
+      const pc = peer.connection
+      if (pc.signalingState === 'closed') {
+        continue
+      }
+      if (pc.signalingState === 'stable') {
         sender.replaceTrack(newTrack).catch(err => {
           console.warn(`[RTC] replaceTrack failed for peer ${peerId}:`, err)
         })
+      } else {
+        this.pendingTrackReplacements.set(peerId, { kind, track: newTrack })
       }
     }
   }
@@ -292,6 +307,8 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
     for (const [, internal] of this.peers) {
       if (internal.dataChannel?.readyState === 'open') {
         internal.dataChannel.send(data)
+      } else {
+        internal.pendingMessages.push(msg)
       }
     }
   }
@@ -327,6 +344,7 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
     this.sendersMap.clear()
     this.previousStats.clear()
     this.lossHistory = []
+    this.pendingTrackReplacements.clear()
     this.removeAllListeners()
   }
 
@@ -379,6 +397,22 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
       }
 
       this.emit('peer-connection-state', remotePeerId, pc.connectionState)
+    }
+
+    pc.onsignalingstatechange = () => {
+      if (pc.signalingState === 'stable') {
+        const pending = this.pendingTrackReplacements.get(remotePeerId)
+        if (pending) {
+          this.pendingTrackReplacements.delete(remotePeerId)
+          const peerSenders = this.sendersMap.get(remotePeerId) ?? []
+          const sender = peerSenders.find(s => s.track?.kind === pending.kind)
+          if (sender) {
+            sender.replaceTrack(pending.track).catch(err => {
+              console.warn(`[RTC] Deferred replaceTrack failed for peer ${remotePeerId}:`, err)
+            })
+          }
+        }
+      }
     }
 
     pc.ondatachannel = event => {
@@ -442,6 +476,16 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
 
   private setupDataChannel(peerId: string, channel: RTCDataChannel): void {
     channel.binaryType = 'arraybuffer'
+
+    channel.onopen = () => {
+      const internal = this.peers.get(peerId)
+      if (internal && internal.pendingMessages.length > 0) {
+        for (const msg of internal.pendingMessages) {
+          channel.send(JSON.stringify(msg))
+        }
+        internal.pendingMessages = []
+      }
+    }
 
     channel.onmessage = (event: MessageEvent) => {
       try {
