@@ -27,7 +27,7 @@ function classifyNetwork(conn: NetworkConnection | null): NetworkTier {
       return 'medium';
     case '4g':
     default:
-      return conn.downlink < 2 ? 'medium' : 'high';
+      return conn.downlink < 1.5 ? 'medium' : 'high';
   }
 }
 

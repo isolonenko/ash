@@ -15,9 +15,9 @@ function buildEncodingConfig(codec: string): MediaEncodingConfiguration {
     type: WEBRTC_ENCODING_TYPE,
     video: {
       contentType: codec,
-      width: 1280,
-      height: 720,
-      bitrate: 2_500_000,
+      width: 1920,
+      height: 1080,
+      bitrate: 4_000_000,
       framerate: 30,
     },
   };
