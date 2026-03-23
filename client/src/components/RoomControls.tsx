@@ -14,6 +14,7 @@ interface RoomControlsProps {
   pipActive: boolean;
   pipSupported: boolean;
   roomCode: string;
+  callDuration: string | null;
 }
 
 export const RoomControls = ({
@@ -29,6 +30,7 @@ export const RoomControls = ({
   pipActive,
   pipSupported,
   roomCode,
+  callDuration,
 }: RoomControlsProps) => {
   const [copied, setCopied] = useState(false);
 
@@ -42,6 +44,7 @@ export const RoomControls = ({
     <div className={styles.controlBar}>
       <div className={styles.roomInfo}>
         <span className={styles.roomCode}>{roomCode}</span>
+        {callDuration && <span className={styles.duration}>{callDuration}</span>}
         <button
           className={styles.copyButton}
           onClick={handleCopyLink}

@@ -5,6 +5,7 @@ import { useConnectionState, useLocalMedia, usePeers, useMessages, useRTCActions
 import { useSpeakingIndicator } from '@/hooks/useSpeakingIndicator'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import { usePictureInPicture } from '@/hooks/usePictureInPicture'
+import { useCallDuration } from '@/hooks/useCallDuration'
 import { VideoGrid } from './VideoGrid'
 import { ChatPanel } from './ChatPanel'
 import { RoomControls } from './RoomControls'
@@ -29,6 +30,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
   const messages = useMessages()
   const { connect, disconnect, toggleMic, toggleCam, sendMessage } = useRTCActions()
   const pip = usePictureInPicture()
+  const callDuration = useCallDuration()
 
   useWakeLock(true)
 
@@ -155,6 +157,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         pipActive={pip.isActive}
         pipSupported={pip.isSupported}
         roomCode={roomId}
+        callDuration={callDuration}
       />
       <ConnectionStatus signalingConnected={connectionState === 'connected'} peers={peers} localPeerId={localUserId} />
     </div>

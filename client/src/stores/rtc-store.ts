@@ -22,6 +22,7 @@ function clearMessages(roomId: string): void {
 
 export interface RTCState {
   connectionState: RTCClientState;
+  connectedAt: number | null;
   localStream: MediaStream | null;
   isMicEnabled: boolean;
   isCamEnabled: boolean;
@@ -64,6 +65,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
 
   return createStore<RTCStore>((set) => ({
     connectionState: 'idle',
+    connectedAt: null,
     localStream: null,
     isMicEnabled: true,
     isCamEnabled: true,
@@ -83,7 +85,10 @@ export function createRTCStore(): StoreApi<RTCStore> {
       }
 
       client.on('connection-state', (state: RTCClientState) => {
-        set({ connectionState: state });
+        set((s) => ({
+          connectionState: state,
+          connectedAt: state === 'connected' && s.connectedAt === null ? Date.now() : state === 'connected' ? s.connectedAt : null,
+        }));
       });
 
       client.on('media-acquired', (stream: MediaStream) => {
@@ -174,6 +179,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
       }
       set({
         connectionState: 'idle',
+        connectedAt: null,
         localStream: null,
         isMicEnabled: true,
         isCamEnabled: true,
