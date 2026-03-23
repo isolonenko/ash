@@ -6,9 +6,12 @@ import { createTurnRoutes } from "./turn.ts";
 const TEST_SECRET = "test-secret-key-for-hmac";
 const TEST_DOMAIN = "chat.example.com";
 
-const createApp = () => {
+const createApp = (ttl: number = 3600) => {
   const app = new Hono();
-  app.route("/turn-credentials", createTurnRoutes(TEST_DOMAIN, TEST_SECRET));
+  app.route(
+    "/turn-credentials",
+    createTurnRoutes(TEST_DOMAIN, TEST_SECRET, ttl),
+  );
   return app;
 };
 
@@ -47,10 +50,10 @@ describe("TURN credential routes", () => {
     const [timestampStr, label] = username.split(":");
     const timestamp = parseInt(timestampStr, 10);
 
-    // Timestamp should be in the future (now + 24h)
+    // Timestamp should be in the future (now + 1h default)
     const now = Math.floor(Date.now() / 1000);
     assertEquals(timestamp > now, true);
-    assertEquals(timestamp <= now + 86400 + 5, true); // 24h + small tolerance
+    assertEquals(timestamp <= now + 3600 + 5, true); // 1h default + small tolerance
     assertEquals(label, "thechat");
   });
 
@@ -73,5 +76,19 @@ describe("TURN credential routes", () => {
     const turn2 = body.iceServers[2];
     assertEquals(turn1.username, turn2.username);
     assertEquals(turn1.credential, turn2.credential);
+  });
+
+  it("respects custom TTL", async () => {
+    const app = createApp(7200);
+    const res = await app.request("/turn-credentials");
+    const body = await res.json();
+
+    const username = body.iceServers[1].username as string;
+    const [timestampStr] = username.split(":");
+    const timestamp = parseInt(timestampStr, 10);
+    const now = Math.floor(Date.now() / 1000);
+
+    assertEquals(timestamp > now + 3600, true);
+    assertEquals(timestamp <= now + 7200 + 5, true);
   });
 });

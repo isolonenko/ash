@@ -35,6 +35,8 @@ services:
       - PORT=8000
       - TURN_DOMAIN=${DOMAIN}
       - TURN_SECRET=${TURN_SECRET}
+      - TURN_TTL=${TURN_TTL:-3600}
+      - CORS_ORIGIN=https://${DOMAIN}
     expose:
       - "8000"
 
