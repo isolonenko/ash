@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DeviceDropdown } from "./DeviceDropdown";
 import styles from "./RoomControls.module.sass";
 
 interface RoomControlsProps {
@@ -55,19 +56,25 @@ export const RoomControls = ({
       </div>
 
       <div className={styles.controls}>
-        <button
-          className={micEnabled ? styles.buttonActive : styles.buttonInactive}
-          onClick={onToggleMic}
-        >
-          {micEnabled ? "[MIC]" : "[MIC OFF]"}
-        </button>
+        <div className={styles.controlGroup}>
+          <button
+            className={micEnabled ? styles.buttonActive : styles.buttonInactive}
+            onClick={onToggleMic}
+          >
+            {micEnabled ? "[MIC]" : "[MIC OFF]"}
+          </button>
+          <DeviceDropdown kind="audio" direction="up" />
+        </div>
 
-        <button
-          className={camEnabled ? styles.buttonActive : styles.buttonInactive}
-          onClick={onToggleCam}
-        >
-          {camEnabled ? "[CAM]" : "[CAM OFF]"}
-        </button>
+        <div className={styles.controlGroup}>
+          <button
+            className={camEnabled ? styles.buttonActive : styles.buttonInactive}
+            onClick={onToggleCam}
+          >
+            {camEnabled ? "[CAM]" : "[CAM OFF]"}
+          </button>
+          <DeviceDropdown kind="video" direction="up" />
+        </div>
 
         <button
           className={chatOpen ? styles.buttonChat : styles.buttonChatInactive}
