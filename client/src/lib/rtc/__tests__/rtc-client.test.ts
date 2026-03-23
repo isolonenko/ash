@@ -34,6 +34,7 @@ const mockSignalingConnect = vi.fn()
 const mockSignalingSend = vi.fn()
 const mockSignalingDisconnect = vi.fn()
 const mockSignalingDestroy = vi.fn()
+const mockSignalingWaitForOpen = vi.fn().mockResolvedValue(undefined)
 const mockSignalingRemoveAllListeners = vi.fn()
 
 vi.mock('../signaling-manager', () => ({
@@ -41,6 +42,7 @@ vi.mock('../signaling-manager', () => ({
     on: mockSignalingOn,
     emit: mockSignalingEmit,
     connect: mockSignalingConnect,
+    waitForOpen: mockSignalingWaitForOpen,
     send: mockSignalingSend,
     disconnect: mockSignalingDisconnect,
     destroy: mockSignalingDestroy,
@@ -186,6 +188,137 @@ describe('RTCClient', () => {
       await client.connect() // second call should be no-op
 
       expect(mockSignalingConnect).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('connect substeps', () => {
+    it('emits connect-substep events in order during connect', async () => {
+      const substeps: (string | null)[] = []
+      client.on('connect-substep', step => substeps.push(step))
+
+      await client.connect()
+
+      expect(substeps).toEqual([
+        'fetching-turn',
+        'acquiring-media',
+        'selecting-codec',
+        'opening-signaling',
+        'negotiating-peers',
+        null,
+      ])
+    })
+
+    it('emits connect-timeout error when connect takes too long', async () => {
+      vi.useFakeTimers()
+
+      const { fetchTurnCredentials } = await import('@/lib/turn')
+      vi.mocked(fetchTurnCredentials).mockImplementationOnce(
+        () => new Promise(() => {}),
+      )
+
+      const errors: Array<{ type: string }> = []
+      client.on('error', err => errors.push(err))
+
+      const states: RTCClientState[] = []
+      client.on('connection-state', state => states.push(state))
+
+      const connectPromise = client.connect()
+
+      await vi.advanceTimersByTimeAsync(16_000)
+
+      await connectPromise
+
+      expect(states).toContain('failed')
+      expect(errors).toContainEqual(
+        expect.objectContaining({ type: 'connect-timeout' }),
+      )
+
+      vi.useRealTimers()
+    })
+
+    it('emits turn-failed error when TURN fetch fails', async () => {
+      const { fetchTurnCredentials } = await import('@/lib/turn')
+      vi.mocked(fetchTurnCredentials).mockRejectedValueOnce(new Error('Network error'))
+
+      const errors: Array<{ type: string }> = []
+      client.on('error', err => errors.push(err))
+
+      await client.connect()
+
+      expect(errors).toContainEqual(
+        expect.objectContaining({ type: 'turn-failed' }),
+      )
+    })
+
+    it('emits codec-failed error when codec selection fails', async () => {
+      const { selectOptimalCodec } = await import('@/lib/codec-selection')
+      vi.mocked(selectOptimalCodec).mockRejectedValueOnce(new Error('No codec'))
+
+      const errors: Array<{ type: string }> = []
+      client.on('error', err => errors.push(err))
+
+      await client.connect()
+
+      expect(errors).toContainEqual(
+        expect.objectContaining({ type: 'codec-failed' }),
+      )
+    })
+
+    it('emits signaling-failed error when waitForOpen rejects', async () => {
+      mockSignalingWaitForOpen.mockRejectedValueOnce(new Error('Signaling connection timed out'))
+
+      const errors: Array<{ type: string }> = []
+      client.on('error', err => errors.push(err))
+
+      await client.connect()
+
+      expect(errors).toContainEqual(
+        expect.objectContaining({ type: 'signaling-failed' }),
+      )
+    })
+
+    it('awaits signaling waitForOpen before emitting connected', async () => {
+      const callOrder: string[] = []
+      mockSignalingConnect.mockImplementation(() => {
+        callOrder.push('signaling.connect')
+      })
+      mockSignalingWaitForOpen.mockImplementation(async () => {
+        callOrder.push('signaling.waitForOpen')
+      })
+
+      await client.connect()
+
+      const connectIdx = callOrder.indexOf('signaling.connect')
+      const waitIdx = callOrder.indexOf('signaling.waitForOpen')
+      expect(connectIdx).toBeLessThan(waitIdx)
+      expect(mockSignalingWaitForOpen).toHaveBeenCalled()
+    })
+
+    it('cleans up resources on timeout without setting destroyed flag', async () => {
+      vi.useFakeTimers()
+
+      const { fetchTurnCredentials } = await import('@/lib/turn')
+      vi.mocked(fetchTurnCredentials).mockImplementationOnce(
+        () => new Promise(() => {}),
+      )
+
+      const connectPromise = client.connect()
+      await vi.advanceTimersByTimeAsync(16_000)
+      await connectPromise
+
+      vi.mocked(fetchTurnCredentials).mockResolvedValueOnce({
+        iceServers: [{ urls: 'stun:stun.test:19302' }],
+        iceTransportPolicy: 'all' as RTCIceTransportPolicy,
+      })
+
+      const states: RTCClientState[] = []
+      client.on('connection-state', state => states.push(state))
+
+      await client.connect()
+
+      expect(states).toContain('connecting')
+
+      vi.useRealTimers()
     })
   })
 
