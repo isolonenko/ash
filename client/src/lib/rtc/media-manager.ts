@@ -69,22 +69,55 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
     }
   }
 
-  async acquire(): Promise<MediaStream> {
+  async acquire(opts?: { audioDeviceId?: string, videoDeviceId?: string }): Promise<MediaStream> {
     const capturedId = ++this.connectionId;
+
+    await this.enumerate();
+
+    const hasAudio = this._devices.audio.length > 0;
+    const hasVideo = this._devices.video.length > 0;
+
+    if (!hasAudio && !hasVideo) {
+      const error: RTCClientError = {
+        type: 'media-not-found',
+        message: 'No camera or microphone found. Please connect a device.',
+      };
+      this.emit('error', error);
+      throw new Error(error.message);
+    }
+
     const tier = BITRATE_TIERS[getNetworkTier()];
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: tier.width },
-          height: { ideal: tier.height },
-          frameRate: { ideal: tier.fps },
-        },
-        audio: {
+    const audioConstraints: MediaTrackConstraints | false = hasAudio
+      ? {
+          ...(opts?.audioDeviceId
+            ? { deviceId: { exact: opts.audioDeviceId } }
+            : this._selectedAudioId
+              ? { deviceId: { exact: this._selectedAudioId } }
+              : {}),
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-        },
+        }
+      : false;
+
+    const videoConstraints: MediaTrackConstraints | false = hasVideo
+      ? {
+          ...(opts?.videoDeviceId
+            ? { deviceId: { exact: opts.videoDeviceId } }
+            : this._selectedVideoId
+              ? { deviceId: { exact: this._selectedVideoId } }
+              : {}),
+          width: { ideal: tier.width },
+          height: { ideal: tier.height },
+          frameRate: { ideal: tier.fps },
+        }
+      : false;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints,
+        video: videoConstraints,
       });
 
       if (this.connectionId !== capturedId) {
@@ -93,8 +126,24 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
       }
 
       this._stream = stream;
-      this._isMicEnabled = true;
-      this._isCamEnabled = true;
+      this._isMicEnabled = hasAudio;
+      this._isCamEnabled = hasVideo;
+      this._hasPermission = true;
+
+      if (hasAudio) {
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+          this._selectedAudioId = audioTrack.getSettings().deviceId ?? null;
+        }
+      }
+      if (hasVideo) {
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          this._selectedVideoId = videoTrack.getSettings().deviceId ?? null;
+        }
+      }
+
+      await this.enumerate();
 
       this.setupBeforeUnload();
 
