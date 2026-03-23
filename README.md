@@ -20,7 +20,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for DNS setup, updates, logs, and troubleshoo
 
 ```bash
 # Client
-cd client && npm run dev
+cd client && pnpm dev
 
 # Server
 cd server && deno task dev
