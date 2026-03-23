@@ -7,6 +7,7 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
   private _stream: MediaStream | null = null;
   private _isMicEnabled = true;
   private _isCamEnabled = true;
+  private _isScreenSharing = false;
   private _devices: { audio: MediaDeviceInfo[], video: MediaDeviceInfo[] } = { audio: [], video: [] };
   private _selectedAudioId: string | null = null;
   private _selectedVideoId: string | null = null;
@@ -246,7 +247,11 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
     const newEnabled = !audioTrack.enabled;
     audioTrack.enabled = newEnabled;
     this._isMicEnabled = newEnabled;
-    this.emit('changed', { isMicEnabled: this._isMicEnabled, isCamEnabled: this._isCamEnabled });
+    this.emit('changed', {
+      isMicEnabled: this._isMicEnabled,
+      isCamEnabled: this._isCamEnabled,
+      isScreenSharing: this._isScreenSharing,
+    });
   }
 
   toggleCam(): void {
@@ -258,7 +263,11 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
     const newEnabled = !videoTrack.enabled;
     videoTrack.enabled = newEnabled;
     this._isCamEnabled = newEnabled;
-    this.emit('changed', { isMicEnabled: this._isMicEnabled, isCamEnabled: this._isCamEnabled });
+    this.emit('changed', {
+      isMicEnabled: this._isMicEnabled,
+      isCamEnabled: this._isCamEnabled,
+      isScreenSharing: this._isScreenSharing,
+    });
   }
 
   getLocalTracks(): { tracks: MediaStreamTrack[]; stream: MediaStream } | null {
@@ -343,7 +352,11 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
           } else {
             currentAudioTrack.enabled = false;
             this._isMicEnabled = false;
-            this.emit('changed', { isMicEnabled: this._isMicEnabled, isCamEnabled: this._isCamEnabled });
+            this.emit('changed', {
+              isMicEnabled: this._isMicEnabled,
+              isCamEnabled: this._isCamEnabled,
+              isScreenSharing: this._isScreenSharing,
+            });
           }
         }
       }
@@ -360,7 +373,11 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
           } else {
             currentVideoTrack.enabled = false;
             this._isCamEnabled = false;
-            this.emit('changed', { isMicEnabled: this._isMicEnabled, isCamEnabled: this._isCamEnabled });
+            this.emit('changed', {
+              isMicEnabled: this._isMicEnabled,
+              isCamEnabled: this._isCamEnabled,
+              isScreenSharing: this._isScreenSharing,
+            });
           }
         }
       }

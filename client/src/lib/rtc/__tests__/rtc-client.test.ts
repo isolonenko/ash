@@ -72,6 +72,7 @@ const mockMediaManager = {
   stream: null as MediaStream | null,
   isMicEnabled: true,
   isCamEnabled: true,
+  isScreenSharing: false,
   onTrackReplaced: null as ((kind: string, track: MediaStreamTrack) => void) | null,
 } as unknown as RTCClientOptions['mediaManager']
 

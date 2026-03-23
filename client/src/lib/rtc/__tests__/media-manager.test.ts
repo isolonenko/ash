@@ -422,7 +422,7 @@ describe('MediaManager', () => {
       manager.on('changed', handler)
 
       manager.toggleMic()
-      expect(handler).toHaveBeenCalledWith({ isMicEnabled: false, isCamEnabled: true })
+      expect(handler).toHaveBeenCalledWith({ isMicEnabled: false, isCamEnabled: true, isScreenSharing: false })
     })
 
     it('does nothing if no stream', () => {
