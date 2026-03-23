@@ -174,6 +174,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
         client.destroy();
         client = null;
       }
+      mediaManager.release();
       if (currentRoomId) {
         clearMessages(currentRoomId);
         currentRoomId = null;
