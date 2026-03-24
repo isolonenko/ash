@@ -216,16 +216,20 @@ export const ConnectionStatus = ({
   }
 
   return (
-    <div className={styles.connectedWrapper}>
+    <div className={styles.connectedStrip}>
       <button
-        className={styles.pill}
+        className={styles.stripToggle}
         onClick={() => setDebugOpen(prev => !prev)}
         title="Connection debug info"
         type="button"
       >
         <Dot color="green" />
-        <span>Connected</span>
-        <span className={styles.peerCount}>&bull; {peers.size} {peers.size === 1 ? 'peer' : 'peers'}</span>
+        <span className={styles.statusText}>Connected</span>
+        <span className={styles.separator}>&bull;</span>
+        <span>{peers.size} {peers.size === 1 ? 'peer' : 'peers'}</span>
+        <span className={styles.separator}>&bull;</span>
+        <span>WS</span>
+        <Dot color={signalingConnected ? 'green' : 'red'} />
       </button>
 
       {debugOpen && (

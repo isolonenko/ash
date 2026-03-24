@@ -6,24 +6,26 @@
   display: flex
   align-items: center
   gap: $space-sm
-  position: absolute
-  top: 0
-  left: 0
-  right: 0
-  z-index: 20
+  position: fixed
+  top: $space-md
+  left: $space-md
+  right: $space-md
+  z-index: 100
   padding: $space-sm $space-md
-  background: rgba($bg-secondary, 0.9)
-  border-bottom: 1px solid $border-color
-  backdrop-filter: blur(8px)
+  background: rgba($bg-secondary, 0.95)
+  border: 1px solid $border-color
+  border-radius: 14px
+  backdrop-filter: blur(10px)
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-cyan, 0.05)
   font-family: $font-mono
   font-size: $font-xs
   color: $text-secondary
 
 .failedStrip
-  border-bottom-color: rgba($neon-red, 0.3)
+  border-color: rgba($neon-red, 0.3)
 
 .reconnectingStrip
-  border-bottom-color: rgba($neon-yellow, 0.3)
+  border-color: rgba($neon-yellow, 0.3)
 
 .statusText
   flex: 1
@@ -83,59 +85,55 @@
   50%
     opacity: 0.4
 
-// ── Connected Wrapper ────────────────────────────────────
+// ── Connected Strip (full-width info bar) ────────────────
 
-.connectedWrapper
-  position: absolute
-  top: 0
-  right: 0
-  z-index: 20
+.connectedStrip
+  position: fixed
+  top: $space-md
+  left: $space-md
+  right: $space-md
+  z-index: 100
   display: flex
   flex-direction: column
-  align-items: flex-end
+  border: 1px solid rgba($neon-green, 0.2)
+  border-radius: 14px
+  background: rgba($bg-secondary, 0.95)
+  backdrop-filter: blur(10px)
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-green, 0.05)
+  overflow: hidden
 
-// ── Pill (connected state) ───────────────────────────────
-
-.pill
+.stripToggle
   display: flex
   align-items: center
-  gap: $space-xs
-  align-self: flex-end
-  background: rgba($bg-secondary, 0.9)
-  border: 1px solid $border-color
-  border-radius: 12px
-  padding: 2px $space-sm
+  gap: $space-sm
+  width: 100%
+  background: transparent
+  border: none
+  padding: $space-sm $space-md
   cursor: pointer
   font-family: $font-mono
   font-size: $font-xs
   color: $text-secondary
-  backdrop-filter: blur(8px)
-  transition: border-color $transition-fast
-  margin: $space-xs $space-md
+  transition: background $transition-fast
+  text-align: left
 
   &:hover
-    border-color: $neon-cyan
+    background: rgba(255, 255, 255, 0.03)
 
-.peerCount
+.separator
   color: $text-muted
+  opacity: 0.5
 
 // ── Debug Panel ──────────────────────────────────────────
 
 .debugPanel
-  background: rgba($bg-primary, 0.95)
-  border: 1px solid $border-color
-  border-radius: 4px
-  padding: $space-sm
-  margin: 0 $space-md $space-xs
-  min-width: 240px
-  max-width: 320px
+  border-top: 1px solid $border-color
+  padding: $space-sm $space-md
   max-height: 50vh
   overflow-y: auto
-  backdrop-filter: blur(12px)
   font-family: $font-mono
   font-size: $font-xs
   color: $text-secondary
-  align-self: flex-end
   animation: slideDown 300ms ease
 
   &::-webkit-scrollbar

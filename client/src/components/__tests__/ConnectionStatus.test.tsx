@@ -29,7 +29,7 @@ describe('ConnectionStatus', () => {
     expect(screen.getByText(/2\/5/)).toBeDefined()
   })
 
-  it('renders connected pill when connected', () => {
+  it('renders connected info strip when connected', () => {
     render(
       <ConnectionStatus
         {...defaultProps}
@@ -38,6 +38,8 @@ describe('ConnectionStatus', () => {
       />,
     )
     expect(screen.getByText('Connected')).toBeDefined()
+    expect(screen.getByText(/0 peers/)).toBeDefined()
+    expect(screen.getByText('WS')).toBeDefined()
   })
 
   it('renders failed bar with retry button', async () => {
