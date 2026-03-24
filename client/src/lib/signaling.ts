@@ -123,12 +123,13 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
 
   const waitForOpen = (timeout?: number): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
-      if (!ws) {
+      const socket = ws;
+      if (!socket) {
         reject(new Error("No WebSocket connection"));
         return;
       }
 
-      if (ws.readyState === WebSocket.OPEN) {
+      if (socket.readyState === WebSocket.OPEN) {
         resolve();
         return;
       }
@@ -136,16 +137,14 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
       const timeoutMs = timeout ?? SIGNALING_OPEN_TIMEOUT;
       let settled = false;
 
-      const originalOnOpen = ws.onopen;
-      const originalOnClose = ws.onclose;
-      const originalOnError = ws.onerror;
+      const originalOnOpen = socket.onopen;
+      const originalOnClose = socket.onclose;
+      const originalOnError = socket.onerror;
 
       const restoreHandlers = () => {
-        if (ws) {
-          ws.onopen = originalOnOpen;
-          ws.onclose = originalOnClose;
-          ws.onerror = originalOnError;
-        }
+        socket.onopen = originalOnOpen;
+        socket.onclose = originalOnClose;
+        socket.onerror = originalOnError;
       };
 
       const timer = setTimeout(() => {
@@ -156,34 +155,34 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
         }
       }, timeoutMs);
 
-      ws.onopen = (ev: Event) => {
+      socket.onopen = (ev: Event) => {
         if (!settled) {
           settled = true;
           clearTimeout(timer);
           restoreHandlers();
           resolve();
-          originalOnOpen?.call(ws, ev);
+          originalOnOpen?.call(socket, ev);
         }
       };
 
-      ws.onclose = (ev: Event) => {
+      socket.onclose = (ev: CloseEvent) => {
         if (!settled) {
           settled = true;
           clearTimeout(timer);
           restoreHandlers();
           reject(new Error("Signaling connection failed"));
         }
-        originalOnClose?.call(ws, ev);
+        originalOnClose?.call(socket, ev);
       };
 
-      ws.onerror = (ev: Event) => {
+      socket.onerror = (ev: Event) => {
         if (!settled) {
           settled = true;
           clearTimeout(timer);
           restoreHandlers();
           reject(new Error("Signaling connection failed"));
         }
-        originalOnError?.call(ws, ev);
+        originalOnError?.call(socket, ev);
       };
     });
   };

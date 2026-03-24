@@ -50,10 +50,13 @@ describe('signaling client: waitForOpen()', () => {
     const WebSocketStub = vi.fn((url: string) => {
       lastCreatedWs = new MockWebSocket(url)
       return lastCreatedWs
+    }) as unknown as typeof WebSocket
+    Object.assign(WebSocketStub, {
+      OPEN: MockWebSocket.OPEN,
+      CONNECTING: MockWebSocket.CONNECTING,
+      CLOSED: MockWebSocket.CLOSED,
+      CLOSING: 2,
     })
-    WebSocketStub.OPEN = MockWebSocket.OPEN
-    WebSocketStub.CONNECTING = MockWebSocket.CONNECTING
-    WebSocketStub.CLOSED = MockWebSocket.CLOSED
     vi.stubGlobal('WebSocket', WebSocketStub)
     client = createSignalingClient({
       peerId: 'test-peer',
