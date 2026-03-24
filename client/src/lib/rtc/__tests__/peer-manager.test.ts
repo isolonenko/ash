@@ -58,6 +58,7 @@ function createMockSender(): RTCRtpSender {
     track: { kind: 'video' } as MediaStreamTrack,
     getParameters: vi.fn(() => ({ encodings: [{}] })),
     setParameters: vi.fn().mockResolvedValue(undefined),
+    replaceTrack: vi.fn().mockResolvedValue(undefined),
   } as unknown as RTCRtpSender;
 }
 
@@ -407,6 +408,117 @@ describe('PeerManager', () => {
 
       expect(dc1.send).toHaveBeenCalledWith(JSON.stringify(msg));
       expect(dc2.send).toHaveBeenCalledWith(JSON.stringify(msg));
+    });
+  });
+
+  describe('replaceTrackOnAll', () => {
+    it('replaces track immediately when signalingState is stable', async () => {
+      await peerManager.handlePeerJoined('remote-1', 'Bob');
+      const pc = mockPCInstances[0]!;
+
+      const newTrack = createMockTrack('video');
+      const senders = vi.mocked(pc.addTrack).mock.results.map(result => result.value as RTCRtpSender);
+
+      peerManager.replaceTrackOnAll('video', newTrack);
+
+      let replaceTrackCalled = false;
+      for (const sender of senders) {
+        if (sender.track?.kind === 'video' && vi.mocked(sender.replaceTrack).mock.calls.length > 0) {
+          expect(sender.replaceTrack).toHaveBeenCalledWith(newTrack);
+          replaceTrackCalled = true;
+        }
+      }
+      expect(replaceTrackCalled).toBe(true);
+    });
+
+    it('queues track replacement when signalingState is have-local-offer', async () => {
+      await peerManager.handlePeerJoined('remote-1', 'Bob');
+      const pc = mockPCInstances[0]!;
+      ;(pc as unknown as Record<string, string>).signalingState = 'have-local-offer';
+
+      const newTrack = createMockTrack('video');
+      const senders = vi.mocked(pc.addTrack).mock.results.map(result => result.value as RTCRtpSender);
+
+      peerManager.replaceTrackOnAll('video', newTrack);
+
+      // replaceTrack should NOT have been called on any sender (mid-negotiation)
+      for (const sender of senders) {
+        if (sender.track?.kind === 'video') {
+          expect(sender.replaceTrack).not.toHaveBeenCalled();
+        }
+      }
+    });
+
+    it('skips track replacement when signalingState is closed', async () => {
+      await peerManager.handlePeerJoined('remote-1', 'Bob');
+      const pc = mockPCInstances[0]!;
+      ;(pc as unknown as Record<string, string>).signalingState = 'closed';
+
+      const newTrack = createMockTrack('video');
+
+      peerManager.replaceTrackOnAll('video', newTrack);
+
+      const senders = vi.mocked(pc.addTrack).mock.results.map(result => result.value as RTCRtpSender);
+      for (const sender of senders) {
+        if (sender.track?.kind === 'video') {
+          expect(sender.replaceTrack).not.toHaveBeenCalled();
+        }
+      }
+    });
+
+    it('flushes queued track replacement when signalingState becomes stable', async () => {
+      await peerManager.handlePeerJoined('remote-1', 'Bob');
+      const pc = mockPCInstances[0]!;
+      ;(pc as unknown as Record<string, string>).signalingState = 'have-local-offer';
+
+      const newTrack = createMockTrack('video');
+      peerManager.replaceTrackOnAll('video', newTrack);
+
+      ;(pc as unknown as Record<string, string>).signalingState = 'stable';
+      ;(pc as unknown as Record<string, (() => void) | null>).onsignalingstatechange?.();
+
+      const senders = vi.mocked(pc.addTrack).mock.results.map(result => result.value as RTCRtpSender);
+      let replaceTrackCalled = false;
+      for (const sender of senders) {
+        if (sender.track?.kind === 'video' && vi.mocked(sender.replaceTrack).mock.calls.length > 0) {
+          expect(sender.replaceTrack).toHaveBeenCalledWith(newTrack);
+          replaceTrackCalled = true;
+        }
+      }
+      expect(replaceTrackCalled).toBe(true);
+    });
+  });
+
+  describe('data channel message queue', () => {
+    it('queues messages when data channel is not open', async () => {
+      await peerManager.handlePeerJoined('remote-1', 'Bob');
+      const pc = mockPCInstances[0]!;
+
+      const dc = vi.mocked(pc.createDataChannel).mock.results[0]!.value as RTCDataChannel;
+      ;(dc as unknown as Record<string, string>).readyState = 'connecting';
+
+      const msg = { type: 'media-state' as const, payload: { audioEnabled: true, videoEnabled: false } };
+      peerManager.sendToAll(msg);
+
+      expect(dc.send).not.toHaveBeenCalled();
+    });
+
+    it('flushes queued messages when data channel opens', async () => {
+      await peerManager.handlePeerJoined('remote-1', 'Bob');
+      const pc = mockPCInstances[0]!;
+
+      const dc = vi.mocked(pc.createDataChannel).mock.results[0]!.value as RTCDataChannel;
+      ;(dc as unknown as Record<string, string>).readyState = 'connecting';
+
+      const msg = { type: 'media-state' as const, payload: { audioEnabled: true, videoEnabled: false } };
+      peerManager.sendToAll(msg);
+
+      expect(dc.send).not.toHaveBeenCalled();
+
+      ;(dc as unknown as Record<string, string>).readyState = 'open';
+      ;(dc as unknown as Record<string, (() => void) | null>).onopen?.();
+
+      expect(dc.send).toHaveBeenCalledWith(JSON.stringify(msg));
     });
   });
 

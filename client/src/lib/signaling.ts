@@ -1,5 +1,9 @@
 import type { SignalingMessage } from "@/types";
-import { RECONNECT_BASE_DELAY, RECONNECT_MAX_DELAY } from "@/lib/constants";
+import {
+  RECONNECT_BASE_DELAY,
+  RECONNECT_MAX_DELAY,
+  SIGNALING_OPEN_TIMEOUT,
+} from "@/lib/constants";
 import { SIGNALING_URL } from "@/lib/config";
 // ── Types ────────────────────────────────────────────────
 
@@ -117,5 +121,71 @@ export const createSignalingClient = (options: SignalingClientOptions) => {
 
   const isConnected = (): boolean => ws?.readyState === WebSocket.OPEN;
 
-  return { connect, send, disconnect, isConnected };
+  const waitForOpen = (timeout?: number): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      const socket = ws;
+      if (!socket) {
+        reject(new Error("No WebSocket connection"));
+        return;
+      }
+
+      if (socket.readyState === WebSocket.OPEN) {
+        resolve();
+        return;
+      }
+
+      const timeoutMs = timeout ?? SIGNALING_OPEN_TIMEOUT;
+      let settled = false;
+
+      const originalOnOpen = socket.onopen;
+      const originalOnClose = socket.onclose;
+      const originalOnError = socket.onerror;
+
+      const restoreHandlers = () => {
+        socket.onopen = originalOnOpen;
+        socket.onclose = originalOnClose;
+        socket.onerror = originalOnError;
+      };
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          restoreHandlers();
+          reject(new Error("Signaling connection timed out"));
+        }
+      }, timeoutMs);
+
+      socket.onopen = (ev: Event) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          restoreHandlers();
+          resolve();
+          originalOnOpen?.call(socket, ev);
+        }
+      };
+
+      socket.onclose = (ev: CloseEvent) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          restoreHandlers();
+          reject(new Error("Signaling connection failed"));
+        }
+        originalOnClose?.call(socket, ev);
+      };
+
+      socket.onerror = (ev: Event) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          restoreHandlers();
+          reject(new Error("Signaling connection failed"));
+        }
+        originalOnError?.call(socket, ev);
+      };
+    });
+  };
+
+  return { connect, send, disconnect, isConnected, waitForOpen };
 };

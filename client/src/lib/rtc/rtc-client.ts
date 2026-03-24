@@ -1,11 +1,12 @@
 import type { SignalingMessage, SdpPayload, IceCandidatePayload, ChatPayload, DataChannelMessage } from '@/types'
-import type { RTCClientOptions, RTCClientEvents } from './types'
+import type { RTCClientOptions, RTCClientEvents, ConnectSubState } from './types'
 import { TypedEventEmitter } from './event-emitter'
 import { SignalingManager } from './signaling-manager'
 import type { MediaManager } from './media-manager'
 import { PeerManager } from './peer-manager'
 import { fetchTurnCredentials } from '@/lib/turn'
 import { selectOptimalCodec } from '@/lib/codec-selection'
+import { CONNECT_TIMEOUT } from '@/lib/constants'
 
 export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
   private readonly options: RTCClientOptions
@@ -30,11 +31,21 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
 
     this.emit('connection-state', 'connecting')
 
-    try {
-      // 1. Fetch TURN credentials
-      const iceConfig = await fetchTurnCredentials()
+    const connectSequence = async (): Promise<void> => {
+      this.emitSubStep('fetching-turn')
+      let iceConfig: RTCConfiguration
+      try {
+        iceConfig = await fetchTurnCredentials()
+      } catch (err) {
+        this.emit('error', {
+          type: 'turn-failed',
+          message: err instanceof Error ? err.message : 'Could not reach relay server',
+        })
+        throw err
+      }
       if (this.destroyed) return
 
+      this.emitSubStep('acquiring-media')
       this.media = this.options.mediaManager
       this.wireMediaEvents()
 
@@ -42,6 +53,8 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
         try {
           await this.media.acquire()
         } catch {
+          this.cleanupPartial()
+          this.emitSubStep(null)
           this.emit('connection-state', 'failed')
           return
         }
@@ -50,15 +63,23 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
       }
       if (this.destroyed) return
 
-      // 3. Select optimal codec
-      const codecResult = await selectOptimalCodec()
+      this.emitSubStep('selecting-codec')
+      let codecResult: { mimeType: string }
+      try {
+        codecResult = await selectOptimalCodec()
+      } catch (err) {
+        this.emit('error', {
+          type: 'codec-failed',
+          message: err instanceof Error ? err.message : 'Could not detect video capabilities',
+        })
+        throw err
+      }
       if (this.destroyed) return
 
-      // 4. Create SignalingManager
+      this.emitSubStep('opening-signaling')
       this.signaling = new SignalingManager(this.options.peerId, this.options.displayName)
       this.wireSignalingEvents()
 
-      // 5. Create PeerManager
       this.peerManager = new PeerManager(
         iceConfig,
         this.signaling,
@@ -73,16 +94,45 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
         this.peerManager?.replaceTrackOnAll(kind, newTrack)
       }
 
-      // 6. Connect signaling (triggers peer-joined messages from server)
       this.signaling.connect(this.options.roomId)
+      try {
+        await this.signaling.waitForOpen()
+      } catch (err) {
+        this.emit('error', {
+          type: 'signaling-failed',
+          message: err instanceof Error ? err.message : 'Could not reach signaling server',
+        })
+        throw err
+      }
+      if (this.destroyed) return
+
+      this.emitSubStep('negotiating-peers')
 
       this.connected = true
+      this.emitSubStep(null)
       this.emit('connection-state', 'connected')
+    }
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('connect-timeout')), CONNECT_TIMEOUT)
+    })
+
+    try {
+      await Promise.race([connectSequence(), timeoutPromise])
     } catch (err) {
-      this.emit('error', {
-        type: 'unknown',
-        message: err instanceof Error ? err.message : 'Connection failed',
-      })
+      if (this.destroyed) return
+
+      const message = err instanceof Error ? err.message : 'Connection failed'
+
+      if (message === 'connect-timeout') {
+        this.emit('error', {
+          type: 'connect-timeout',
+          message: 'Connection timed out',
+        })
+      }
+
+      this.cleanupPartial()
+      this.emitSubStep(null)
       this.emit('connection-state', 'failed')
     }
   }
@@ -139,6 +189,7 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
     if (this.destroyed) return
     this.destroyed = true
     this.connected = false
+    this.emitSubStep(null)
 
     this.peerManager?.destroyAll()
     this.peerManager?.removeAllListeners()
@@ -157,6 +208,28 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
   }
 
   // ── Private: Wire Manager Events ──────────────────────
+
+  private emitSubStep(step: ConnectSubState): void {
+    this.emit('connect-substep', step)
+  }
+
+  private cleanupPartial(): void {
+    this.connected = false
+
+    this.peerManager?.destroyAll()
+    this.peerManager?.removeAllListeners()
+    this.peerManager = null
+
+    if (this.media) {
+      this.media.onTrackReplaced = null
+      this.media = null
+    }
+
+    this.signaling?.destroy()
+    this.signaling = null
+
+    this.messageQueues.clear()
+  }
 
   private wireMediaEvents(): void {
     if (!this.media) return
@@ -198,6 +271,7 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
 
     this.signaling.on('connection-change', connected => {
       if (!connected && this.connected) {
+        this.emitSubStep('opening-signaling')
         this.emit('connection-state', 'reconnecting')
       }
     })
@@ -206,6 +280,7 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
       // Server handles re-announcement: the WebSocket reconnects with the
       // same peerId/roomId, so the server broadcasts peer-joined to others.
       // We just update our connection state.
+      this.emitSubStep(null)
       this.emit('connection-state', 'connected')
     })
   }

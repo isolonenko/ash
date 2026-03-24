@@ -39,6 +39,10 @@ export class SignalingManager extends TypedEventEmitter<SignalingManagerEvents> 
     this.client.disconnect();
   }
 
+  waitForOpen(timeout?: number): Promise<void> {
+    return this.client.waitForOpen(timeout);
+  }
+
   destroy(): void {
     this.disconnect();
     this.removeAllListeners();

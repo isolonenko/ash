@@ -20,6 +20,12 @@ export { rtcStore }
 export const useConnectionState = () => useStore(rtcStore, s => s.connectionState)
 
 /**
+ * Hook: Get current connect substep
+ * @returns ConnectSubState - null or substep name during connection
+ */
+export const useConnectSubState = () => useStore(rtcStore, s => s.connectSubState)
+
+/**
  * Hook: Get local media stream and toggle states
  * @returns Object with stream, isMicEnabled, isCamEnabled
  */

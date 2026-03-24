@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import type { Participant, ChatMessage } from '@/types'
 import { useRoomContext } from '@/context/room-context'
-import { useConnectionState, useLocalMedia, usePeers, useMessages, useRTCActions } from '@/hooks/useRTC'
+import { useConnectionState, useConnectSubState, useLocalMedia, usePeers, useMessages, useRTCActions } from '@/hooks/useRTC'
 import { useSpeakingIndicator } from '@/hooks/useSpeakingIndicator'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import { usePictureInPicture } from '@/hooks/usePictureInPicture'
@@ -25,6 +25,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
 
   // Zustand selectors
   const connectionState = useConnectionState()
+  const connectSubState = useConnectSubState()
   const { stream: localStream, isMicEnabled, isCamEnabled, isScreenSharing } = useLocalMedia()
   const peers = usePeers()
   const messages = useMessages()
@@ -137,10 +138,30 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
     }
   }, [isScreenSharing, startScreenShare, stopScreenShare])
 
+  const handleRetry = useCallback(() => {
+    if (localUserId && roomId) {
+      connect(
+        roomId,
+        localUserId,
+        displayName,
+        roomState.initialAudioEnabled ?? true,
+        roomState.initialVideoEnabled ?? true,
+      )
+    }
+  }, [localUserId, roomId, displayName, roomState.initialAudioEnabled, roomState.initialVideoEnabled, connect])
+
   const handleSendMessage = useCallback((text: string) => sendMessage(text), [sendMessage])
 
   return (
     <div className={styles.roomView}>
+      <ConnectionStatus
+        connectionState={connectionState}
+        connectSubState={connectSubState}
+        signalingConnected={connectionState === 'connected'}
+        peers={peers}
+        localPeerId={localUserId}
+        onRetry={handleRetry}
+      />
       <VideoGrid
         participants={participants}
         localStream={localStream}
@@ -174,7 +195,6 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         roomCode={roomId}
         callDuration={callDuration}
       />
-      <ConnectionStatus signalingConnected={connectionState === 'connected'} peers={peers} localPeerId={localUserId} />
     </div>
   )
 }

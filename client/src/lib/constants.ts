@@ -3,7 +3,10 @@ export const RECONNECT_MAX_DELAY = 30_000; // ms
 
 export const DATA_CHANNEL_LABEL = "thechat";
 
-export const ICE_RESTART_MAX_ATTEMPTS = 2;
+export const CONNECT_TIMEOUT = 15_000; // 15s — total time budget for connect()
+export const SIGNALING_OPEN_TIMEOUT = 5_000; // 5s — max wait for WS onopen
+
+export const ICE_RESTART_MAX_ATTEMPTS = 4;
 
 // ── WebRTC media quality ──────────────────────────────────
 export const VIDEO_MAX_BITRATE = 4_000_000; // 4 Mbps — good for 1080p

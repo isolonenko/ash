@@ -3,9 +3,9 @@
 .grid
   display: grid
   gap: $space-md
-  padding: $space-lg
+  padding: 72px $space-lg 88px
   width: 100%
-  height: calc(100vh - 70px)
+  height: 100vh
   align-items: stretch
   justify-items: stretch
   transition: all $transition-base
@@ -47,10 +47,10 @@
   @media (max-width: 768px)
     grid-template-columns: 1fr !important
     grid-auto-rows: minmax(250px, auto)
-    padding: $space-md
+    padding: 64px $space-md 100px
     gap: $space-sm
     height: auto
-    min-height: calc(100vh - 70px)
+    min-height: 100vh
 
     &[data-screenshare-active="true"]
       flex-direction: column

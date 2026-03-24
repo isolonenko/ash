@@ -6,6 +6,7 @@ export { getNetworkTier, onNetworkTierChange } from './network-quality';
 
 export type {
   RTCClientState,
+  ConnectSubState,
   RTCClientError,
   RTCClientOptions,
   RTCClientEvents,

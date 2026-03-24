@@ -1,54 +1,140 @@
 @use "../styles/variables" as *
 
-.overlay
-  position: fixed
-  bottom: 80px
-  right: $space-md
-  z-index: 200
-  display: flex
-  flex-direction: column
-  align-items: flex-end
-  gap: $space-xs
-  pointer-events: none
+// ── Strip (full-width bar for connecting/failed/reconnecting) ──
 
-  > *
-    pointer-events: auto
-
-.toggle
+.strip
   display: flex
   align-items: center
-  gap: $space-xs
-  background: rgba($bg-secondary, 0.9)
+  gap: $space-sm
+  position: fixed
+  top: $space-md
+  left: $space-md
+  right: $space-md
+  z-index: 100
+  padding: $space-sm $space-md
+  background: rgba($bg-secondary, 0.95)
   border: 1px solid $border-color
+  border-radius: 14px
+  backdrop-filter: blur(10px)
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-cyan, 0.05)
+  font-family: $font-mono
+  font-size: $font-xs
+  color: $text-secondary
+
+.failedStrip
+  border-color: rgba($neon-red, 0.3)
+
+.reconnectingStrip
+  border-color: rgba($neon-yellow, 0.3)
+
+.statusText
+  flex: 1
+
+.retryBtn
+  background: transparent
+  border: 1px solid $neon-cyan
   border-radius: 4px
-  padding: $space-xs $space-sm
+  padding: 2px $space-sm
+  color: $neon-cyan
+  font-family: $font-mono
+  font-size: $font-xs
+  cursor: pointer
+  transition: background $transition-fast
+
+  &:hover
+    background: rgba($neon-cyan, 0.1)
+
+// ── Progress Bar ─────────────────────────────────────────
+
+.progressBar
+  display: flex
+  flex-direction: column
+  gap: 4px
+  flex: 1
+
+.segments
+  display: flex
+  gap: 3px
+  flex: 1
+  max-width: 200px
+
+.segment
+  height: 4px
+  flex: 1
+  border-radius: 2px
+  transition: background $transition-base
+
+.completed
+  background: $neon-green
+
+.active
+  background: $neon-yellow
+  animation: segmentPulse 1.5s ease-in-out infinite
+
+.pending
+  background: $border-color
+
+.stepLabel
+  color: $text-secondary
+  font-size: $font-xs
+  white-space: nowrap
+
+@keyframes segmentPulse
+  0%, 100%
+    opacity: 1
+  50%
+    opacity: 0.4
+
+// ── Connected Strip (full-width info bar) ────────────────
+
+.connectedStrip
+  position: fixed
+  top: $space-md
+  left: $space-md
+  right: $space-md
+  z-index: 100
+  display: flex
+  flex-direction: column
+  border: 1px solid rgba($neon-green, 0.2)
+  border-radius: 14px
+  background: rgba($bg-secondary, 0.95)
+  backdrop-filter: blur(10px)
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-green, 0.05)
+  overflow: hidden
+
+.stripToggle
+  display: flex
+  align-items: center
+  gap: $space-sm
+  width: 100%
+  background: transparent
+  border: none
+  padding: $space-sm $space-md
   cursor: pointer
   font-family: $font-mono
   font-size: $font-xs
   color: $text-secondary
-  backdrop-filter: blur(8px)
-  transition: border-color $transition-fast
+  transition: background $transition-fast
+  text-align: left
 
   &:hover
-    border-color: $neon-cyan
+    background: rgba(255, 255, 255, 0.03)
 
-.toggleLabel
-  text-transform: uppercase
-  letter-spacing: 1px
+.separator
+  color: $text-muted
+  opacity: 0.5
 
-.panel
-  background: rgba($bg-primary, 0.95)
-  border: 1px solid $border-color
-  border-radius: 4px
-  padding: $space-sm
-  min-width: 240px
-  max-width: 320px
-  max-height: 60vh
+// ── Debug Panel ──────────────────────────────────────────
+
+.debugPanel
+  border-top: 1px solid $border-color
+  padding: $space-sm $space-md
+  max-height: 50vh
   overflow-y: auto
-  backdrop-filter: blur(12px)
   font-family: $font-mono
   font-size: $font-xs
   color: $text-secondary
+  animation: slideDown 300ms ease
 
   &::-webkit-scrollbar
     width: 4px
@@ -56,6 +142,8 @@
   &::-webkit-scrollbar-thumb
     background: $border-color
     border-radius: 2px
+
+// ── Shared styles ────────────────────────────────────────
 
 .section
   padding: $space-xs 0
@@ -114,8 +202,25 @@
   background: $text-muted
   opacity: 0.5
 
+.pulse
+  animation: dotPulse 1.5s ease-in-out infinite
+
+@keyframes dotPulse
+  0%, 100%
+    opacity: 1
+  50%
+    opacity: 0.3
+
 .empty
   color: $text-muted
   font-style: italic
   padding: $space-sm 0
   text-align: center
+
+@keyframes slideDown
+  0%
+    opacity: 0
+    transform: translateY(-8px)
+  100%
+    opacity: 1
+    transform: translateY(0)

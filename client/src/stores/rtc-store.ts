@@ -2,7 +2,7 @@ import { createStore } from 'zustand/vanilla';
 import type { StoreApi } from 'zustand';
 import { RTCClient } from '@/lib/rtc';
 import { mediaManager } from '@/lib/rtc/media-manager-instance';
-import type { RTCClientState, RTCClientError, PeerSnapshot, ChatMessage, MediaToggleState } from '@/lib/rtc';
+import type { RTCClientState, RTCClientError, PeerSnapshot, ChatMessage, MediaToggleState, ConnectSubState } from '@/lib/rtc';
 
 function storageKey(roomId: string): string {
   return `messages-${roomId}`;
@@ -23,6 +23,7 @@ function clearMessages(roomId: string): void {
 
 export interface RTCState {
   connectionState: RTCClientState;
+  connectSubState: ConnectSubState;
   connectedAt: number | null;
   localStream: MediaStream | null;
   isMicEnabled: boolean;
@@ -69,6 +70,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
 
   return createStore<RTCStore>((set) => ({
     connectionState: 'idle',
+    connectSubState: null,
     connectedAt: null,
     localStream: null,
     isMicEnabled: true,
@@ -94,6 +96,10 @@ export function createRTCStore(): StoreApi<RTCStore> {
           connectionState: state,
           connectedAt: state === 'connected' && s.connectedAt === null ? Date.now() : state === 'connected' ? s.connectedAt : null,
         }));
+      });
+
+      client.on('connect-substep', (substep: ConnectSubState) => {
+        set({ connectSubState: substep });
       });
 
       client.on('media-acquired', (stream: MediaStream) => {
@@ -191,6 +197,7 @@ export function createRTCStore(): StoreApi<RTCStore> {
       }
       set({
         connectionState: 'idle',
+        connectSubState: null,
         connectedAt: null,
         localStream: null,
         isMicEnabled: true,
