@@ -1,37 +1,33 @@
-import { useState } from "react";
-import { useRoomContext } from "@/context/room-context";
-import { navigateTo } from "@/lib/router";
-import styles from "./Landing.module.sass";
+import { useState } from 'react'
+import { useRoomContext } from '@/context/room-context'
+import { navigateTo } from '@/lib/router'
+import styles from './Landing.module.sass'
 
 export const Landing = () => {
-  const { createRoom } = useRoomContext();
-  const [roomCode, setRoomCode] = useState("");
+  const { createRoom } = useRoomContext()
+  const [roomCode, setRoomCode] = useState('')
 
   const handleCreateRoom = async () => {
-    await createRoom();
-  };
+    await createRoom()
+  }
 
   const handleJoinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (roomCode.trim()) {
-      navigateTo({ page: "preview", roomId: roomCode.trim() });
+      navigateTo({ page: 'preview', roomId: roomCode.trim() })
     }
-  };
+  }
 
-  const canJoin = roomCode.trim().length > 0;
+  const canJoin = roomCode.trim().length > 0
 
   return (
     <div className={styles.landing}>
       <div className={styles.container}>
-        <h1 className={styles.title}>the.chat</h1>
+        <h1 className={styles.title}>ash</h1>
 
         <div className={styles.actions}>
           <div className={styles.section}>
-            <button
-              className={styles.createButton}
-              onClick={handleCreateRoom}
-              type="button"
-            >
+            <button className={styles.createButton} onClick={handleCreateRoom} type="button">
               Create Room
             </button>
           </div>
@@ -47,15 +43,11 @@ export const Landing = () => {
                 className={styles.input}
                 placeholder="Enter room code"
                 value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
+                onChange={e => setRoomCode(e.target.value)}
                 spellCheck={false}
                 autoComplete="off"
               />
-              <button
-                type="submit"
-                className={styles.joinButton}
-                disabled={!canJoin}
-              >
+              <button type="submit" className={styles.joinButton} disabled={!canJoin}>
                 Join Room
               </button>
             </form>
@@ -63,5 +55,5 @@ export const Landing = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

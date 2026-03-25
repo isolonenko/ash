@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Deploy the-chat on any VPS with a single command. No external providers needed.
+Deploy Ash on any VPS with a single command. No external providers needed.
 
 ## 1. Get a VPS
 
@@ -40,14 +40,14 @@ This should return your VPS IP. If it doesn't, wait a few minutes and try again.
 SSH into your VPS and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/master/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
+curl -fsSL https://raw.githubusercontent.com/isolonenko/ash/master/deploy/install.sh | sudo bash -s -- --domain chat.yourdomain.com --email you@example.com
 ```
 
 Replace `chat.yourdomain.com` with your actual domain and `you@example.com` with your email (used for Let's Encrypt certificate notifications).
 
 The script will:
 1. Install git and Docker (if not present)
-2. Clone the repo to `/opt/the-chat`
+2. Clone the repo to `/opt/ash`
 3. Generate a TURN shared secret
 4. Detect your server's public IP
 5. Build the React client
@@ -86,7 +86,7 @@ docker compose -f deploy/docker-compose.yml logs -f coturn    # TURN relay only
 #### Full Update (Client + Server)
 
 ```bash
-cd /opt/the-chat
+cd /opt/ash
 git pull
 docker compose -f deploy/docker-compose.yml build client-build server
 docker compose -f deploy/docker-compose.yml up -d --no-deps client-build server
@@ -96,7 +96,7 @@ docker compose -f deploy/docker-compose.yml restart caddy
 #### Update Client Only
 
 ```bash
-cd /opt/the-chat
+cd /opt/ash
 git pull
 docker compose -f deploy/docker-compose.yml build client-build
 docker compose -f deploy/docker-compose.yml up -d --no-deps client-build
@@ -106,7 +106,7 @@ docker compose -f deploy/docker-compose.yml restart caddy
 #### Update Server Only
 
 ```bash
-cd /opt/the-chat
+cd /opt/ash
 git pull
 docker compose -f deploy/docker-compose.yml build server
 docker compose -f deploy/docker-compose.yml up -d --no-deps server

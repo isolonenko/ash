@@ -28,7 +28,7 @@ done
 [[ -z "$DOMAIN" ]] && fatal "Missing required argument: --domain <domain>"
 [[ -z "$EMAIL" ]]  && fatal "Missing required argument: --email <email>"
 
-info "Deploying the-chat to ${DOMAIN}"
+info "Deploying ash to ${DOMAIN}"
 
 # ── Preflight ────────────────────────────────────────────
 
@@ -181,7 +181,7 @@ while [[ $ELAPSED -lt $MAX_WAIT ]]; do
   if curl -sf "https://${DOMAIN}/health" >/dev/null 2>&1; then
     echo ""
     info "═══════════════════════════════════════════════"
-    info "  the-chat is live at https://${DOMAIN}"
+    info "  ash is live at https://${DOMAIN}"
     info "═══════════════════════════════════════════════"
     info ""
     info "  Useful commands:"
