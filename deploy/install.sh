@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -z "$DOMAIN" ]] && fatal "Usage: curl -fsSL https://raw.githubusercontent.com/isolonenko/the-chat/master/deploy/install.sh | sudo bash -s -- --domain <domain> --email <email>"
+[[ -z "$DOMAIN" ]] && fatal "Usage: curl -fsSL https://raw.githubusercontent.com/isolonenko/ash/master/deploy/install.sh | sudo bash -s -- --domain <domain> --email <email>"
 [[ -z "$EMAIL" ]]  && fatal "Missing required argument: --email <email>"
 
 # ── Preflight ────────────────────────────────────────────
@@ -56,14 +56,14 @@ fi
 
 # ── Clone repo ───────────────────────────────────────────
 
-INSTALL_DIR="/opt/the-chat"
+INSTALL_DIR="/opt/ash"
 
 if [[ -d "$INSTALL_DIR" ]]; then
   info "Existing installation found at ${INSTALL_DIR} — pulling latest..."
   git -C "$INSTALL_DIR" pull --ff-only
 else
-  info "Cloning the-chat to ${INSTALL_DIR}..."
-  git clone https://github.com/isolonenko/the-chat.git "$INSTALL_DIR"
+  info "Cloning ash to ${INSTALL_DIR}..."
+  git clone https://github.com/isolonenko/ash.git "$INSTALL_DIR"
 fi
 
 # ── Run bootstrap ────────────────────────────────────────
