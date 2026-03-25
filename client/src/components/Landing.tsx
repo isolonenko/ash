@@ -23,8 +23,11 @@ export const Landing = () => {
   return (
     <div className={styles.landing}>
       <div className={styles.container}>
-        <img src="/2.svg" alt="Ash" className={styles.logo} />
-        <h1 className={styles.title}>ash</h1>
+        <div className={styles.header}>
+          <img src="/2.svg" alt="Ash" className={styles.logo} />
+          <h1 className={styles.title}>ash</h1>
+          <p className={styles.tagline}>Talk freely.</p>
+        </div>
 
         <div className={styles.actions}>
           <div className={styles.section}>
