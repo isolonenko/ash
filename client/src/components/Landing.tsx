@@ -24,7 +24,7 @@ export const Landing = () => {
     <div className={styles.landing}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <img src="/2.svg" alt="Ash" className={styles.logo} />
+          <img src="/favicon.svg" alt="Ash" className={styles.logo} />
           <h1 className={styles.title}>ash</h1>
           <p className={styles.tagline}>Talk freely.</p>
         </div>
