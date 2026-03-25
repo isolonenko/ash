@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
+import { X } from "lucide-react";
 import type { ChatMessage } from "@/types";
 import styles from "./ChatPanel.module.sass";
 
@@ -60,14 +61,14 @@ export const ChatPanel = ({
       />
       <div className={`${styles.panel} ${isOpen ? styles.panelOpen : ""}`}>
         <div className={styles.header}>
-          <div className={styles.title}>CHAT PANEL</div>
+          <div className={styles.title}>Chat</div>
           <button
             type="button"
             className={styles.closeButton}
             onClick={onClose}
             aria-label="Close chat panel"
           >
-            ×
+            <X size={18} />
           </button>
         </div>
 

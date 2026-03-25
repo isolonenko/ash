@@ -1,33 +1,30 @@
 @use "./variables" as *
-// Shared button mixins for cyberpunk UI
+// Shared button mixins for Monochrome Ember design
 // All buttons share base properties; color variants add border/color/hover
 
 =button-base
   background: transparent
-  font-family: $font-mono
+  font-family: $font-display
   cursor: pointer
-  text-transform: uppercase
   transition: all $transition-fast
-  letter-spacing: 1px
+  border-radius: 6px
 
-=button-cyan
+=button-primary
   +button-base
-  border: 1px solid $neon-cyan
-  color: $neon-cyan
+  border: 1px solid $accent
+  color: $accent
   &:hover
-    background: rgba($neon-cyan, 0.1)
-    box-shadow: $glow-cyan
+    background: rgba($accent, 0.1)
   &:disabled
     opacity: 0.3
     cursor: not-allowed
 
-=button-green
+=button-success
   +button-base
-  border: 1px solid $neon-green
-  color: $neon-green
+  border: 1px solid $success
+  color: $success
   &:hover
-    background: rgba($neon-green, 0.1)
-    box-shadow: 0 0 10px rgba($neon-green, 0.3)
+    background: rgba($success, 0.1)
   &:disabled
     opacity: 0.3
     cursor: not-allowed
@@ -38,7 +35,6 @@
   color: $danger
   &:hover
     background: rgba($danger, 0.1)
-    box-shadow: $glow-magenta
   &:disabled
     opacity: 0.3
     cursor: not-allowed
@@ -50,40 +46,16 @@
   &:hover
     border-color: $text-primary
     color: $text-primary
-    box-shadow: 0 0 5px rgba($text-primary, 0.1)
   &:disabled
     opacity: 0.3
     cursor: not-allowed
 
-=button-magenta
-  +button-base
-  border: 1px solid $neon-magenta
-  color: $neon-magenta
-  &:hover
-    background: rgba($neon-magenta, 0.1)
-    box-shadow: $glow-magenta
-  &:disabled
-    opacity: 0.3
-    cursor: not-allowed
+// Legacy aliases for backwards compatibility
+=button-cyan
+  +button-primary
 
-=button-purple
-  +button-base
-  border: 1px solid $neon-purple
-  color: $neon-purple
-  &:hover
-    background: rgba($neon-purple, 0.1)
-    box-shadow: 0 0 10px rgba($neon-purple, 0.5), 0 0 20px rgba($neon-purple, 0.2)
-  &:disabled
-    opacity: 0.3
-    cursor: not-allowed
+=button-green
+  +button-success
 
 =button-red
-  +button-base
-  border: 1px solid $neon-red
-  color: $neon-red
-  &:hover
-    background: rgba($neon-red, 0.1)
-    box-shadow: $glow-red
-  &:disabled
-    opacity: 0.3
-    cursor: not-allowed
+  +button-danger

@@ -80,7 +80,7 @@ function ErrorDisplay({
             onClick={action.action === 'retry' ? onRetry : onLeave}
             className={styles.errorButton}
           >
-            [{action.label.toUpperCase()}]
+            {action.label}
           </button>
         ))}
       </div>

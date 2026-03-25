@@ -15,7 +15,7 @@
   align-items: center
   justify-content: space-between
   backdrop-filter: blur(10px)
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-cyan, 0.05)
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08)
 
 .roomInfo
   display: flex
@@ -36,15 +36,18 @@
   letter-spacing: 1px
 
 .copyButton
-  +button-cyan
+  +button-primary
   font-size: $font-sm
   padding: $space-xs $space-sm
-  min-width: 110px
+  min-width: 90px
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: $space-xs
 
   &:disabled
-    color: $neon-green
-    border-color: $neon-green
-    box-shadow: $glow-cyan
+    color: $success
+    border-color: $success
 
 .controls
   display: flex
@@ -78,25 +81,53 @@
   gap: $space-md
 
 .buttonActive
-  +button-cyan
+  +button-primary
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
 
 .buttonInactive
   +button-ghost
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
 
 .buttonChat
-  +button-green
+  +button-success
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
 
 .buttonChatInactive
   +button-ghost
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
 
 .buttonLeave
-  +button-red
+  +button-danger
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
 
 .buttonScreen
   +button-ghost
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
 
 .buttonScreenActive
-  +button-purple
+  +button-primary
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
 
 // Mobile responsive
 @media (max-width: 768px)

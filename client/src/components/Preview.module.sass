@@ -31,7 +31,6 @@
   font-family: $font-mono
   font-size: $font-lg
   color: $text-primary
-  text-transform: uppercase
   letter-spacing: 4px
 
 // ── Preview Section ───────────────────────────────────────────────
@@ -54,7 +53,7 @@
   aspect-ratio: 16 / 9
   background: $bg-secondary
   border: 1px solid $border-color
-  border-radius: 4px
+  border-radius: 8px
   overflow: hidden
 
 .video
@@ -72,10 +71,9 @@
   background: $bg-tertiary
 
 .placeholderText
-  font-family: $font-mono
+  font-family: $font-display
   font-size: $font-xl
   color: $text-muted
-  letter-spacing: 2px
 
 // ── Name Input ────────────────────────────────────────────────────
 
@@ -96,8 +94,7 @@
     color: $text-muted
 
   &:focus
-    border-color: $neon-green
-    box-shadow: 0 0 8px rgba($neon-green, 0.3)
+    border-color: $accent
 
 // ── Controls ──────────────────────────────────────────────────────
 
@@ -113,19 +110,25 @@
   gap: $space-xs
 
 .buttonActive
-  +button-cyan
-  padding: $space-md $space-xl
+  +button-primary
+  padding: $space-md
   font-size: $font-base
+  display: flex
+  align-items: center
+  justify-content: center
 
 .buttonInactive
   +button-ghost
-  padding: $space-md $space-xl
+  padding: $space-md
   font-size: $font-base
+  display: flex
+  align-items: center
+  justify-content: center
 
 // ── Join Button ───────────────────────────────────────────────────
 
 .joinButton
-  +button-green
+  +button-success
   width: 100%
   padding: $space-md
   font-size: $font-lg
@@ -137,9 +140,9 @@
   align-items: center
   gap: 8px
   padding: 10px 14px
-  background: rgba($neon-magenta, 0.1)
-  border: 1px solid rgba($neon-magenta, 0.3)
-  color: $neon-magenta
+  background: rgba($danger, 0.1)
+  border: 1px solid rgba($danger, 0.3)
+  color: $danger
   font-family: $font-mono
   font-size: 0.75rem
   margin-top: 8px
@@ -169,10 +172,9 @@
   font-size: $font-xl
   color: $danger
   text-align: center
-  text-shadow: $text-glow-red
 
 .backButton
-  +button-cyan
+  +button-primary
   padding: $space-md $space-xl
   font-size: $font-base
 
