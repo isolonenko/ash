@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Mic, MicOff, Camera, CameraOff, Monitor, MonitorOff, MessageSquare, PictureInPicture2, PhoneOff, Link, Check } from "lucide-react";
 import { DeviceDropdown } from "./DeviceDropdown";
 import styles from "./RoomControls.module.sass";
 
@@ -56,8 +57,17 @@ export const RoomControls = ({
           className={styles.copyButton}
           onClick={handleCopyLink}
           disabled={copied}
+          aria-label={copied ? "Link copied" : "Copy room link"}
         >
-          {copied ? "COPIED!" : "[COPY LINK]"}
+          {copied ? (
+            <>
+              <Check size={14} /> Copied
+            </>
+          ) : (
+            <>
+              <Link size={14} /> Copy
+            </>
+          )}
         </button>
       </div>
 
@@ -67,8 +77,9 @@ export const RoomControls = ({
             <button
               className={micEnabled ? styles.buttonActive : styles.buttonInactive}
               onClick={onToggleMic}
+              aria-label={micEnabled ? "Mute microphone" : "Unmute microphone"}
             >
-              {micEnabled ? "[MIC]" : "[MIC OFF]"}
+              {micEnabled ? <Mic size={18} /> : <MicOff size={18} />}
             </button>
             <DeviceDropdown kind="audio" direction="up" />
           </div>
@@ -77,8 +88,9 @@ export const RoomControls = ({
             <button
               className={camEnabled ? styles.buttonActive : styles.buttonInactive}
               onClick={onToggleCam}
+              aria-label={camEnabled ? "Turn off camera" : "Turn on camera"}
             >
-              {camEnabled ? "[CAM]" : "[CAM OFF]"}
+              {camEnabled ? <Camera size={18} /> : <CameraOff size={18} />}
             </button>
             <DeviceDropdown kind="video" direction="up" />
           </div>
@@ -87,8 +99,9 @@ export const RoomControls = ({
             <button
               className={screenSharing ? styles.buttonScreenActive : styles.buttonScreen}
               onClick={onToggleScreenShare}
+              aria-label={screenSharing ? "Stop screen sharing" : "Share screen"}
             >
-              {screenSharing ? "[STOP]" : "[SCREEN]"}
+              {screenSharing ? <MonitorOff size={18} /> : <Monitor size={18} />}
             </button>
           )}
         </div>
@@ -99,16 +112,18 @@ export const RoomControls = ({
           <button
             className={chatOpen ? styles.buttonChat : styles.buttonChatInactive}
             onClick={onToggleChat}
+            aria-label={chatOpen ? "Close chat" : "Open chat"}
           >
-            [CHAT]
+            <MessageSquare size={18} />
           </button>
 
           {pipSupported && (
             <button
               className={pipActive ? styles.buttonActive : styles.buttonInactive}
               onClick={onTogglePip}
+              aria-label={pipActive ? "Exit picture-in-picture" : "Enter picture-in-picture"}
             >
-              {pipActive ? "[PIP ON]" : "[PIP]"}
+              <PictureInPicture2 size={18} />
             </button>
           )}
         </div>
@@ -116,8 +131,8 @@ export const RoomControls = ({
         <div className={styles.separator} />
 
         <div className={styles.callGroup}>
-          <button className={styles.buttonLeave} onClick={onLeaveRoom}>
-            [LEAVE]
+          <button className={styles.buttonLeave} onClick={onLeaveRoom} aria-label="Leave room">
+            <PhoneOff size={18} />
           </button>
         </div>
       </div>

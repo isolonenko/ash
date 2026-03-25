@@ -12,11 +12,11 @@
   transition: border-color $transition-fast, box-shadow $transition-fast
 
   &[data-local="true"]
-    border-color: rgba($neon-cyan, 0.4)
+    border-color: rgba($accent, 0.4)
 
   &.speaking
-    border-color: $neon-green
-    box-shadow: 0 0 10px rgba($neon-green, 0.6), 0 0 20px rgba($neon-green, 0.3)
+    border-color: $success
+    box-shadow: 0 0 8px rgba($success, 0.3)
     animation: speaking-pulse 1.2s ease-in-out infinite
 
   &[data-video-off="true"]
@@ -61,8 +61,7 @@
   font-family: $font-display
   font-size: 3rem
   font-weight: 700
-  color: $neon-cyan
-  text-shadow: $text-glow-cyan
+  color: $accent
   user-select: none
 
 .overlay
@@ -87,22 +86,20 @@
   position: absolute
   top: $space-sm
   right: $space-sm
-  padding: 2px $space-sm
-  background: rgba($neon-red, 0.15)
-  border: 1px solid $neon-red
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: $space-xs
+  background: rgba($danger, 0.15)
+  border: 1px solid $danger
   border-radius: 2px
-  font-family: $font-mono
-  font-size: $font-xs
-  color: $neon-red
-  text-shadow: $text-glow-red
-  font-weight: 600
-  letter-spacing: 0.5px
+  color: $danger
   pointer-events: none
 
 @keyframes speaking-pulse
   0%
-    box-shadow: 0 0 10px rgba($neon-green, 0.6), 0 0 20px rgba($neon-green, 0.3)
+    box-shadow: 0 0 6px rgba($success, 0.3)
   50%
-    box-shadow: 0 0 15px rgba($neon-green, 0.8), 0 0 30px rgba($neon-green, 0.5)
+    box-shadow: 0 0 10px rgba($success, 0.5)
   100%
-    box-shadow: 0 0 10px rgba($neon-green, 0.6), 0 0 20px rgba($neon-green, 0.3)
+    box-shadow: 0 0 6px rgba($success, 0.3)

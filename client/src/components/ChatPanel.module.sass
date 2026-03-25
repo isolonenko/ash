@@ -31,7 +31,7 @@
   transform: translateX(100%)
   transition: transform $transition-base
   z-index: 999
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5)
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08)
 
   &Open
     transform: translateX(0)
@@ -49,27 +49,22 @@
 .title
   font-family: $font-display
   font-size: $font-base
-  color: $neon-cyan
-  text-transform: uppercase
-  letter-spacing: 2px
-  text-shadow: $text-glow-cyan
+  color: $accent
+  letter-spacing: 1px
 
 .closeButton
   +button-ghost
   width: 32px
   height: 32px
   padding: 0
-  font-size: 28px
-  line-height: 1
   display: flex
   align-items: center
   justify-content: center
   border-radius: 2px
   
   &:hover
-    border-color: $neon-cyan
-    color: $neon-cyan
-    box-shadow: $glow-cyan
+    border-color: $accent
+    color: $accent
 
 // ── Messages ───────────────────────────────────────────────────
 .messages
@@ -88,13 +83,14 @@
   height: 100%
   color: $text-muted
   font-size: $font-sm
-  font-family: $font-mono
+  font-family: $font-display
 
 // ── Message Bubbles ────────────────────────────────────────────
 .messageOwn,
 .messageOther
   max-width: 85%
   padding: $space-sm $space-md
+  border-radius: 8px
   animation: slide-in 0.2s ease
   position: relative
   display: flex
@@ -103,28 +99,27 @@
 
 .messageOwn
   align-self: flex-end
-  background: rgba($neon-cyan, 0.1)
-  border: 1px solid rgba($neon-cyan, 0.2)
-  border-right: 2px solid $neon-cyan
+  background: rgba($accent, 0.08)
+  border: 1px solid rgba($accent, 0.15)
+  border-right: 2px solid $accent
 
 .messageOther
   align-self: flex-start
-  background: rgba($neon-magenta, 0.08)
-  border: 1px solid rgba($neon-magenta, 0.15)
-  border-left: 2px solid $neon-magenta
+  background: rgba($text-secondary, 0.08)
+  border: 1px solid rgba($text-secondary, 0.15)
+  border-left: 2px solid $text-secondary
 
 .messageSender
   font-size: $font-xs
   font-family: $font-display
-  text-transform: uppercase
-  letter-spacing: 1px
+  letter-spacing: 0.5px
 
 .messageOwn .messageSender
-  color: $neon-cyan
+  color: $accent
   text-align: right
 
 .messageOther .messageSender
-  color: $neon-magenta
+  color: $text-secondary
 
 .messageText
   font-size: $font-sm
@@ -160,14 +155,13 @@
 
   &:focus
     outline: none
-    border-color: $neon-cyan
-    box-shadow: 0 0 0 1px rgba($neon-cyan, 0.2)
+    border-color: $accent
 
   &::placeholder
     color: $text-muted
 
 .sendButton
-  +button-cyan
+  +button-primary
   padding: $space-sm $space-md
   font-size: $font-xs
 
@@ -194,7 +188,7 @@
     border-left: none
     border-top: 1px solid $border-color
     transform: translateY(100%)
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5)
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08)
 
     &Open
       transform: translateY(0)

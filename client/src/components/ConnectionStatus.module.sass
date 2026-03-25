@@ -16,33 +16,32 @@
   border: 1px solid $border-color
   border-radius: 14px
   backdrop-filter: blur(10px)
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-cyan, 0.05)
-  font-family: $font-mono
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08)
   font-size: $font-xs
   color: $text-secondary
 
 .failedStrip
-  border-color: rgba($neon-red, 0.3)
+  border-color: rgba($danger, 0.3)
 
 .reconnectingStrip
-  border-color: rgba($neon-yellow, 0.3)
+  border-color: rgba($warning, 0.3)
 
 .statusText
   flex: 1
 
 .retryBtn
   background: transparent
-  border: 1px solid $neon-cyan
+  border: 1px solid $accent
   border-radius: 4px
   padding: 2px $space-sm
-  color: $neon-cyan
+  color: $accent
   font-family: $font-mono
   font-size: $font-xs
   cursor: pointer
   transition: background $transition-fast
 
   &:hover
-    background: rgba($neon-cyan, 0.1)
+    background: rgba($accent, 0.1)
 
 // ── Progress Bar ─────────────────────────────────────────
 
@@ -65,10 +64,10 @@
   transition: background $transition-base
 
 .completed
-  background: $neon-green
+  background: $success
 
 .active
-  background: $neon-yellow
+  background: $warning
   animation: segmentPulse 1.5s ease-in-out infinite
 
 .pending
@@ -95,11 +94,11 @@
   z-index: 100
   display: flex
   flex-direction: column
-  border: 1px solid rgba($neon-green, 0.2)
+  border: 1px solid rgba($success, 0.2)
   border-radius: 14px
   background: rgba($bg-secondary, 0.95)
   backdrop-filter: blur(10px)
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 0 8px rgba($neon-green, 0.05)
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08)
   overflow: hidden
 
 .stripToggle
@@ -118,7 +117,7 @@
   text-align: left
 
   &:hover
-    background: rgba(255, 255, 255, 0.03)
+    background: rgba(0, 0, 0, 0.03)
 
 .separator
   color: $text-muted
@@ -187,16 +186,13 @@
   flex-shrink: 0
 
 .green
-  background: $neon-green
-  box-shadow: 0 0 4px rgba($neon-green, 0.6)
+  background: $success
 
 .yellow
-  background: $neon-yellow
-  box-shadow: 0 0 4px rgba($neon-yellow, 0.6)
+  background: $warning
 
 .red
-  background: $neon-red
-  box-shadow: 0 0 4px rgba($neon-red, 0.6)
+  background: $danger
 
 .muted
   background: $text-muted

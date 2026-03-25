@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { ChevronDown, Check } from 'lucide-react'
 import { useDevices, useSelectedDevices, useMediaActions } from '@/hooks/useMediaManager'
 import styles from './DeviceDropdown.module.sass'
 
@@ -48,7 +49,7 @@ export const DeviceDropdown = ({ kind, direction = 'down' }: DeviceDropdownProps
         aria-label={`Select ${kind} device`}
         type="button"
       >
-        [▾]
+        <ChevronDown size={14} />
       </button>
 
       {isOpen && (
@@ -60,7 +61,7 @@ export const DeviceDropdown = ({ kind, direction = 'down' }: DeviceDropdownProps
               onClick={() => handleSelect(device.deviceId)}
               type="button"
             >
-              {device.deviceId === selectedId ? '> ' : '  '}
+              {device.deviceId === selectedId && <Check size={12} className={styles.checkIcon} />}
               {device.label || `${kind === 'audio' ? 'Microphone' : 'Camera'} ${device.deviceId.slice(0, 8)}`}
             </button>
           ))}

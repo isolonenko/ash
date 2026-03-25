@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { MicOff } from 'lucide-react'
 import styles from './ParticipantTile.module.sass'
 
 interface ParticipantTileProps {
@@ -78,7 +79,11 @@ export const ParticipantTile = ({
         <div className={styles.label}>{displayName}</div>
       </div>
 
-      {!audioEnabled && <div className={styles.mutedBadge}>[MIC OFF]</div>}
+      {!audioEnabled && (
+        <div className={styles.mutedBadge}>
+          <MicOff size={14} />
+        </div>
+      )}
     </div>
   )
 }

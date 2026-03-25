@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Mic, MicOff, Camera, CameraOff } from "lucide-react";
 import { useRoomContext } from "@/context/room-context";
 import { useLocalStream, useMediaState, useMediaActions, useDevices } from "@/hooks/useMediaManager";
 import { navigateTo } from "@/lib/router";
@@ -43,7 +44,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
       try {
         await acquire();
       } catch {
-        // Silently fail — user sees "CAMERA OFF" placeholder
+        // Silently fail — user sees "Camera off" placeholder
       }
     };
 
@@ -97,7 +98,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
             <video ref={videoRef} className={styles.video} />
           ) : (
             <div className={styles.videoPlaceholder}>
-              <div className={styles.placeholderText}>CAMERA OFF</div>
+              <div className={styles.placeholderText}>Camera off</div>
             </div>
           )}
         </div>
@@ -121,7 +122,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
               }
               onClick={toggleMic}
             >
-              {isMicEnabled ? "[MIC]" : "[MIC OFF]"}
+              {isMicEnabled ? <Mic size={18} /> : <MicOff size={18} />}
             </button>
             <DeviceDropdown kind="audio" direction="down" />
           </div>
@@ -134,7 +135,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
                 }
                 onClick={toggleCam}
               >
-                {isCamEnabled ? "[CAM]" : "[CAM OFF]"}
+                {isCamEnabled ? <Camera size={18} /> : <CameraOff size={18} />}
               </button>
               <DeviceDropdown kind="video" direction="down" />
             </div>
@@ -146,7 +147,7 @@ export const Preview = ({ roomId }: PreviewProps) => {
           onClick={handleJoin}
           disabled={!displayName.trim()}
         >
-          [JOIN]
+          Join
         </button>
       </div>
     </div>

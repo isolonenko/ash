@@ -5,20 +5,21 @@
   display: inline-flex
 
 .trigger
+  display: flex
+  align-items: center
+  justify-content: center
   background: transparent
   border: 1px solid $border-color
+  border-radius: 4px
   color: $text-secondary
-  font-family: $font-mono
   font-size: $font-sm
   padding: $space-xs
   cursor: pointer
   transition: all $transition-fast
-  letter-spacing: 1px
-  line-height: 1
 
   &:hover
-    border-color: $neon-cyan
-    color: $neon-cyan
+    border-color: $accent
+    color: $accent
 
 .dropdown
   position: absolute
@@ -27,6 +28,7 @@
   max-width: 320px
   background: $bg-secondary
   border: 1px solid $border-color
+  border-radius: 6px
   z-index: 200
   max-height: 200px
   overflow-y: auto
@@ -40,7 +42,9 @@
   margin-top: $space-xs
 
 .option
-  display: block
+  display: flex
+  align-items: center
+  gap: $space-xs
   width: 100%
   background: transparent
   border: none
@@ -48,6 +52,7 @@
   font-family: $font-mono
   font-size: $font-xs
   padding: $space-sm $space-md
+  padding-left: calc($space-md + 16px)
   text-align: left
   cursor: pointer
   white-space: nowrap
@@ -56,8 +61,12 @@
   transition: all $transition-fast
 
   &:hover
-    background: rgba($neon-cyan, 0.1)
+    background: rgba($accent, 0.1)
     color: $text-primary
 
 .optionSelected
-  color: $neon-cyan
+  color: $accent
+  padding-left: $space-md
+
+.checkIcon
+  flex-shrink: 0
