@@ -2,6 +2,8 @@
 
 Private, peer-to-peer encrypted chat. No accounts, no servers storing messages — just you and the person you're talking to.
 
+**[Try it live](https://chat.relaysapp.xyz/)** · No signup, no install.
+
 Built with WebRTC for direct peer-to-peer connections. A lightweight signaling server helps peers find each other, then gets out of the way.
 
 ## Deploy
