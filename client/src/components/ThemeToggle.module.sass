@@ -1,0 +1,17 @@
+@use "../styles/variables" as *
+
+.toggle
+  background: transparent
+  border: 1px solid var(--border-color)
+  border-radius: 6px
+  color: var(--text-secondary)
+  padding: $space-sm
+  cursor: pointer
+  transition: all $transition-fast
+  display: flex
+  align-items: center
+  justify-content: center
+
+  &:hover
+    border-color: var(--text-primary)
+    color: var(--text-primary)

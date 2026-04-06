@@ -8,8 +8,14 @@
   justify-content: center
   width: 100vw
   height: 100vh
-  background: $bg-primary
+  background: var(--bg-primary)
   overflow: hidden
+
+.themeToggle
+  position: absolute
+  top: $space-lg
+  right: $space-lg
+  z-index: 10
 
 .container
   position: relative
@@ -32,17 +38,20 @@
   width: 100px
   height: auto
 
+  :root[data-theme="dark"] &
+    filter: invert(1)
+
 .title
   font-family: $font-display
   font-size: $font-3xl
   font-weight: 700
-  color: $text-primary
+  color: var(--text-primary)
   margin: 0
 
 .tagline
   font-family: $font-display
   font-size: $font-base
-  color: $text-muted
+  color: var(--text-muted)
   margin: 0
   letter-spacing: 1px
 
@@ -68,18 +77,18 @@
   position: relative
   width: 100%
   height: 1px
-  background: $border-color
+  background: var(--border-color)
   display: flex
   align-items: center
   justify-content: center
 
 .dividerText
   position: absolute
-  background: $bg-primary
+  background: var(--bg-primary)
   padding: 0 $space-md
   font-family: $font-display
   font-size: $font-sm
-  color: $text-muted
+  color: var(--text-muted)
 
 .joinForm
   display: flex
@@ -91,9 +100,9 @@
   width: 100%
   padding: $space-md
   background: transparent
-  border: 1px solid $border-color
+  border: 1px solid var(--border-color)
   border-radius: 6px
-  color: $text-primary
+  color: var(--text-primary)
   font-family: $font-mono
   font-size: $font-base
   text-align: center
@@ -102,11 +111,11 @@
   transition: border-color $transition-fast
 
   &::placeholder
-    color: $text-muted
+    color: var(--text-muted)
 
   &:focus
     outline: none
-    border-color: $accent
+    border-color: var(--accent)
 
 .joinButton
   +button-success

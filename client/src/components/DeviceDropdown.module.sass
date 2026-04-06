@@ -9,25 +9,25 @@
   align-items: center
   justify-content: center
   background: transparent
-  border: 1px solid $border-color
+  border: 1px solid var(--border-color)
   border-radius: 4px
-  color: $text-secondary
+  color: var(--text-secondary)
   font-size: $font-sm
   padding: $space-xs
   cursor: pointer
   transition: all $transition-fast
 
   &:hover
-    border-color: $accent
-    color: $accent
+    border-color: var(--accent)
+    color: var(--accent)
 
 .dropdown
   position: absolute
   left: 0
   min-width: 220px
   max-width: 320px
-  background: $bg-secondary
-  border: 1px solid $border-color
+  background: var(--bg-secondary)
+  border: 1px solid var(--border-color)
   border-radius: 6px
   z-index: 200
   max-height: 200px
@@ -48,7 +48,7 @@
   width: 100%
   background: transparent
   border: none
-  color: $text-secondary
+  color: var(--text-secondary)
   font-family: $font-mono
   font-size: $font-xs
   padding: $space-sm $space-md
@@ -61,11 +61,11 @@
   transition: all $transition-fast
 
   &:hover
-    background: rgba($accent, 0.1)
-    color: $text-primary
+    background: color-mix(in srgb, var(--accent) 10%, transparent)
+    color: var(--text-primary)
 
 .optionSelected
-  color: $accent
+  color: var(--accent)
   padding-left: $space-md
 
 .checkIcon

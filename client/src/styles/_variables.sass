@@ -1,21 +1,12 @@
 // ── Color Tokens ─────────────────────────────────────────
-$bg-primary: #e8e8e8
-$bg-secondary: #f0f0f0
-$bg-tertiary: #f5f5f5
-$bg-surface: #ebebeb
-$bg-input: #ffffff
-
-$accent: #555555
-
-$text-primary: #000000
-$text-secondary: #555555
-$text-muted: #999999
-
-$border-color: #d0d0d0
-
+// Colors are now CSS custom properties defined in global.sass
+// Use var(--color-name) in component .module.sass files
+// These SASS vars are kept ONLY for use in rgba() or SASS functions
+// where CSS vars can't be used directly (e.g., rgba($danger, 0.15))
 $danger: #dc2626
 $success: #5a8a6a
 $warning: #999999
+$accent-raw: #555555
 
 // ── Typography ───────────────────────────────────────────
 $font-mono: "JetBrains Mono", monospace

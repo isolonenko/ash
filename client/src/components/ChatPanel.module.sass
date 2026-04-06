@@ -24,14 +24,14 @@
   right: 0
   width: 320px
   height: 100%
-  background: $bg-secondary
-  border-left: 1px solid $border-color
+  background: var(--bg-secondary)
+  border-left: 1px solid var(--border-color)
   display: flex
   flex-direction: column
   transform: translateX(100%)
   transition: transform $transition-base
   z-index: 999
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08)
+  box-shadow: -2px 0 12px rgba(0, 0, 0, var(--shadow-alpha))
 
   &Open
     transform: translateX(0)
@@ -42,14 +42,14 @@
   align-items: center
   justify-content: space-between
   padding: $space-md
-  border-bottom: 1px solid $border-color
-  background: $bg-tertiary
+  border-bottom: 1px solid var(--border-color)
+  background: var(--bg-tertiary)
   min-height: $header-height
 
 .title
   font-family: $font-display
   font-size: $font-base
-  color: $accent
+  color: var(--accent)
   letter-spacing: 1px
 
 .closeButton
@@ -63,8 +63,8 @@
   border-radius: 2px
   
   &:hover
-    border-color: $accent
-    color: $accent
+    border-color: var(--accent)
+    color: var(--accent)
 
 // ── Messages ───────────────────────────────────────────────────
 .messages
@@ -74,14 +74,14 @@
   display: flex
   flex-direction: column
   gap: $space-md
-  background: $bg-primary
+  background: var(--bg-primary)
 
 .empty
   display: flex
   align-items: center
   justify-content: center
   height: 100%
-  color: $text-muted
+  color: var(--text-muted)
   font-size: $font-sm
   font-family: $font-display
 
@@ -99,15 +99,15 @@
 
 .messageOwn
   align-self: flex-end
-  background: rgba($accent, 0.08)
-  border: 1px solid rgba($accent, 0.15)
-  border-right: 2px solid $accent
+  background: color-mix(in srgb, var(--accent) 8%, transparent)
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent)
+  border-right: 2px solid var(--accent)
 
 .messageOther
   align-self: flex-start
-  background: rgba($text-secondary, 0.08)
-  border: 1px solid rgba($text-secondary, 0.15)
-  border-left: 2px solid $text-secondary
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent)
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 15%, transparent)
+  border-left: 2px solid var(--text-secondary)
 
 .messageSender
   font-size: $font-xs
@@ -115,21 +115,21 @@
   letter-spacing: 0.5px
 
 .messageOwn .messageSender
-  color: $accent
+  color: var(--accent)
   text-align: right
 
 .messageOther .messageSender
-  color: $text-secondary
+  color: var(--text-secondary)
 
 .messageText
   font-size: $font-sm
-  color: $text-primary
+  color: var(--text-primary)
   line-height: 1.5
   word-break: break-word
 
 .messageTime
   font-size: $font-xs
-  color: $text-muted
+  color: var(--text-muted)
   font-family: $font-mono
 
 .messageOwn .messageTime
@@ -140,25 +140,25 @@
   display: flex
   gap: $space-sm
   padding: $space-md
-  border-top: 1px solid $border-color
-  background: $bg-secondary
+  border-top: 1px solid var(--border-color)
+  background: var(--bg-secondary)
 
 .input
   flex: 1
   padding: $space-sm $space-md
-  background: $bg-input
-  border: 1px solid $border-color
-  color: $text-primary
+  background: var(--bg-input)
+  border: 1px solid var(--border-color)
+  color: var(--text-primary)
   font-family: $font-mono
   font-size: $font-sm
   transition: border-color $transition-fast
 
   &:focus
     outline: none
-    border-color: $accent
+    border-color: var(--accent)
 
   &::placeholder
-    color: $text-muted
+    color: var(--text-muted)
 
 .sendButton
   +button-primary
@@ -186,9 +186,9 @@
     bottom: 0
     right: 0
     border-left: none
-    border-top: 1px solid $border-color
+    border-top: 1px solid var(--border-color)
     transform: translateY(100%)
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08)
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, var(--shadow-alpha))
 
     &Open
       transform: translateY(0)

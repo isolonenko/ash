@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useRoomContext } from '@/context/room-context'
 import { navigateTo } from '@/lib/router'
+import { ThemeToggle } from './ThemeToggle'
 import styles from './Landing.module.sass'
 
 export const Landing = () => {
@@ -22,6 +23,7 @@ export const Landing = () => {
 
   return (
     <div className={styles.landing}>
+      <ThemeToggle className={styles.themeToggle} />
       <div className={styles.container}>
         <div className={styles.header}>
           <img src="/favicon.svg" alt="Ash" className={styles.logo} />
