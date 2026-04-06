@@ -57,6 +57,7 @@ export const VideoGrid = ({
         userId={participant.peerId}
         audioEnabled={participant.audioEnabled}
         videoEnabled={participant.videoEnabled}
+        connectionState={participant.connectionState}
         provideMediaRef={provideMediaRef}
       />
     )

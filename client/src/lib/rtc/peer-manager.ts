@@ -131,6 +131,31 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
     }
   }
 
+  handlePeerExisting(remotePeerId: string, displayName?: string): void {
+    if (this.peers.has(remotePeerId)) return
+
+    const pc = this.createPeerConnection(remotePeerId)
+    const peerSenders = this.addLocalTracks(pc)
+
+    const internal: InternalPeer = {
+      connection: pc,
+      dataChannel: null,
+      remoteStream: null,
+      displayName: displayName ?? remotePeerId,
+      iceRestartAttempts: 0,
+      iceCandidateQueue: [],
+      audioEnabled: true,
+      videoEnabled: true,
+      screenSharing: false,
+      pendingMessages: [],
+    }
+
+    this.peers.set(remotePeerId, internal)
+    this.sendersMap.set(remotePeerId, peerSenders)
+
+    this.emit('peer-added', remotePeerId, internal.displayName)
+  }
+
   handlePeerLeft(remotePeerId: string): void {
     const internal = this.peers.get(remotePeerId)
     if (!internal) return
@@ -390,6 +415,10 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
           })
           .catch(err => console.error('[RTC] ICE restart failed:', err))
         return
+      }
+
+      if (pc.connectionState === 'failed' && internal && internal.iceRestartAttempts >= ICE_RESTART_MAX_ATTEMPTS) {
+        this.emit('peer-failed', remotePeerId)
       }
 
       if (pc.connectionState === 'connected' && internal) {

@@ -3,6 +3,7 @@ import { API_URL } from "@/lib/config";
 interface TurnConfig {
   iceServers: RTCIceServer[];
   iceTransportPolicy: RTCIceTransportPolicy;
+  degraded: boolean;
 }
 
 export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
@@ -16,6 +17,7 @@ export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
         { urls: "stun:stun.l.google.com:19302" },
       ],
       iceTransportPolicy: "all",
+      degraded: false,
     };
   } catch (err) {
     console.warn(
@@ -25,6 +27,7 @@ export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
     return {
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       iceTransportPolicy: "all",
+      degraded: true,
     };
   }
 };

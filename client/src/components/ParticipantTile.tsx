@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { MicOff } from 'lucide-react'
+import { MicOff, Loader2, AlertTriangle } from 'lucide-react'
 import styles from './ParticipantTile.module.sass'
 
 interface ParticipantTileProps {
@@ -11,6 +11,7 @@ interface ParticipantTileProps {
   userId: string
   audioEnabled: boolean
   videoEnabled: boolean
+  connectionState: RTCPeerConnectionState | 'local'
   provideMediaRef?: (peerId: string, node: HTMLVideoElement | null) => void
 }
 
@@ -23,6 +24,7 @@ export const ParticipantTile = ({
   userId,
   audioEnabled,
   videoEnabled,
+  connectionState,
   provideMediaRef,
 }: ParticipantTileProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -45,6 +47,10 @@ export const ParticipantTile = ({
   const hasLiveVideoTrack = stream?.getVideoTracks().some(t => t.readyState === 'live' && t.enabled) ?? false
   const showVideo = videoEnabled && hasLiveVideoTrack
 
+  const isConnecting = !isLocalUser && (connectionState === 'new' || connectionState === 'connecting')
+  const isFailed = !isLocalUser && (connectionState === 'failed' || connectionState === 'closed')
+  const isDisconnected = !isLocalUser && connectionState === 'disconnected'
+
   const initial = displayName.charAt(0).toUpperCase()
 
   return (
@@ -54,6 +60,7 @@ export const ParticipantTile = ({
       data-screenshare={isScreenSharing}
       data-userid={userId}
       data-video-off={!videoEnabled}
+      data-connection={connectionState}
     >
       <video
         ref={node => {
@@ -72,6 +79,27 @@ export const ParticipantTile = ({
       {!showVideo && (
         <div className={styles.placeholder}>
           <div className={styles.initial}>{initial}</div>
+        </div>
+      )}
+
+      {isConnecting && (
+        <div className={styles.connectionOverlay}>
+          <Loader2 size={20} className={styles.spinner} />
+          <span>Connecting...</span>
+        </div>
+      )}
+
+      {isFailed && (
+        <div className={`${styles.connectionOverlay} ${styles.failed}`}>
+          <AlertTriangle size={20} />
+          <span>Connection failed</span>
+        </div>
+      )}
+
+      {isDisconnected && (
+        <div className={`${styles.connectionOverlay} ${styles.disconnected}`}>
+          <Loader2 size={20} className={styles.spinner} />
+          <span>Reconnecting...</span>
         </div>
       )}
 

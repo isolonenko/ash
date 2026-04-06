@@ -33,7 +33,7 @@ export interface MediaToggleState {
  * - unknown: Unexpected error occurred
  */
 export interface RTCClientError {
-  type: 'room-full' | 'media-denied' | 'media-not-found' | 'signaling-failed' | 'turn-failed' | 'codec-failed' | 'connect-timeout' | 'unknown'
+  type: 'room-full' | 'media-denied' | 'media-not-found' | 'signaling-failed' | 'turn-failed' | 'turn-degraded' | 'codec-failed' | 'connect-timeout' | 'peer-failed' | 'unknown'
   message: string
 }
 
@@ -98,6 +98,7 @@ export interface PeerManagerEvents {
   'peer-stream-removed': (peerId: string) => void
   'peer-connection-state': (peerId: string, state: RTCPeerConnectionState) => void
   'peer-media-state': (peerId: string, state: MediaToggleState) => void
+  'peer-failed': (peerId: string) => void
   message: (peerId: string, msg: DataChannelMessage) => void
 }
 

@@ -1,7 +1,15 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import type { Participant, ChatMessage } from '@/types'
 import { useRoomContext } from '@/context/room-context'
-import { useConnectionState, useConnectSubState, useLocalMedia, usePeers, useMessages, useRTCActions } from '@/hooks/useRTC'
+import {
+  useConnectionState,
+  useConnectSubState,
+  useLocalMedia,
+  usePeers,
+  useMessages,
+  useLastError,
+  useRTCActions,
+} from '@/hooks/useRTC'
 import { useSpeakingIndicator } from '@/hooks/useSpeakingIndicator'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import { usePictureInPicture } from '@/hooks/usePictureInPicture'
@@ -29,6 +37,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
   const { stream: localStream, isMicEnabled, isCamEnabled, isScreenSharing } = useLocalMedia()
   const peers = usePeers()
   const messages = useMessages()
+  const lastError = useLastError()
   const { connect, disconnect, toggleMic, toggleCam, startScreenShare, stopScreenShare, sendMessage } = useRTCActions()
   const pip = usePictureInPicture()
   const callDuration = useCallDuration()
@@ -78,6 +87,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         screenSharing: isScreenSharing,
         stream: localStream,
         isSpeaking: speakingMap.get('local') ?? false,
+        connectionState: 'local',
       })
     }
 
@@ -90,11 +100,12 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         screenSharing: peer.screenSharing,
         stream: peer.stream,
         isSpeaking: speakingMap.get(peerId) ?? false,
+        connectionState: peer.connectionState,
       })
     }
 
     return result
-  }, [localUserId, displayName, isMicEnabled, isCamEnabled, localStream, peers, speakingMap])
+  }, [localUserId, displayName, isMicEnabled, isCamEnabled, isScreenSharing, localStream, speakingMap, peers])
 
   const displayNames = useMemo(() => {
     const map = new Map<string, string>()
@@ -160,6 +171,7 @@ export const RoomView = ({ roomId }: RoomViewProps) => {
         signalingConnected={connectionState === 'connected'}
         peers={peers}
         localPeerId={localUserId}
+        lastError={lastError}
         onRetry={handleRetry}
       />
       <VideoGrid
