@@ -9,6 +9,7 @@ const defaultProps = {
   signalingConnected: false,
   peers: new Map(),
   localPeerId: 'test-peer-id-12345',
+  lastError: null,
 }
 
 describe('ConnectionStatus', () => {

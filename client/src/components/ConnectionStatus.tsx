@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { RTCClientState, PeerSnapshot, ConnectSubState } from '@/lib/rtc'
+import type { RTCClientState, PeerSnapshot, ConnectSubState, RTCClientError } from '@/lib/rtc'
 import styles from './ConnectionStatus.module.sass'
 
 // ── Types ────────────────────────────────────────────────
@@ -10,6 +10,7 @@ interface ConnectionStatusProps {
   signalingConnected: boolean
   peers: Map<string, PeerSnapshot>
   localPeerId: string
+  lastError: RTCClientError | null
   onRetry?: () => void
   reconnectAttempt?: number
   reconnectMaxAttempts?: number
@@ -171,11 +172,13 @@ export const ConnectionStatus = ({
   signalingConnected,
   peers,
   localPeerId,
+  lastError,
   onRetry,
   reconnectAttempt,
   reconnectMaxAttempts,
 }: ConnectionStatusProps) => {
   const [debugOpen, setDebugOpen] = useState(false)
+  const turnDegraded = lastError?.type === 'turn-degraded'
 
   if (connectionState === 'idle') return null
 
@@ -217,6 +220,11 @@ export const ConnectionStatus = ({
 
   return (
     <div className={styles.connectedStrip}>
+      {turnDegraded && (
+        <div className={styles.warningBanner}>
+          Relay unavailable — direct connection only. Strict NATs may cause issues.
+        </div>
+      )}
       <button
         className={styles.stripToggle}
         onClick={() => setDebugOpen(prev => !prev)}

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { RoomManager } from "../lib/room-manager.ts";
 import {
   broadcastToOthers,
+  buildPeerExistingMessage,
   buildPeerJoinedMessage,
   buildPeerLeftMessage,
   buildSocketTags,
@@ -39,21 +40,21 @@ export const createSignalingRoutes = (roomManager: RoomManager): Hono => {
 
         const existingSockets = roomManager.getSockets(roomId);
 
-        // Notify existing peers about the joiner
+        // Notify existing peers about the joiner — they will create offers
         broadcastToOthers(
           [...existingSockets.keys()],
           socket,
           buildPeerJoinedMessage(roomId, peerId, displayName),
         );
 
-        // Notify joiner about existing peers
+        // Notify joiner about existing peers — joiner prepares PCs but waits for offers
         for (const [peer, peerTags] of existingSockets) {
           if (peer === socket) continue;
           const peerPeerId = extractPeerIdFromTags(peerTags);
           const peerDisplayName = extractDisplayNameFromTags(peerTags);
           try {
             socket.send(
-              buildPeerJoinedMessage(roomId, peerPeerId, peerDisplayName),
+              buildPeerExistingMessage(roomId, peerPeerId, peerDisplayName),
             );
           } catch {
             // peer may be closing

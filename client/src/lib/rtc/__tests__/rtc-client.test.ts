@@ -9,6 +9,10 @@ vi.mock('@/lib/turn', () => ({
   fetchTurnCredentials: vi.fn().mockResolvedValue({
     iceServers: [{ urls: 'stun:stun.test:19302' }],
     iceTransportPolicy: 'all',
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
+    iceCandidatePoolSize: 1,
+    degraded: false,
   }),
 }))
 
@@ -324,6 +328,10 @@ describe('RTCClient', () => {
         vi.mocked(fetchTurnCredentials).mockResolvedValueOnce({
           iceServers: [{ urls: 'stun:stun.test:19302' }],
           iceTransportPolicy: 'all' as RTCIceTransportPolicy,
+          bundlePolicy: 'max-bundle' as RTCBundlePolicy,
+          rtcpMuxPolicy: 'require' as RTCRtcpMuxPolicy,
+          iceCandidatePoolSize: 1,
+          degraded: false,
         })
 
         const states: RTCClientState[] = []

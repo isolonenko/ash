@@ -3,6 +3,10 @@ import { API_URL } from "@/lib/config";
 interface TurnConfig {
   iceServers: RTCIceServer[];
   iceTransportPolicy: RTCIceTransportPolicy;
+  bundlePolicy: RTCBundlePolicy;
+  rtcpMuxPolicy: RTCRtcpMuxPolicy;
+  iceCandidatePoolSize: number;
+  degraded: boolean;
 }
 
 export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
@@ -16,6 +20,10 @@ export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
         { urls: "stun:stun.l.google.com:19302" },
       ],
       iceTransportPolicy: "all",
+      bundlePolicy: "max-bundle",
+      rtcpMuxPolicy: "require",
+      iceCandidatePoolSize: 1,
+      degraded: false,
     };
   } catch (err) {
     console.warn(
@@ -25,6 +33,10 @@ export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
     return {
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       iceTransportPolicy: "all",
+      bundlePolicy: "max-bundle",
+      rtcpMuxPolicy: "require",
+      iceCandidatePoolSize: 1,
+      degraded: true,
     };
   }
 };
