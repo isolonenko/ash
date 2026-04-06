@@ -12,6 +12,7 @@ vi.mock('@/lib/turn', () => ({
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
     iceCandidatePoolSize: 1,
+    degraded: false,
   }),
 }))
 
@@ -216,9 +217,7 @@ describe('RTCClient', () => {
 
       try {
         const { fetchTurnCredentials } = await import('@/lib/turn')
-        vi.mocked(fetchTurnCredentials).mockImplementationOnce(
-          () => new Promise(() => {}),
-        )
+        vi.mocked(fetchTurnCredentials).mockImplementationOnce(() => new Promise(() => {}))
 
         const errors: Array<{ type: string }> = []
         client.on('error', err => errors.push(err))
@@ -233,9 +232,7 @@ describe('RTCClient', () => {
         await connectPromise
 
         expect(states).toContain('failed')
-        expect(errors).toContainEqual(
-          expect.objectContaining({ type: 'connect-timeout' }),
-        )
+        expect(errors).toContainEqual(expect.objectContaining({ type: 'connect-timeout' }))
       } finally {
         vi.useRealTimers()
       }
@@ -250,9 +247,7 @@ describe('RTCClient', () => {
 
       await client.connect()
 
-      expect(errors).toContainEqual(
-        expect.objectContaining({ type: 'turn-failed' }),
-      )
+      expect(errors).toContainEqual(expect.objectContaining({ type: 'turn-failed' }))
     })
 
     it('emits codec-failed error when codec selection fails', async () => {
@@ -264,9 +259,7 @@ describe('RTCClient', () => {
 
       await client.connect()
 
-      expect(errors).toContainEqual(
-        expect.objectContaining({ type: 'codec-failed' }),
-      )
+      expect(errors).toContainEqual(expect.objectContaining({ type: 'codec-failed' }))
     })
 
     it('emits signaling-failed error when waitForOpen rejects', async () => {
@@ -277,9 +270,7 @@ describe('RTCClient', () => {
 
       await client.connect()
 
-      expect(errors).toContainEqual(
-        expect.objectContaining({ type: 'signaling-failed' }),
-      )
+      expect(errors).toContainEqual(expect.objectContaining({ type: 'signaling-failed' }))
     })
 
     it('awaits signaling waitForOpen before emitting connected', async () => {
@@ -314,9 +305,7 @@ describe('RTCClient', () => {
 
       try {
         const { fetchTurnCredentials } = await import('@/lib/turn')
-        vi.mocked(fetchTurnCredentials).mockImplementationOnce(
-          () => new Promise(() => {}),
-        )
+        vi.mocked(fetchTurnCredentials).mockImplementationOnce(() => new Promise(() => {}))
 
         const connectPromise = client.connect()
         await vi.advanceTimersByTimeAsync(16_000)
@@ -330,6 +319,7 @@ describe('RTCClient', () => {
           bundlePolicy: 'max-bundle' as RTCBundlePolicy,
           rtcpMuxPolicy: 'require' as RTCRtcpMuxPolicy,
           iceCandidatePoolSize: 1,
+          degraded: false,
         })
 
         const states: RTCClientState[] = []
@@ -526,9 +516,7 @@ describe('RTCClient', () => {
       await client.startScreenShare()
 
       expect(mockMediaStartScreenShare).toHaveBeenCalled()
-      expect(mockPeerManagerSendToAll).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'media-state' }),
-      )
+      expect(mockPeerManagerSendToAll).toHaveBeenCalledWith(expect.objectContaining({ type: 'media-state' }))
     })
 
     it('does nothing before connect', async () => {
@@ -543,9 +531,7 @@ describe('RTCClient', () => {
       await client.stopScreenShare()
 
       expect(mockMediaStopScreenShare).toHaveBeenCalled()
-      expect(mockPeerManagerSendToAll).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'media-state' }),
-      )
+      expect(mockPeerManagerSendToAll).toHaveBeenCalledWith(expect.objectContaining({ type: 'media-state' }))
     })
   })
 

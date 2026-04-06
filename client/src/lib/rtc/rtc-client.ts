@@ -35,7 +35,14 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
       this.emitSubStep('fetching-turn')
       let iceConfig: RTCConfiguration
       try {
-        iceConfig = await fetchTurnCredentials()
+        const turnResult = await fetchTurnCredentials()
+        iceConfig = turnResult
+        if (turnResult.degraded) {
+          this.emit('error', {
+            type: 'turn-degraded',
+            message: 'Relay server unavailable — using direct connection only. Connections across strict NATs may fail.',
+          })
+        }
       } catch (err) {
         this.emit('error', {
           type: 'turn-failed',
@@ -310,6 +317,14 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
       this.emit('peer-connection-state', peerId, state)
     })
 
+    this.peerManager.on('peer-failed', (peerId) => {
+      this.emit('error', {
+        type: 'peer-failed',
+        message: `Connection to peer failed after all retry attempts`,
+      })
+      this.emit('peer-connection-state', peerId, 'failed')
+    })
+
     this.peerManager.on('peer-media-state', (peerId, state) => {
       this.emit('peer-media-state', peerId, state)
     })
@@ -339,6 +354,10 @@ export class RTCClient extends TypedEventEmitter<RTCClientEvents> {
     switch (msg.type) {
       case 'peer-joined': {
         this.peerManager.handlePeerJoined(senderPeerId, msg.displayName)
+        break
+      }
+      case 'peer-existing': {
+        this.peerManager.handlePeerExisting(senderPeerId, msg.displayName)
         break
       }
       case 'peer-left': {

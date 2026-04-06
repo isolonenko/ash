@@ -16,6 +16,7 @@ export interface Participant {
   screenSharing: boolean;
   stream: MediaStream | null;
   isSpeaking: boolean;
+  connectionState: RTCPeerConnectionState | 'local';
 }
 
 // ── Messages (ephemeral chat) ────────────────────────────
@@ -38,6 +39,7 @@ export type SignalingMessageType =
   | "sdp-answer"
   | "ice-candidate"
   | "peer-joined"
+  | "peer-existing"
   | "peer-left"
   | "error";
 

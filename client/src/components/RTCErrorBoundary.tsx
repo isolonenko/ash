@@ -44,6 +44,14 @@ function getErrorUI(error: RTCClientError): {
           { label: 'Leave', action: 'leave' },
         ],
       }
+    case 'peer-failed':
+      return {
+        message: 'Peer connection failed after multiple retries. Try rejoining the room.',
+        actions: [
+          { label: 'Retry', action: 'retry' },
+          { label: 'Leave', action: 'leave' },
+        ],
+      }
     default:
       return {
         message: 'An unexpected error occurred. Please try again.',
@@ -105,7 +113,8 @@ function RTCErrorWatcher({
 
   useEffect(() => {
     // Detect transition from null → error (ignore same error)
-    if (error && error !== previousErrorRef.current) {
+    // Skip non-blocking warnings like turn-degraded
+    if (error && error !== previousErrorRef.current && error.type !== 'turn-degraded') {
       previousErrorRef.current = error
       onRTCError(error)
     }

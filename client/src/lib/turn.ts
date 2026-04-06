@@ -6,6 +6,7 @@ interface TurnConfig {
   bundlePolicy: RTCBundlePolicy
   rtcpMuxPolicy: RTCRtcpMuxPolicy
   iceCandidatePoolSize: number
+  degraded: boolean
 }
 
 const common: Omit<TurnConfig, 'iceServers'> = {
@@ -13,6 +14,7 @@ const common: Omit<TurnConfig, 'iceServers'> = {
   bundlePolicy: 'max-bundle',
   rtcpMuxPolicy: 'require',
   iceCandidatePoolSize: 1,
+  degraded: false,
 }
 
 export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
@@ -29,6 +31,7 @@ export const fetchTurnCredentials = async (): Promise<TurnConfig> => {
     return {
       ...common,
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      degraded: true,
     }
   }
 }

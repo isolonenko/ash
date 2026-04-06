@@ -42,6 +42,24 @@ export const buildPeerJoinedMessage = (
     displayName,
   });
 
+/**
+ * Sent to the joiner for each peer already in the room.
+ * The joiner should prepare a PeerConnection but NOT create an offer —
+ * the existing peer will initiate the offer via `peer-joined`.
+ * This eliminates SDP glare when both sides try to offer simultaneously.
+ */
+export const buildPeerExistingMessage = (
+  roomId: string,
+  peerId?: string,
+  displayName?: string,
+): string =>
+  JSON.stringify({
+    type: "peer-existing",
+    roomId,
+    peerId,
+    displayName,
+  });
+
 export const buildPeerLeftMessage = (
   roomId: string,
   peerId?: string,
