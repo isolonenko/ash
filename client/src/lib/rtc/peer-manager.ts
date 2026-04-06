@@ -16,6 +16,7 @@ import {
   RTT_THRESHOLD,
 } from '@/lib/constants'
 import { applyCodecPreference } from '@/lib/codec-selection'
+import { enhanceOpusSdp } from '@/lib/sdp-utils'
 
 // ── Bitrate Management ──────────────────────────────────
 
@@ -116,7 +117,13 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
     this.emit('peer-added', remotePeerId, internal.displayName)
 
     try {
-      await pc.setLocalDescription()
+      const offer = await pc.createOffer()
+
+      if (offer.sdp) {
+        offer.sdp = enhanceOpusSdp(offer.sdp)
+      }
+
+      await pc.setLocalDescription(offer)
       this.signalingManager.send(
         {
           type: 'sdp-offer',
@@ -190,7 +197,13 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
         internal.iceCandidateQueue = []
       }
 
-      await pc.setLocalDescription()
+      const answer = await pc.createAnswer()
+
+      if (answer.sdp) {
+        answer.sdp = enhanceOpusSdp(answer.sdp)
+      }
+
+      await pc.setLocalDescription(answer)
 
       this.signalingManager.send(
         {
@@ -376,7 +389,14 @@ export class PeerManager extends TypedEventEmitter<PeerManagerEvents> {
           `[RTC] Peer ${remotePeerId} failed — ICE restart (${internal.iceRestartAttempts}/${ICE_RESTART_MAX_ATTEMPTS})`,
         )
         pc.restartIce()
-        pc.setLocalDescription()
+        pc.createOffer({ iceRestart: true })
+          .then(offer => {
+            if (offer.sdp) {
+              offer.sdp = enhanceOpusSdp(offer.sdp)
+            }
+
+            return pc.setLocalDescription(offer)
+          })
           .then(() => {
             this.signalingManager.send(
               {
