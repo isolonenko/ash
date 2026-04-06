@@ -7,15 +7,15 @@
   left: $space-md
   right: $space-md
   z-index: 100
-  background: rgba($bg-secondary, 0.95)
-  border: 1px solid $border-color
+  background: color-mix(in srgb, var(--bg-secondary) 95%, transparent)
+  border: 1px solid var(--border-color)
   border-radius: 14px
   padding: $space-md $space-lg
   display: flex
   align-items: center
   justify-content: space-between
   backdrop-filter: blur(10px)
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08)
+  box-shadow: 0 2px 12px rgba(0, 0, 0, var(--shadow-alpha))
 
 .roomInfo
   display: flex
@@ -25,14 +25,14 @@
 .roomCode
   font-family: $font-mono
   font-size: $font-lg
-  color: $text-primary
+  color: var(--text-primary)
   letter-spacing: 2px
   text-transform: lowercase
 
 .duration
   font-family: $font-mono
   font-size: $font-sm
-  color: $text-secondary
+  color: var(--text-secondary)
   letter-spacing: 1px
 
 .copyButton
@@ -46,8 +46,8 @@
   gap: $space-xs
 
   &:disabled
-    color: $success
-    border-color: $success
+    color: var(--success)
+    border-color: var(--success)
 
 .controls
   display: flex
@@ -62,7 +62,7 @@
 .separator
   width: 1px
   height: 24px
-  background: $border-color
+  background: var(--border-color)
   flex-shrink: 0
 
 .mediaGroup
@@ -124,6 +124,13 @@
 
 .buttonScreenActive
   +button-primary
+  padding: $space-sm
+  display: flex
+  align-items: center
+  justify-content: center
+
+.buttonTheme
+  +button-ghost
   padding: $space-sm
   display: flex
   align-items: center

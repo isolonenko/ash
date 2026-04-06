@@ -1,5 +1,41 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap")
 
+// ── Theme Tokens (Light) ─────────────────────────────────
+\:root
+  --bg-primary: #e8e8e8
+  --bg-secondary: #f0f0f0
+  --bg-tertiary: #f5f5f5
+  --bg-surface: #ebebeb
+  --bg-input: #ffffff
+  --accent: #555555
+  --text-primary: #000000
+  --text-secondary: #555555
+  --text-muted: #999999
+  --border-color: #d0d0d0
+  --danger: #dc2626
+  --success: #5a8a6a
+  --warning: #999999
+  --shadow-alpha: 0.08
+  color-scheme: light
+
+// ── Theme Tokens (Dark) ──────────────────────────────────
+\:root[data-theme="dark"]
+  --bg-primary: #141414
+  --bg-secondary: #1c1c1c
+  --bg-tertiary: #222222
+  --bg-surface: #1a1a1a
+  --bg-input: #252525
+  --accent: #a0a0a0
+  --text-primary: #e8e8e8
+  --text-secondary: #a0a0a0
+  --text-muted: #666666
+  --border-color: #333333
+  --danger: #ef4444
+  --success: #6dba82
+  --warning: #888888
+  --shadow-alpha: 0.25
+  color-scheme: dark
+
 // ── Reset ────────────────────────────────────────────────
 *,
 *::before,
@@ -15,10 +51,11 @@ html
 
 body
   font-family: $font-display
-  background: $bg-primary
-  color: $text-primary
+  background: var(--bg-primary)
+  color: var(--text-primary)
   min-height: 100vh
   overflow: hidden
+  transition: background $transition-base, color $transition-base
 
 #root
   min-height: 100vh
@@ -30,23 +67,23 @@ body
   width: 6px
 
 ::-webkit-scrollbar-track
-  background: $bg-secondary
+  background: var(--bg-secondary)
 
 ::-webkit-scrollbar-thumb
-  background: $border-color
+  background: var(--border-color)
   border-radius: 0
 
   &:hover
-    background: $accent
+    background: var(--accent)
 
 // ── Selection ────────────────────────────────────────────
 ::selection
-  background: rgba($accent, 0.3)
-  color: $text-primary
+  background: rgba($accent-raw, 0.3)
+  color: var(--text-primary)
 
 // ── Links ────────────────────────────────────────────────
 a
-  color: $accent
+  color: var(--accent)
   text-decoration: none
 
   &:hover

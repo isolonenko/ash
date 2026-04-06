@@ -7,7 +7,7 @@
   position: relative
   width: 100vw
   height: 100vh
-  background: $bg-primary
+  background: var(--bg-primary)
   display: flex
   flex-direction: column
   align-items: center
@@ -25,13 +25,18 @@
   padding: $space-lg
   display: flex
   justify-content: center
+  align-items: center
   z-index: 3
 
 .roomCode
   font-family: $font-mono
   font-size: $font-lg
-  color: $text-primary
+  color: var(--text-primary)
   letter-spacing: 4px
+
+.themeToggle
+  position: absolute
+  right: $space-lg
 
 // ── Preview Section ───────────────────────────────────────────────
 
@@ -51,8 +56,8 @@
   position: relative
   width: 100%
   aspect-ratio: 16 / 9
-  background: $bg-secondary
-  border: 1px solid $border-color
+  background: var(--bg-secondary)
+  border: 1px solid var(--border-color)
   border-radius: 8px
   overflow: hidden
 
@@ -68,12 +73,12 @@
   display: flex
   align-items: center
   justify-content: center
-  background: $bg-tertiary
+  background: var(--bg-tertiary)
 
 .placeholderText
   font-family: $font-display
   font-size: $font-xl
-  color: $text-muted
+  color: var(--text-muted)
 
 // ── Name Input ────────────────────────────────────────────────────
 
@@ -81,8 +86,8 @@
   width: 100%
   padding: $space-md
   background: transparent
-  border: 1px solid $border-color
-  color: $text-primary
+  border: 1px solid var(--border-color)
+  color: var(--text-primary)
   font-family: $font-mono
   font-size: $font-base
   text-align: center
@@ -91,10 +96,10 @@
   transition: all $transition-fast
 
   &::placeholder
-    color: $text-muted
+    color: var(--text-muted)
 
   &:focus
-    border-color: $accent
+    border-color: var(--accent)
 
 // ── Controls ──────────────────────────────────────────────────────
 
@@ -142,7 +147,7 @@
   padding: 10px 14px
   background: rgba($danger, 0.1)
   border: 1px solid rgba($danger, 0.3)
-  color: $danger
+  color: var(--danger)
   font-family: $font-mono
   font-size: 0.75rem
   margin-top: 8px
@@ -163,14 +168,14 @@
   max-width: 500px
   width: 100%
   padding: $space-2xl
-  background: $bg-secondary
-  border: 1px solid $border-color
+  background: var(--bg-secondary)
+  border: 1px solid var(--border-color)
   border-radius: 4px
 
 .errorMessage
   font-family: $font-mono
   font-size: $font-xl
-  color: $danger
+  color: var(--danger)
   text-align: center
 
 .backButton

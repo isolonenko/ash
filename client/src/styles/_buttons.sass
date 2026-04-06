@@ -11,41 +11,41 @@
 
 =button-primary
   +button-base
-  border: 1px solid $accent
-  color: $accent
+  border: 1px solid var(--accent)
+  color: var(--accent)
   &:hover
-    background: rgba($accent, 0.1)
+    background: color-mix(in srgb, var(--accent) 10%, transparent)
   &:disabled
     opacity: 0.3
     cursor: not-allowed
 
 =button-success
   +button-base
-  border: 1px solid $success
-  color: $success
+  border: 1px solid var(--success)
+  color: var(--success)
   &:hover
-    background: rgba($success, 0.1)
+    background: color-mix(in srgb, var(--success) 10%, transparent)
   &:disabled
     opacity: 0.3
     cursor: not-allowed
 
 =button-danger
   +button-base
-  border: 1px solid $danger
-  color: $danger
+  border: 1px solid var(--danger)
+  color: var(--danger)
   &:hover
-    background: rgba($danger, 0.1)
+    background: color-mix(in srgb, var(--danger) 10%, transparent)
   &:disabled
     opacity: 0.3
     cursor: not-allowed
 
 =button-ghost
   +button-base
-  border: 1px solid $border-color
-  color: $text-secondary
+  border: 1px solid var(--border-color)
+  color: var(--text-secondary)
   &:hover
-    border-color: $text-primary
-    color: $text-primary
+    border-color: var(--text-primary)
+    color: var(--text-primary)
   &:disabled
     opacity: 0.3
     cursor: not-allowed

@@ -5,17 +5,17 @@
   width: 100%
   height: 100%
   min-height: 0
-  background: $bg-secondary
-  border: 2px solid $border-color
+  background: var(--bg-secondary)
+  border: 2px solid var(--border-color)
   border-radius: 4px
   overflow: hidden
   transition: border-color $transition-fast, box-shadow $transition-fast
 
   &[data-local="true"]
-    border-color: rgba($accent, 0.4)
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent)
 
   &.speaking
-    border-color: $success
+    border-color: var(--success)
     box-shadow: 0 0 8px rgba($success, 0.3)
     animation: speaking-pulse 1.2s ease-in-out infinite
 
@@ -40,7 +40,7 @@
   width: 100%
   height: 100%
   object-fit: cover
-  background: $bg-secondary
+  background: var(--bg-secondary)
 
 .tile[data-screenshare="true"] .video
   object-fit: contain
@@ -54,14 +54,14 @@
   display: flex
   align-items: center
   justify-content: center
-  background: linear-gradient(135deg, $bg-tertiary 0%, $bg-surface 100%)
-  border: 1px solid $border-color
+  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-surface) 100%)
+  border: 1px solid var(--border-color)
 
 .initial
   font-family: $font-display
   font-size: 3rem
   font-weight: 700
-  color: $accent
+  color: var(--accent)
   user-select: none
 
 .overlay
@@ -76,7 +76,8 @@
 .label
   font-family: $font-mono
   font-size: $font-sm
-  color: $text-primary
+  color: #ffffff
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6)
   text-align: center
   white-space: nowrap
   overflow: hidden
@@ -91,9 +92,9 @@
   justify-content: center
   padding: $space-xs
   background: rgba($danger, 0.15)
-  border: 1px solid $danger
+  border: 1px solid var(--danger)
   border-radius: 2px
-  color: $danger
+  color: var(--danger)
   pointer-events: none
 
 .connectionOverlay
@@ -108,17 +109,17 @@
   justify-content: center
   gap: $space-sm
   background: rgba(#000, 0.5)
-  color: $text-primary
+  color: #ffffff
   font-family: $font-mono
   font-size: $font-sm
   z-index: 2
   pointer-events: none
 
   &.failed
-    color: $danger
+    color: var(--danger)
 
   &.disconnected
-    color: $warning
+    color: var(--warning)
 
 .spinner
   animation: spin 1s linear infinite
