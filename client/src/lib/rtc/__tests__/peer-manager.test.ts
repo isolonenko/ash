@@ -21,6 +21,8 @@ function createMockRTCPeerConnection() {
     getSenders: vi.fn(() => []),
     getTransceivers: vi.fn(() => []),
     addIceCandidate: vi.fn().mockResolvedValue(undefined),
+    createOffer: vi.fn(async () => ({ type: 'offer' as const, sdp: 'mock-sdp' })),
+    createAnswer: vi.fn(async () => ({ type: 'answer' as const, sdp: 'mock-sdp' })),
     setLocalDescription: vi.fn(async function (this: Record<string, unknown>, desc?: RTCSessionDescriptionInit) {
       if (desc?.type === 'rollback') {
         this.signalingState = 'stable';
@@ -91,6 +93,10 @@ function createMockStream(): MediaStream {
 
 vi.mock('@/lib/codec-selection', () => ({
   applyCodecPreference: vi.fn(),
+}));
+
+vi.mock('@/lib/sdp-utils', () => ({
+  enhanceOpusSdp: vi.fn((sdp: string) => sdp),
 }));
 
 // Save original and mock RTCPeerConnection globally

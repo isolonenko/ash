@@ -140,12 +140,14 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
         const audioTrack = stream.getAudioTracks()[0];
         if (audioTrack) {
           this._selectedAudioId = audioTrack.getSettings().deviceId ?? null;
+          audioTrack.contentHint = 'speech';
         }
       }
       if (hasVideo) {
         const videoTrack = stream.getVideoTracks()[0];
         if (videoTrack) {
           this._selectedVideoId = videoTrack.getSettings().deviceId ?? null;
+          videoTrack.contentHint = 'motion';
         }
       }
 
@@ -214,6 +216,7 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
     try {
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
       const newTrack = newStream.getTracks()[0];
+      newTrack.contentHint = kind === 'audio' ? 'speech' : 'motion';
 
       const oldTrack = kind === 'audio'
         ? this._stream.getAudioTracks()[0]
@@ -287,6 +290,7 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const screenTrack = screenStream.getVideoTracks()[0];
       if (!screenTrack) return;
+      screenTrack.contentHint = 'detail';
 
       this._camWasEnabledBeforeShare = this._isCamEnabled;
       const currentVideoTrack = this._stream.getVideoTracks()[0];
@@ -346,6 +350,7 @@ export class MediaManager extends TypedEventEmitter<MediaManagerEvents> {
         const camStream = await navigator.mediaDevices.getUserMedia(constraints);
         const camTrack = camStream.getVideoTracks()[0];
         if (camTrack) {
+          camTrack.contentHint = 'motion';
           this._stream.addTrack(camTrack);
           this._isCamEnabled = true;
           this._onTrackReplaced?.('video', camTrack);
